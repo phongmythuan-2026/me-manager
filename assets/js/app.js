@@ -10,18 +10,25 @@ if (typeof document !== 'undefined') {
       appFrame.title = 'ME Manager';
       appFrame.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;border:0;background:#fff;';
       var loadingState = document.createElement('div');
-      loadingState.style.cssText = 'position:fixed;inset:0;z-index:2;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:24px;background:#fff;color:#334155;text-align:center;font:16px sans-serif;';
-      loadingState.textContent = 'Đang kết nối ME Manager...';
+      loadingState.style.cssText = 'position:fixed;inset:0;z-index:2;display:flex;align-items:center;justify-content:center;padding:20px;background:#f1f5f9;color:#1e293b;text-align:center;font-family:system-ui,sans-serif;';
+      var loginCard = document.createElement('main');
+      loginCard.style.cssText = 'width:100%;max-width:480px;padding:32px 24px;border:1px solid #dbe3ec;border-radius:12px;background:#fff;box-shadow:0 12px 32px rgba(15,23,42,.12);';
+      var brand = document.createElement('h1');
+      brand.textContent = 'ME MANAGER';
+      brand.style.cssText = 'margin:0 0 10px;font-size:24px;line-height:1.25;font-weight:700;';
+      var status = document.createElement('p');
+      status.textContent = 'Đang kết nối đến màn hình đăng nhập...';
+      status.style.cssText = 'margin:0;color:#475569;font-size:16px;line-height:1.5;';
+      loginCard.append(brand, status);
+      loadingState.appendChild(loginCard);
 
       var fallbackTimer = window.setTimeout(function() {
-        loadingState.textContent = 'Không tải được giao diện nhúng. Mở ME Manager trực tiếp:';
+        status.textContent = 'Không tải được giao diện nhúng. Mở màn hình đăng nhập trực tiếp:';
         var directLink = document.createElement('a');
         directLink.href = API_CONFIG.GAS_API_URL;
-        directLink.target = '_blank';
-        directLink.rel = 'noopener';
-        directLink.textContent = 'Mở ứng dụng';
-        directLink.style.cssText = 'display:inline-block;padding:10px 16px;border-radius:6px;background:#0d6efd;color:#fff;text-decoration:none;font-weight:600;';
-        loadingState.appendChild(directLink);
+        directLink.textContent = 'Mở màn hình đăng nhập';
+        directLink.style.cssText = 'display:flex;align-items:center;justify-content:center;width:100%;min-height:54px;margin-top:20px;padding:12px 18px;border-radius:8px;background:#0d6efd;color:#fff;text-decoration:none;font-size:17px;font-weight:700;';
+        loginCard.appendChild(directLink);
       }, 8000);
 
       appFrame.addEventListener('load', function() {

@@ -1,53 +1,171 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ME Manager - Hệ thống Quản lý Thiết bị & Bảo trì</title>
-    <!-- Ant Design CSS CDN -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/antd/5.12.5/reset.min.css" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/antd/5.12.5/antd.min.css" />
-    <!-- Custom CSS -->
-    <link rel="stylesheet" href="assets/css/style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ME Manager - Bảo Trì & Sự Cố Máy Móc</title>
+  
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- FontAwesome Icons -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <!-- FullCalendar CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet">
+  <!-- SweetAlert2 -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <!-- Custom CSS -->
+  <link href="assets/css/style.css" rel="stylesheet">
 </head>
-<body>
-    <div id="app">
-        <!-- Layout Khung chính -->
-        <div class="app-container" style="display: flex; height: 100vh;">
-            <!-- Sidebar Menu -->
-            <div style="width: 260px; background: #001529; color: #fff; padding: 20px;">
-                <h2 style="color: #fff; text-align: center; margin-bottom: 30px;">ME MANAGER</h2>
-                <ul id="nav-menu" style="list-style: none; padding: 0;">
-                    <li style="padding: 12px 15px; cursor: pointer; border-radius: 4px; margin-bottom: 5px; background: #1890ff;" onclick="loadModule('dashboard')">📊 Tổng quan Dashboard</li>
-                    <li style="padding: 12px 15px; cursor: pointer; border-radius: 4px; margin-bottom: 5px;" onclick="loadModule('equipment')">⚙️ Quản lý Thiết bị</li>
-                    <li style="padding: 12px 15px; cursor: pointer; border-radius: 4px; margin-bottom: 5px;" onclick="loadModule('maintenance')">🛠️ Lịch Bảo trì</li>
-                </ul>
-            </div>
+<body onclick="hideContextMenu()">
 
-            <!-- Main Content Area -->
-            <div style="flex: 1; display: flex; flex-direction: column; background: #f0f2f5;">
-                <!-- Header -->
-                <div style="height: 64px; background: #fff; display: flex; align-items: center; justify-content: space-between; padding: 0 24px; box-shadow: 0 1px 4px rgba(0,21,41,.08);">
-                    <h3 id="module-title" style="margin: 0; color: #333;">Tổng quan Dashboard</h3>
-                    <div>Xin chào, <b>Admin</b></div>
-                </div>
-
-                <!-- Dynamic Content Container -->
-                <div id="main-content" style="padding: 24px; overflow-y: auto; flex: 1;">
-                    <!-- Nội dung module sẽ được load động vào đây -->
-                    <div style="background: #fff; padding: 24px; border-radius: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
-                        <h2>Chào mừng đến với hệ thống ME Manager!</h2>
-                        <p>Chọn một module ở menu bên trái để bắt đầu làm việc.</p>
-                    </div>
-                </div>
-            </div>
+  <!-- MÀN HÌNH ĐĂNG NHẬP -->
+  <div id="login-view" class="login-container">
+    <div class="card shadow-lg border-0 login-card p-4">
+      <div class="text-center mb-4">
+        <div class="bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-2" style="width: 60px; height: 60px;">
+          <i class="fa-solid fa-screwdriver-wrench fa-2x"></i>
         </div>
+        <h4 class="fw-bold text-dark">ME MANAGER</h4>
+        <p class="text-muted small">Hệ thống Quản lý Bảo trì & Sự cố Máy móc</p>
+      </div>
+      <form onsubmit="handleLogin(event)">
+        <div class="mb-3">
+          <label class="form-label fw-bold">Mã nhân viên</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="fa-solid fa-user"></i></span>
+            <input type="text" id="loginMaNV" class="form-control" placeholder="Mã NV (VD: 00528)" required>
+          </div>
+        </div>
+        <div class="mb-4">
+          <label class="form-label fw-bold">Mật khẩu</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="fa-solid fa-key"></i></span>
+            <input type="password" id="loginPassword" class="form-control" placeholder="Mật khẩu" required>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary w-100 py-2 fw-bold">
+          <i class="fa-solid fa-right-to-bracket me-2"></i> Đăng nhập
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- GIAO DIỆN CHÍNH -->
+  <div id="app-layout" style="display: none;">
+    <!-- SIDEBAR DESKTOP -->
+    <div class="sidebar d-none d-lg-block">
+      <div class="p-3 border-bottom border-secondary text-center">
+        <h5 class="m-0 fw-bold text-white"><i class="fa-solid fa-screwdriver-wrench text-warning me-2"></i>ME MANAGER</h5>
+      </div>
+      <div class="nav flex-column mt-3">
+        <a class="nav-link active" href="#" onclick="switchTab('dashboard', this)"><i class="fa-solid fa-chart-line"></i> Dashboard</a>
+        <a class="nav-link" href="#" onclick="switchTab('yeucau', this)"><i class="fa-solid fa-list-check"></i> Quản lý Yêu cầu</a>
+        <a class="nav-link" href="#" onclick="switchTab('mmtb', this)"><i class="fa-solid fa-microchip"></i> Máy móc thiết bị</a>
+        <a class="nav-link" href="#" onclick="switchTab('baocaosx', this)"><i class="fa-solid fa-file-excel text-success"></i> BC Sản xuất (SP)</a>
+        <a class="nav-link" href="#" onclick="switchTab('danhmuc', this)"><i class="fa-solid fa-folder-tree"></i> Danh mục & Push</a>
+      </div>
     </div>
 
-    <!-- Ant Design & React (nếu cần dùng component nâng cao) + Axios -->
-    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-    <!-- File Logic của ứng dụng -->
-    <script src="assets/js/api.js"></script>
-    <script src="assets/js/app.js"></script>
+    <!-- MAIN WRAPPER -->
+    <div class="main-wrapper">
+      <div class="top-navbar">
+        <div class="d-flex align-items-center gap-2">
+          <h5 class="m-0 fw-bold text-secondary" id="page-title">Tổng quan hệ thống</h5>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          <button class="btn btn-sm btn-outline-secondary" onclick="openChangePasswordModal()" title="Đổi mật khẩu">
+            <i class="fa-solid fa-key"></i>
+          </button>
+          <span class="fw-medium text-dark d-none d-sm-inline small">
+            <span id="current-user-name">--</span> (<span id="current-user-id">--</span> - <span id="current-user-role" class="badge bg-primary">--</span>)
+          </span>
+          <button class="btn btn-outline-danger btn-sm" onclick="handleLogout()" title="Đăng xuất">
+            <i class="fa-solid fa-power-off"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- CONTENT BODY -->
+      <div class="content-body p-3">
+        <!-- 1. DASHBOARD -->
+        <div id="tab-dashboard" class="tab-pane">
+          <div class="row g-3 mb-4">
+            <div class="col-sm-6 col-xl-3"><div class="card border-0 shadow-sm bg-primary bg-opacity-10 card-body"><h6 class="text-primary fw-bold">Tổng số Yêu cầu</h6><h3 class="fw-bold mb-0 text-primary" id="stat-total">0</h3></div></div>
+            <div class="col-sm-6 col-xl-3"><div class="card border-0 shadow-sm bg-warning bg-opacity-10 card-body"><h6 class="text-warning fw-bold text-dark">Chờ tiếp nhận</h6><h3 class="fw-bold mb-0 text-dark" id="stat-pending">0</h3></div></div>
+            <div class="col-sm-6 col-xl-3"><div class="card border-0 shadow-sm bg-info bg-opacity-10 card-body"><h6 class="text-info fw-bold text-dark">Đang thực hiện</h6><h3 class="fw-bold mb-0 text-dark" id="stat-processing">0</h3></div></div>
+            <div class="col-sm-6 col-xl-3"><div class="card border-0 shadow-sm bg-success bg-opacity-10 card-body"><h6 class="text-success fw-bold">Đã hoàn thành</h6><h3 class="fw-bold mb-0 text-success" id="stat-completed">0</h3></div></div>
+          </div>
+          <div class="card border-0 shadow-sm"><div class="card-body"><div id="calendar"></div></div></div>
+        </div>
+
+        <!-- 2. QUẢN LÝ YÊU CẦU -->
+        <div id="tab-yeucau" class="tab-pane d-none">
+          <div class="card border-0 shadow-sm mb-3"><div class="card-body">
+            <div class="row g-2 align-items-center">
+              <div class="col-md-4"><input type="text" id="filterYCSearch" class="form-control form-control-sm" placeholder="Tìm kiếm..." oninput="resetYCPagingAndRender()"></div>
+              <div class="col-md-3"><select id="filterYCKhuVuc" class="form-select form-select-sm" onchange="resetYCPagingAndRender()"><option value="">-- Tất cả Khu vực --</option></select></div>
+              <div class="col-md-3"><select id="filterYCTrangThai" class="form-select form-select-sm" onchange="resetYCPagingAndRender()"><option value="">-- Tất cả Trạng thái --</option><option value="Chờ tiếp nhận">Chờ tiếp nhận</option><option value="Chờ thực hiện">Chờ thực hiện</option><option value="Đã hoàn thành">Đã hoàn thành</option><option value="Đã hủy">Đã hủy</option></select></div>
+              <div class="col-md-2"><button class="btn btn-primary btn-sm w-100 fw-bold" onclick="openModalYC('ADD')"><i class="fa-solid fa-plus me-1"></i> Tạo Yêu cầu</button></div>
+            </div>
+          </div></div>
+          <div class="card border-0 shadow-sm"><div class="card-body p-0"><div class="table-responsive table-container">
+            <table class="table table-custom table-hover align-middle mb-0" id="tblYeuCau">
+              <thead class="table-light"><tr><th class="text-center" style="width:50px;">#</th><th>ID</th><th>Trạng thái</th><th>Ngày YC</th><th>Loại YC</th><th>Khu vực</th><th>Máy móc/TB</th><th>Ảnh YC</th><th>Ảnh HT</th><th>Mô tả sự cố</th><th>Người YC</th><th>Người tiếp nhận</th></tr></thead>
+              <tbody id="tblYeuCauBody"></tbody>
+            </table>
+          </div></div></div>
+        </div>
+
+        <!-- 3. MÁY MÓC THIẾT BỊ -->
+        <div id="tab-mmtb" class="tab-pane d-none">
+          <div class="card border-0 shadow-sm mb-3"><div class="card-body">
+            <div class="row g-2 align-items-center">
+              <div class="col-md-5"><input type="text" id="filterMMTBSearch" class="form-control form-control-sm" placeholder="Tìm MMTB..." oninput="resetMMTBPagingAndRender()"></div>
+              <div class="col-md-4"><select id="filterMMTBKhuVuc" class="form-select form-select-sm" onchange="resetMMTBPagingAndRender()"><option value="">-- Tất cả Khu vực --</option></select></div>
+              <div class="col-md-3"><button class="btn btn-success btn-sm w-100 fw-bold" onclick="openModalMMTB('ADD')"><i class="fa-solid fa-plus me-1"></i> Thêm MMTB</button></div>
+            </div>
+          </div></div>
+          <div class="card border-0 shadow-sm"><div class="card-body p-0"><div class="table-responsive table-container">
+            <table class="table table-custom table-hover align-middle mb-0" id="tblMMTB">
+              <thead class="table-light"><tr><th class="text-center" style="width:50px;">#</th><th>Mã</th><th>Tên MMTB</th><th>Khu vực</th><th>ĐVT</th><th>Công suất</th><th>Hình ảnh</th><th>Tình trạng</th></tr></thead>
+              <tbody id="tblMMTBBody"></tbody>
+            </table>
+          </div></div></div>
+        </div>
+
+        <!-- 4. BÁO CÁO SẢN XUẤT SHAREPOINT (MODULE) -->
+        <div id="tab-baocaosx" class="tab-pane d-none">
+          <div class="card border-0 shadow-sm mb-3"><div class="card-body py-2 d-flex justify-content-between align-items-center">
+            <h5 class="m-0 fw-bold text-primary"><i class="fa-solid fa-file-excel text-success me-2"></i>Báo cáo sản xuất (SharePoint Modular)</h5>
+            <button class="btn btn-sm btn-primary fw-bold" onclick="loadModuleSharePointData('BAO_CAO_SX')"><i class="fa-solid fa-rotate me-1"></i> Tải lại dữ liệu</button>
+          </div></div>
+          <div class="card border-0 shadow-sm"><div class="card-body p-0"><div class="table-custom-wrapper" style="max-height: calc(100vh - 220px);">
+            <table class="table table-custom table-hover align-middle mb-0" id="tblSharePointData">
+              <thead class="table-light" id="tblSPHead"></thead>
+              <tbody id="tblSPBody"><tr><td colspan="10" class="text-center text-muted py-4">Chọn module hoặc bấm tải lại để đồng bộ...</td></tr></tbody>
+            </table>
+          </div></div></div>
+        </div>
+
+        <!-- 5. DANH MỤC & CÀI ĐẶT -->
+        <div id="tab-danhmuc" class="tab-pane d-none">
+          <div class="row g-3">
+            <div class="col-md-4"><div class="card border-0 shadow-sm h-100"><div class="card-header bg-white fw-bold">Khu vực</div><ul class="list-group list-group-flush" id="listKhuVuc"></ul></div></div>
+            <div class="col-md-4"><div class="card border-0 shadow-sm h-100"><div class="card-header bg-white fw-bold">Loại yêu cầu</div><ul class="list-group list-group-flush" id="listLoaiYC"></ul></div></div>
+            <div class="col-md-4"><div class="card border-0 shadow-sm h-100"><div class="card-header bg-white fw-bold">Danh sách User</div><ul class="list-group list-group-flush" id="listUsers"></ul></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONTEXT MENU & MODALS -->
+  <div id="custom-context-menu" class="custom-context-menu"></div>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+  <script src="assets/js/api.js"></script>
+  <script src="assets/js/app.js"></script>
 </body>
 </html>

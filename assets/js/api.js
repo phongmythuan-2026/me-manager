@@ -1,7 +1,7 @@
 // --- CẤU HÌNH CÁC ENDPOINT API ---
 const API_CONFIG = {
   // URL Web App của Google Apps Script (Backend xử lý Google Sheets & Drive Upload)
-  GAS_API_URL: "https://script.google.com/macros/s/YOUR_GAS_DEPLOY_ID/exec",
+  GAS_API_URL: "https://script.google.com/macros/s//AKfycbyBFMbRDL3CpnOJwo6Drh54hCTr6kn7Y7a9j7w8u5ItFUM0RlJLh3MGGeLo1c3O89zuLg/exec",
 
   // Cấu hình các bảng SharePoint qua Power Automate theo dạng Module
   SHAREPOINT_MODULES: {

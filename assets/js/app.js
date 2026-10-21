@@ -2,13 +2,24 @@ var currentUser = null;
 var appData = { mmtb: [], yeuCau: [], user: [], khuVuc: [], loaiYC: [] };
 var fullCalendarObj = null;
 
-document.addEventListener("DOMContentLoaded", function() {
-  var savedUser = localStorage.getItem('mmtb_user');
-  if (savedUser) {
-    currentUser = JSON.parse(savedUser);
-    initApp();
-  }
-});
+if (typeof document !== 'undefined') {
+  document.addEventListener("DOMContentLoaded", function() {
+    if (window.location.hostname === 'phongmythuan-2026.github.io') {
+      var appFrame = document.createElement('iframe');
+      appFrame.src = API_CONFIG.GAS_API_URL;
+      appFrame.title = 'ME Manager';
+      appFrame.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;border:0;background:#fff;';
+      document.body.replaceChildren(appFrame);
+      return;
+    }
+
+    var savedUser = localStorage.getItem('mmtb_user');
+    if (savedUser) {
+      currentUser = JSON.parse(savedUser);
+      initApp();
+    }
+  });
+}
 
 function handleLogin(e) {
   e.preventDefault();

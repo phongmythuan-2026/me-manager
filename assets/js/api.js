@@ -1,61 +1,54 @@
-// --- CẤU HÌNH API ENDPOINTS ---
-const CONFIG = {
-    // URL Web App của Google Apps Script (Dùng để GHI dữ liệu & UPLOAD FILE)
-    GAS_API_URL: "https://script.google.com/macros/s/YOUR_GAS_DEPLOY_ID/exec",
-    
-    // URL Power Automate HTTP Request (Dùng để ĐỌC dữ liệu từ SharePoint theo Module)
-    SHAREPOINT_API_URL: "https://prod-xx.southeastasia.logic.azure.com:443/workflows/YOUR_WORKFLOW_ID/triggers/manual/paths/invoke..."
+// --- CẤU HÌNH CÁC ENDPOINT API ---
+const API_CONFIG = {
+  // URL Web App của Google Apps Script (Backend xử lý Google Sheets & Drive Upload)
+  GAS_API_URL: "https://script.google.com/macros/s/YOUR_GAS_DEPLOY_ID/exec",
+
+  // Cấu hình các bảng SharePoint qua Power Automate theo dạng Module
+  SHAREPOINT_MODULES: {
+    "BAO_CAO_SX": {
+      name: "Báo cáo sản xuất",
+      url: "https://defaultaab18f10652f4cd396cb119ca693ef.00.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/10/workflows/8ae53370aac14c0b88762d82cf742464/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=UZEPcMc-Vtkr9eArrpSNsDA6VUuwNFQVs4JALr1HLGI"
+    }
+    // Sau này muốn thêm module SharePoint mới, chỉ cần khai báo thêm vào đây:
+    // "KHO_VAT_TU": { name: "Quản lý kho", url: "URL_POWER_AUTOMATE_MỚI" }
+  }
 };
 
-// 1. Hàm ĐỌC dữ liệu từ SharePoint (Thông qua Power Automate theo dạng Module)
-async function fetchSharePointData(moduleName) {
-    try {
-        console.log(`Đang tải dữ liệu module [${moduleName}] từ SharePoint...`);
-        const response = await axios.get(`${CONFIG.SHAREPOINT_API_URL}&module=${moduleName}`);
-        return response.data; // Trả về danh sách dữ liệu JSON
-    } catch (error) {
-        console.error("Lỗi khi đọc dữ liệu SharePoint:", error);
-        alert("Không thể tải dữ liệu từ SharePoint. Vui lòng kiểm tra lại kết nối!");
-        return [];
-    }
-}
-
-// 2. Hàm GHI dữ liệu lên Google Sheets (Thông qua Google Apps Script)
-async function postGoogleSheetData(actionType, sheetName, payload) {
-    try {
-        const response = await axios.post(CONFIG.GAS_API_URL, {
-            action: actionType,
-            sheetName: sheetName,
-            data: payload
-        }, {
-            headers: { "Content-Type": "text/plain;charset=utf-8" } // Tránh lỗi CORS preflight của Google Script
-        });
-        return { success: true, data: response.data };
-    } catch (error) {
-        console.error("Lỗi khi ghi dữ liệu Google Sheets:", error);
-        return { success: false, error: error };
-    }
-}
-
-// 3. Hàm UPLOAD FILE lên Google Drive (Thông qua Google Apps Script)
-async function uploadFileToDrive(fileObject, fileName, mimeType) {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(fileObject);
-        reader.onload = async function () {
-            const base64Data = reader.result.split(',')[1]; // Lấy chuỗi base64 thuần
-            try {
-                const response = await axios.post(CONFIG.GAS_API_URL, {
-                    action: "UPLOAD_FILE",
-                    fileName: fileName,
-                    mimeType: mimeType,
-                    fileBase64: base64Data
-                });
-                resolve(response.data.url); // Trả về URL file trên Google Drive
-            } catch (error) {
-                reject(error);
-            }
-        };
-        reader.onerror = error => reject(error);
+// 1. Hàm gọi Google Apps Script (Đọc/Ghi dữ liệu ứng dụng chính)
+async function callGasApi(action, payload) {
+  try {
+    const response = await fetch(API_CONFIG.GAS_API_URL, {
+      method: "POST",
+      mode: "no-cors", // Tránh lỗi CORS từ Google Script Web App
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ action: action, data: payload })
     });
+    return { success: true, message: "Yêu cầu đã được gửi lên hệ thống." };
+  } catch (error) {
+    console.error("Lỗi gọi GAS API:", error);
+    return { success: false, message: error.toString() };
+  }
+}
+
+// 2. Hàm gọi Power Automate đọc dữ liệu SharePoint theo dạng Module linh hoạt
+async function fetchSharePointModuleData(tableKey) {
+  const modConfig = API_CONFIG.SHAREPOINT_MODULES[tableKey];
+  if (!modConfig || !modConfig.url) {
+    throw new Error(`Không tìm thấy cấu hình endpoint cho module SharePoint: ${tableKey}`);
+  }
+
+  try {
+    const response = await fetch(modConfig.url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "getData", table: tableKey })
+    });
+
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    const result = await response.json();
+    return result.value || result; // Hỗ trợ cả cấu trúc mảng trực tiếp hoặc thuộc tính .value từ Power Automate
+  } catch (error) {
+    console.error(`Lỗi khi đọc module SharePoint [${tableKey}]:`, error);
+    throw error;
+  }
 }

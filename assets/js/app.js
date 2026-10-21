@@ -9,7 +9,27 @@ if (typeof document !== 'undefined') {
       appFrame.src = API_CONFIG.GAS_API_URL;
       appFrame.title = 'ME Manager';
       appFrame.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;border:0;background:#fff;';
-      document.body.replaceChildren(appFrame);
+      var loadingState = document.createElement('div');
+      loadingState.style.cssText = 'position:fixed;inset:0;z-index:2;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:24px;background:#fff;color:#334155;text-align:center;font:16px sans-serif;';
+      loadingState.textContent = 'Đang kết nối ME Manager...';
+
+      var fallbackTimer = window.setTimeout(function() {
+        loadingState.textContent = 'Không tải được giao diện nhúng. Mở ME Manager trực tiếp:';
+        var directLink = document.createElement('a');
+        directLink.href = API_CONFIG.GAS_API_URL;
+        directLink.target = '_blank';
+        directLink.rel = 'noopener';
+        directLink.textContent = 'Mở ứng dụng';
+        directLink.style.cssText = 'display:inline-block;padding:10px 16px;border-radius:6px;background:#0d6efd;color:#fff;text-decoration:none;font-weight:600;';
+        loadingState.appendChild(directLink);
+      }, 8000);
+
+      appFrame.addEventListener('load', function() {
+        window.clearTimeout(fallbackTimer);
+        loadingState.remove();
+      }, { once: true });
+
+      document.body.replaceChildren(appFrame, loadingState);
       return;
     }
 

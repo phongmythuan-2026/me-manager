@@ -10,6 +10,7 @@
 - Chi tiết yêu cầu hiển thị thông tin master cùng lịch sử nhật ký sửa chữa theo mã yêu cầu và lịch sử vật tư theo ID TH của các nhật ký liên kết.
 - Form tạo/sửa yêu cầu hiển thị loại yêu cầu, khu vực và máy móc trên một hàng ba cột; mô tả chiếm toàn hàng, ngày hoàn thành và tệp đính kèm nằm cạnh nhau.
 - Chi tiết yêu cầu sắp xếp thông tin thành ba cột, giữ mô tả riêng và hai tab lịch sử sửa chữa, lịch sử sử dụng vật tư.
+- Form nhật ký sửa chữa bố trí các trường theo lưới ba cột; khi tạo từ một yêu cầu, loại công việc, máy móc và mã yêu cầu được kế thừa từ phiếu liên kết.
 - Thao tác nhanh ngoài bảng dùng nút chức năng trực tiếp; thao tác trên dòng trong bảng dùng menu ba chấm hoặc nhấp chuột phải.
 
 Sổ `KHO` có các cột: `ID KHO`, `Ngày nhập xuất`, `Mã vật tư`, `Số lượng`, `Đơn giá`, `Ghi chú`, `Người thực hiện`, `Ngày thực hiện`, `Mã yêu cầu`.

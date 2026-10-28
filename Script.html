@@ -38,6 +38,7 @@
   var machineRuntimeRows = [];
   var machineRuntimeLoaded = false;
   var machineRuntimeLoading = false;
+  var machineRuntimeError = '';
   var machineRuntimeChart = null;
   var machineRuntimeDateInitialized = false;
   var stockReportDatesInitialized = false;
@@ -2948,10 +2949,14 @@
     if (machineRuntimeLoading) return;
     if (machineRuntimeLoaded && !forceReload) {
       renderMachineRuntimeReport();
+      renderMachineReplacementTable();
       return;
     }
 
     machineRuntimeLoading = true;
+    machineRuntimeError = '';
+    var replacementStatus = document.getElementById('machineReplacementRuntimeStatus');
+    if (replacementStatus) replacementStatus.textContent = 'Đang tải báo cáo giờ chạy từ SharePoint...';
     document.getElementById('machineRuntimeStatus').innerText = 'Đang tải báo cáo SharePoint...';
     google.script.run
       .withSuccessHandler(function(result) {
@@ -2959,13 +2964,18 @@
         if (!result || !result.success || !Array.isArray(result.data)) {
           machineRuntimeRows = [];
           machineRuntimeLoaded = true;
+          machineRuntimeError = result && result.message ? result.message : 'Không tải được dữ liệu giờ chạy máy.';
           document.getElementById('machineRuntimeStatus').innerText = result && result.message ? result.message : 'Không tải được dữ liệu giờ chạy máy.';
+          if (replacementStatus) replacementStatus.textContent = 'Không tải được báo cáo giờ chạy: ' + machineRuntimeError;
           renderMachineRuntimeReport();
+          renderMachineReplacementTable();
           return;
         }
 
         machineRuntimeRows = result.data;
         machineRuntimeLoaded = true;
+        machineRuntimeError = '';
+        if (replacementStatus) replacementStatus.textContent = 'Đã cập nhật giờ chạy lúc ' + new Date().toLocaleTimeString('vi-VN') + '.';
         if (!machineRuntimeDateInitialized) {
           var endDateInput = document.getElementById('machineRuntimeEndDate');
           var endDate = getLocalMachineRuntimeDate();
@@ -2974,13 +2984,17 @@
           machineRuntimeDateInitialized = true;
         }
         renderMachineRuntimeReport();
+        renderMachineReplacementTable();
       })
       .withFailureHandler(function(error) {
         machineRuntimeLoading = false;
         machineRuntimeLoaded = true;
         machineRuntimeRows = [];
+        machineRuntimeError = error && error.message ? error.message : 'không rõ lỗi';
         document.getElementById('machineRuntimeStatus').innerText = 'Lỗi tải SharePoint: ' + (error && error.message ? error.message : 'không rõ lỗi');
+        if (replacementStatus) replacementStatus.textContent = 'Không tải được báo cáo giờ chạy: ' + machineRuntimeError;
         renderMachineRuntimeReport();
+        renderMachineReplacementTable();
       })
       .getBaoCaoSanXuatFromSharePoint();
   }
@@ -4129,7 +4143,10 @@
     areas.classList.toggle('d-none', viewName !== 'areas');
     var tabs = button ? button.parentNode.querySelectorAll('.nav-link') : [];
     Array.from(tabs).forEach(function(tab) { tab.classList.toggle('active', tab === button); });
-    if (viewName === 'replacement') renderMachineReplacementTable();
+    if (viewName === 'replacement') {
+      renderMachineReplacementTable();
+      loadMachineRuntimeReport(true);
+    }
     if (viewName === 'areas') renderKhuVucTab();
   }
 
@@ -4145,6 +4162,61 @@
     return (appData.thayThe || []).filter(function(item) {
       return String(getInventoryValue(item, ['Mã máy'])).trim() === String(machineCode || '').trim();
     });
+  }
+
+  function getLatestMachineMaterialReplacementDate(item) {
+    var materialCode = normalizeMaterialCode(getInventoryValue(item, ['Mã vật tư', 'Mã VT', 'Mã hàng', 'Mã']));
+    var machineCode = normalizeMachineRuntimeKey(getInventoryValue(item, ['Mã máy']));
+    var matchingDates = (appData.kho || []).filter(function(stock) {
+      return normalizeMaterialCode(getInventoryValue(stock, ['Mã vật tư', 'Mã VT', 'Mã hàng', 'Mã'])) === materialCode &&
+        normalizeMachineRuntimeKey(getInventoryValue(stock, ['Mã máy móc/thiết bị', 'Máy móc/thiết bị'])) === machineCode &&
+        Number(getInventoryValue(stock, ['Số lượng'])) < 0;
+    }).map(function(stock) {
+      return normalizeRuntimeDate(getInventoryValue(stock, ['Ngày nhập xuất']));
+    }).filter(Boolean).sort();
+    return matchingDates.length ? matchingDates[matchingDates.length - 1] : '';
+  }
+
+  function formatMachineReplacementDate(dateValue) {
+    if (!dateValue) return '';
+    var parts = dateValue.split('-');
+    return parts[2] + '/' + parts[1] + '/' + parts[0];
+  }
+
+  function getMachineReplacementCycleInfo(item) {
+    var replacementDate = getLatestMachineMaterialReplacementDate(item);
+    if (!replacementDate) {
+      return { date: '', hours: null, status: 'Chưa ghi nhận thay thế', badgeClass: 'bg-secondary' };
+    }
+    if (machineRuntimeError) {
+      return { date: replacementDate, hours: null, status: 'Không tải được giờ chạy', badgeClass: 'bg-secondary' };
+    }
+    if (!machineRuntimeLoaded) {
+      return { date: replacementDate, hours: null, status: 'Đang tải giờ chạy', badgeClass: 'bg-secondary' };
+    }
+
+    var frequencyText = String(getInventoryValue(item, ['Tần suất']) || '').trim().replace(',', '.');
+    var frequency = Number(frequencyText);
+    if (!isFinite(frequency) || frequency <= 0) {
+      return { date: replacementDate, hours: null, status: 'Chưa khai báo tần suất', badgeClass: 'bg-secondary' };
+    }
+    var today = getLocalMachineRuntimeDate();
+    var startTime = getReplacementTimestamp(replacementDate + 'T00:00:00');
+    var elapsedHours = sumMachineRuntimeHours(
+      getInventoryValue(item, ['Mã máy']),
+      startTime,
+      Date.now(),
+      replacementDate,
+      today
+    );
+    var percentage = elapsedHours / frequency * 100;
+    if (percentage > 100) {
+      return { date: replacementDate, hours: elapsedHours, status: 'Đã quá hạn thay thế', badgeClass: 'bg-danger' };
+    }
+    if (percentage < 90) {
+      return { date: replacementDate, hours: elapsedHours, status: 'Chuẩn bị thay thế phụ tùng', badgeClass: 'bg-warning text-dark' };
+    }
+    return { date: replacementDate, hours: elapsedHours, status: 'Đang trong thời hạn', badgeClass: 'bg-success' };
   }
 
   function renderMachineReplacementDetails(machineCode) {
@@ -4194,6 +4266,7 @@
     });
     tbody.innerHTML = rows.length ? rows.map(function(item) {
       var id = getInventoryValue(item, ['ID TT', 'ID']);
+      var cycle = getMachineReplacementCycleInfo(item);
       return '<tr style="cursor: pointer;" oncontextmenu="showContextMenu(event, \'MACHINE_REPLACEMENT\', \'' + escapeHtml(id) + '\')">' +
         '<td class="text-center" onclick="event.stopPropagation();"><button class="btn btn-sm btn-light border" title="Chức năng" onclick="toggleRowDropdown(this, event, \'MACHINE_REPLACEMENT\', \'' + escapeHtml(id) + '\')"><i class="fa-solid fa-ellipsis-vertical"></i></button></td>' +
         '<td>' + escapeHtml(id) + '</td>' +
@@ -4203,9 +4276,12 @@
         '<td>' + escapeHtml(getInventoryValue(item, ['Phụ tùng / việc bảo trì', 'Phụ tùng/việc bảo trì'])) + '</td>' +
         '<td>' + escapeHtml(getInventoryValue(item, ['Đơn vị', 'ĐVT'])) + '</td>' +
         '<td>' + escapeHtml(getInventoryValue(item, ['Tần suất'])) + '</td>' +
+        '<td class="text-nowrap">' + escapeHtml(formatMachineReplacementDate(cycle.date)) + '</td>' +
+        '<td class="text-nowrap text-end">' + (cycle.hours === null ? '—' : escapeHtml(formatInventoryNumber(cycle.hours))) + '</td>' +
+        '<td><span class="badge ' + cycle.badgeClass + '">' + escapeHtml(cycle.status) + '</span></td>' +
         '<td>' + entityLinkMarkup(formatUserDisplay(getInventoryValue(item, ['Người tạo'])), 'USER', getInventoryValue(item, ['Người tạo'])) + '</td>' +
         '<td>' + escapeHtml(getInventoryValue(item, ['Ngày tạo'])) + '</td></tr>';
-    }).join('') : '<tr><td colspan="10" class="text-center text-muted py-3">Chưa có khai báo vật tư thay thế phù hợp.</td></tr>';
+    }).join('') : '<tr><td colspan="13" class="text-center text-muted py-3">Chưa có khai báo vật tư thay thế phù hợp.</td></tr>';
     var count = document.getElementById('machineReplacementCount');
     if (count) count.textContent = rows.length + ' khai báo';
     applyMobileTableLabels('tblMachineReplacement');
@@ -4804,14 +4880,49 @@
   function renderDanhMucTab() {
     var userActions = document.getElementById('btnUserActions');
     if (userActions) userActions.classList.toggle('d-none', !can('USER_MANAGE'));
-    var ulUser = document.getElementById('listUsers');
-    if (ulUser) {
-      ulUser.innerHTML = '';
-      appData.user.forEach(function(u) {
-        var userCode = u['Mã NV'] || '';
-        ulUser.appendChild(createCategoryItem('<strong>' + escapeHtml(userCode) + '</strong> - ' + escapeHtml(u['Họ tên']) + ' <span class="badge bg-light text-dark border ms-1">' + escapeHtml(u['Vai trò'] || 'Sản xuất') + '</span>', 'USER', userCode));
+    var tbody = document.getElementById('tblUsersBody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+    appData.user.forEach(function(user) {
+      var userCode = String(user['Mã NV'] || '');
+      var row = document.createElement('tr');
+      row.style.cursor = 'context-menu';
+      row.addEventListener('contextmenu', function(event) { showContextMenu(event, 'USER', userCode); });
+
+      var actions = document.createElement('td');
+      actions.className = 'text-center text-nowrap';
+      if (can('USER_MANAGE')) {
+        var menuButton = document.createElement('button');
+        menuButton.type = 'button';
+        menuButton.className = 'btn btn-sm btn-light border';
+        menuButton.title = 'Chức năng';
+        menuButton.setAttribute('aria-label', 'Chức năng người dùng ' + userCode);
+        menuButton.innerHTML = '<i class="fa-solid fa-ellipsis-vertical"></i>';
+        menuButton.addEventListener('click', function(event) {
+          toggleRowDropdown(menuButton, event, 'USER', userCode);
+        });
+        actions.appendChild(menuButton);
+      }
+      row.appendChild(actions);
+
+      [userCode, user['Họ tên'] || ''].forEach(function(value) {
+        var cell = document.createElement('td');
+        cell.textContent = String(value == null ? '' : value);
+        row.appendChild(cell);
       });
+
+      var role = document.createElement('td');
+      var roleBadge = document.createElement('span');
+      roleBadge.className = 'badge bg-light text-dark border';
+      roleBadge.textContent = user['Vai trò'] || 'Sản xuất';
+      role.appendChild(roleBadge);
+      row.appendChild(role);
+      tbody.appendChild(row);
+    });
+    if (!appData.user.length) {
+      tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-3">Chưa có dữ liệu nhân viên.</td></tr>';
     }
+    applyMobileTableLabels('tblUsers');
   }
 
   function renderKhuVucTab() {

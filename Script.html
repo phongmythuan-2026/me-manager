@@ -55,6 +55,11 @@
   var pageSizeMaterialUsage = 20;
   var currentPageMaterialCycles = 1;
   var pageSizeMaterialCycles = 20;
+  var adminCategoryTableState = {
+    users: { page: 1, pageSize: 20, query: '' },
+    khuVuc: { page: 1, pageSize: 20, query: '' },
+    loaiYC: { page: 1, pageSize: 20, query: '' }
+  };
 
   function applyMobileTableLabels(tableId) {
     var table = document.getElementById(tableId);
@@ -348,6 +353,7 @@
     if (type === 'REPAIR_LOG') return openRepairLogModal('VIEW', id);
     if (type === 'MMTB') return openModalMMTB('VIEW', id);
     if (type === 'KHU_VUC') return openKhuVucDetail(id);
+    if (type === 'LOAI_YC' || type === 'USER') return openAdminCategoryDetail(type, id);
     if (type === 'MATERIAL') return openMaterialCatalogItemView(id);
 
     var titles = {
@@ -1048,9 +1054,12 @@
       var source = type === 'KHU_VUC' ? appData.khuVuc : type === 'LOAI_YC' ? appData.loaiYC : appData.user;
       var category = source.find(categoryConfig.find);
       if (!category) return;
+      var safeId = escapeHtml(JSON.stringify(String(id)));
+      itemsHtml += '<div class="context-menu-item" onclick="openLinkedEntity(\'' + type + '\', ' + safeId + ')"><i class="fa-solid fa-eye text-info"></i> Xem ' + categoryConfig.label + '</div>';
       if (can(categoryConfig.canManage)) {
-        itemsHtml += '<div class="context-menu-item" onclick="' + categoryConfig.edit + '(\'EDIT\', \'' + id + '\')"><i class="fa-solid fa-pen text-primary"></i> Sửa ' + categoryConfig.label + '</div>';
-        itemsHtml += '<div class="context-menu-item text-danger" onclick="confirmAdminDelete(\'' + categoryConfig.kind + '\', \'' + id + '\', \'Xóa ' + categoryConfig.label + ' ' + id + '?\')"><i class="fa-solid fa-trash"></i> Xóa ' + categoryConfig.label + '</div>';
+        itemsHtml += '<div class="context-menu-divider"></div>';
+        itemsHtml += '<div class="context-menu-item" onclick="' + categoryConfig.edit + '(\'EDIT\', ' + safeId + ')"><i class="fa-solid fa-pen text-primary"></i> Sửa ' + categoryConfig.label + '</div>';
+        itemsHtml += '<div class="context-menu-item text-danger" onclick="confirmAdminDelete(\'' + categoryConfig.kind + '\', ' + safeId + ', \'Xóa ' + categoryConfig.label + ' ' + escapeHtml(String(id)) + '?\')"><i class="fa-solid fa-trash"></i> Xóa ' + categoryConfig.label + '</div>';
       }
     } else if (type === 'YEU_CAU') {
       var item = appData.yeuCau.find(function(y) { return String(y['ID']) === String(id); });
@@ -4741,6 +4750,57 @@
     bsModalKhuVucDetail.show();
   }
 
+  function openAdminCategoryDetail(type, id) {
+    var config = {
+      LOAI_YC: {
+        rows: appData.loaiYC || [],
+        permission: 'LOAI_YC_MANAGE',
+        edit: openModalLoaiYC,
+        kind: 'loaiYC',
+        label: 'loại yêu cầu',
+        find: function(item) { return String(item['Mã yêu cầu'] || '').trim() === String(id).trim(); },
+        fields: function(item) { return { 'Mã yêu cầu': item['Mã yêu cầu'], 'Tên yêu cầu': item['Tên yêu cầu'] }; }
+      },
+      USER: {
+        rows: appData.user || [],
+        permission: 'USER_MANAGE',
+        edit: openModalUser,
+        kind: 'user',
+        label: 'người dùng',
+        find: function(item) { return String(item['Mã NV'] || '').trim() === String(id).trim(); },
+        fields: function(item) { return { 'Mã nhân viên': item['Mã NV'], 'Họ tên': item['Họ tên'], 'Vai trò': item['Vai trò'] || 'Sản xuất' }; }
+      }
+    }[type];
+    if (!config) return;
+    var item = config.rows.find(config.find);
+    if (!item) {
+      Swal.fire('Không tìm thấy dữ liệu', 'Vui lòng đồng bộ lại dữ liệu rồi thử lại.', 'warning');
+      return;
+    }
+
+    var canManage = can(config.permission);
+    var fields = config.fields(item);
+    var rowsHtml = Object.keys(fields).map(function(field) {
+      var value = fields[field];
+      return '<tr><th class="text-start text-nowrap">' + escapeHtml(field) + '</th><td class="text-start">' +
+        escapeHtml(value == null ? '' : value) + '</td></tr>';
+    }).join('');
+    Swal.fire({
+      title: 'Thông tin ' + config.label,
+      html: '<div class="table-responsive"><table class="table table-sm table-bordered mb-0"><tbody>' + rowsHtml + '</tbody></table></div>',
+      width: 560,
+      showConfirmButton: true,
+      confirmButtonText: canManage ? 'Sửa' : 'Đóng',
+      showDenyButton: canManage,
+      denyButtonText: 'Xóa',
+      showCancelButton: canManage,
+      cancelButtonText: 'Đóng'
+    }).then(function(result) {
+      if (result.isConfirmed && canManage) config.edit('EDIT', id);
+      else if (result.isDenied && canManage) confirmAdminDelete(config.kind, id, 'Xóa ' + config.label + ' ' + id + '?');
+    });
+  }
+
   function closeKhuVucDetailThen(callback) {
     var modal = document.getElementById('modalKhuVucDetail');
     modal.addEventListener('hidden.bs.modal', callback, { once: true });
@@ -4853,49 +4913,20 @@
   function renderDanhMucTab() {
     var userActions = document.getElementById('btnUserActions');
     if (userActions) userActions.classList.toggle('d-none', !can('USER_MANAGE'));
-    var tbody = document.getElementById('tblUsersBody');
-    if (!tbody) return;
-    tbody.innerHTML = '';
-    appData.user.forEach(function(user) {
-      var userCode = String(user['Mã NV'] || '');
-      var row = document.createElement('tr');
-      row.style.cursor = 'context-menu';
-      row.addEventListener('contextmenu', function(event) { showContextMenu(event, 'USER', userCode); });
-
-      var actions = document.createElement('td');
-      actions.className = 'text-center text-nowrap';
-      if (can('USER_MANAGE')) {
-        var menuButton = document.createElement('button');
-        menuButton.type = 'button';
-        menuButton.className = 'btn btn-sm btn-light border';
-        menuButton.title = 'Chức năng';
-        menuButton.setAttribute('aria-label', 'Chức năng người dùng ' + userCode);
-        menuButton.innerHTML = '<i class="fa-solid fa-ellipsis-vertical"></i>';
-        menuButton.addEventListener('click', function(event) {
-          toggleRowDropdown(menuButton, event, 'USER', userCode);
-        });
-        actions.appendChild(menuButton);
-      }
-      row.appendChild(actions);
-
-      [userCode, user['Họ tên'] || ''].forEach(function(value) {
-        var cell = document.createElement('td');
-        cell.textContent = String(value == null ? '' : value);
-        row.appendChild(cell);
-      });
-
-      var role = document.createElement('td');
-      var roleBadge = document.createElement('span');
-      roleBadge.className = 'badge bg-light text-dark border';
-      roleBadge.textContent = user['Vai trò'] || 'Sản xuất';
-      role.appendChild(roleBadge);
-      row.appendChild(role);
-      tbody.appendChild(row);
+    renderAdminCategoryTable({
+      key: 'users',
+      tableId: 'tblUsers',
+      bodyId: 'tblUsersBody',
+      pageInfoId: 'pageInfoUsers',
+      paginationId: 'paginationUsers',
+      permission: 'USER_MANAGE',
+      type: 'USER',
+      rows: appData.user || [],
+      getCode: function(item) { return item['Mã NV'] || ''; },
+      getName: function(item) { return item['Họ tên'] || ''; },
+      getRole: function(item) { return item['Vai trò'] || 'Sản xuất'; },
+      getSearchText: function(item) { return [item['Mã NV'], item['Họ tên'], item['Vai trò'] || 'Sản xuất'].join(' '); }
     });
-    if (!appData.user.length) {
-      tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-3">Chưa có dữ liệu nhân viên.</td></tr>';
-    }
-    applyMobileTableLabels('tblUsers');
   }
 
   function renderKhuVucTab() {
@@ -4904,11 +4935,14 @@
     renderAdminCategoryTable({
       tableId: 'tblKhuVuc',
       bodyId: 'tblKhuVucBody',
+      pageInfoId: 'pageInfoKhuVuc',
+      paginationId: 'paginationKhuVuc',
       permission: 'KHU_VUC_MANAGE',
       type: 'KHU_VUC',
       rows: appData.khuVuc,
       getCode: function(item) { return item['Mã khu vưc'] || item['Mã khu vực'] || ''; },
-      getName: function(item) { return item['Mô tả'] || ''; }
+      getName: function(item) { return item['Mô tả'] || ''; },
+      getSearchText: function(item) { return [item['Mã khu vưc'], item['Mã khu vực'], item['Mô tả']].join(' '); }
     });
   }
 
@@ -4918,19 +4952,31 @@
     renderAdminCategoryTable({
       tableId: 'tblLoaiYC',
       bodyId: 'tblLoaiYCBody',
+      pageInfoId: 'pageInfoLoaiYC',
+      paginationId: 'paginationLoaiYC',
       permission: 'LOAI_YC_MANAGE',
       type: 'LOAI_YC',
       rows: appData.loaiYC,
       getCode: function(item) { return item['Mã yêu cầu'] || ''; },
-      getName: function(item) { return item['Tên yêu cầu'] || ''; }
+      getName: function(item) { return item['Tên yêu cầu'] || ''; },
+      getSearchText: function(item) { return [item['Mã yêu cầu'], item['Tên yêu cầu']].join(' '); }
     });
   }
 
   function renderAdminCategoryTable(config) {
     var tbody = document.getElementById(config.bodyId);
     if (!tbody) return;
+    var state = adminCategoryTableState[config.key || (config.type === 'USER' ? 'users' : config.type === 'KHU_VUC' ? 'khuVuc' : 'loaiYC')];
+    var query = state.query.trim().toLocaleLowerCase();
+    var filteredRows = config.rows.filter(function(item) {
+      return String(config.getSearchText(item) || '').toLocaleLowerCase().indexOf(query) !== -1;
+    });
+    var totalPages = Math.ceil(filteredRows.length / state.pageSize) || 1;
+    if (state.page > totalPages) state.page = totalPages;
+    var startIndex = (state.page - 1) * state.pageSize;
+    var pageRows = filteredRows.slice(startIndex, startIndex + state.pageSize);
     tbody.innerHTML = '';
-    config.rows.forEach(function(item) {
+    pageRows.forEach(function(item) {
       var code = String(config.getCode(item) || '');
       var row = document.createElement('tr');
       row.style.cursor = 'context-menu';
@@ -4939,7 +4985,7 @@
       });
 
       var actions = document.createElement('td');
-      actions.className = 'text-center text-nowrap';
+      actions.className = 'text-center text-nowrap operation-col';
       if (can(config.permission)) {
         var menuButton = document.createElement('button');
         menuButton.type = 'button';
@@ -4959,12 +5005,50 @@
         cell.textContent = String(value == null ? '' : value);
         row.appendChild(cell);
       });
+      if (config.type === 'USER') {
+        var roleCell = document.createElement('td');
+        var roleBadge = document.createElement('span');
+        roleBadge.className = 'badge bg-light text-dark border';
+        roleBadge.textContent = config.getRole(item);
+        roleCell.appendChild(roleBadge);
+        row.appendChild(roleCell);
+      }
       tbody.appendChild(row);
     });
-    if (!config.rows.length) {
-      tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted py-3">Chưa có dữ liệu.</td></tr>';
+    var columnCount = config.type === 'USER' ? 4 : 3;
+    if (!pageRows.length) {
+      tbody.innerHTML = '<tr><td colspan="' + columnCount + '" class="text-center text-muted py-3">' +
+        (query ? 'Không tìm thấy dữ liệu phù hợp.' : 'Chưa có dữ liệu.') + '</td></tr>';
     }
     applyMobileTableLabels(config.tableId);
+    var pageInfo = document.getElementById(config.pageInfoId);
+    if (pageInfo) pageInfo.textContent = filteredRows.length
+      ? (startIndex + 1) + ' - ' + Math.min(startIndex + pageRows.length, filteredRows.length) + ' trong ' + filteredRows.length
+      : '0 trong 0';
+    renderPaginationControls(config.paginationId, state.page, totalPages, function(page) {
+      state.page = page;
+      renderAdminCategoryTable(config);
+    });
+  }
+
+  function filterAdminCategoryTable(key, query) {
+    var state = adminCategoryTableState[key];
+    if (!state) return;
+    state.query = query;
+    state.page = 1;
+    if (key === 'users') renderDanhMucTab();
+    else if (key === 'khuVuc') renderKhuVucTab();
+    else renderLoaiYCTab();
+  }
+
+  function changeAdminCategoryPageSize(key, pageSize) {
+    var state = adminCategoryTableState[key];
+    if (!state) return;
+    state.pageSize = normalizePageSize(pageSize);
+    state.page = 1;
+    if (key === 'users') renderDanhMucTab();
+    else if (key === 'khuVuc') renderKhuVucTab();
+    else renderLoaiYCTab();
   }
 
   function normalizeExcelValue(value) {

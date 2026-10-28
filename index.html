@@ -66,7 +66,7 @@
         <a class="nav-link" href="#" onclick="switchTab('mmtb', this)"><i class="fa-solid fa-microchip"></i> Máy móc thiết bị</a>
         <a class="nav-link" href="#" onclick="switchTab('baocaosx', this)"><i class="fa-solid fa-file-excel text-success"></i> BC Sản xuất (SP)</a>
         <a class="nav-link" href="#" onclick="switchTab('kho', this)"><i class="fa-solid fa-boxes-stacked"></i> Kho & Vật tư</a>
-        <a class="nav-link" href="#" onclick="switchTab('danhmuc', this)"><i class="fa-solid fa-folder-tree"></i> Danh mục & Push</a>
+        <a class="nav-link" href="#" onclick="switchTab('danhmuc', this)"><i class="fa-solid fa-users"></i> Nhân viên & Phân quyền</a>
       </div>
     </div>
 
@@ -197,72 +197,89 @@
         <!-- 2. TAB QUẢN LÝ YÊU CẦU -->
         <div id="tab-yeucau" class="tab-pane d-none">
           <div class="card border-0 shadow-sm mb-3">
-            <div class="card-body">
-              <div class="row g-2 align-items-center">
-                <div class="col-md-4">
-                  <input type="text" id="filterYCSearch" class="form-control form-control-sm" placeholder="Tìm kiếm mô tả, MMTB, ID..." oninput="resetYCPagingAndRender()">
-                </div>
-                <div class="col-md-3">
-                  <select id="filterYCKhuVuc" class="form-select form-select-sm" onchange="resetYCPagingAndRender()">
-                    <option value="">-- Tất cả Khu vực --</option>
-                  </select>
-                </div>
-                <div class="col-md-3">
-                  <select id="filterYCTrangThai" class="form-select form-select-sm" onchange="resetYCPagingAndRender()">
-                    <option value="">-- Tất cả Trạng thái --</option>
-                    <option value="Chờ tiếp nhận">Chờ tiếp nhận</option>
-                    <option value="Đang thực hiện">Đang thực hiện</option>
-                    <option value="Đã tiếp nhận">Đã tiếp nhận</option>
-                    <option value="Chờ xác nhận">Chờ xác nhận</option>
-                    <option value="Hoàn thành">Hoàn thành</option>
-                    <option value="Đã hủy">Đã hủy</option>
-                  </select>
-                </div>
-                <div class="col-md-2 text-end">
-                  <button id="btnYeuCauAdd" class="btn btn-primary btn-sm w-100 fw-bold" onclick="openModalYC('ADD')">
-                    <i class="fa-solid fa-plus me-1"></i> Tạo yêu cầu
-                  </button>
-                </div>
+            <div class="card-body py-2">
+              <div class="nav nav-tabs" role="tablist">
+                <button type="button" class="nav-link active" onclick="showRequestView('requests', this)">Danh sách yêu cầu</button>
+                <button type="button" class="nav-link" onclick="showRequestView('types', this)">Loại yêu cầu</button>
               </div>
             </div>
           </div>
-
-          <div class="card border-0 shadow-sm">
-            <div class="card-body p-0">
-              <div class="table-responsive table-container">
-                <table class="table table-custom table-hover align-middle mb-0" id="tblYeuCau">
-                  <thead class="table-light">
-                    <tr>
-                      <th class="text-center" style="width: 80px;">Thao tác</th>
-                      <th>Trạng thái</th>
-                      <th>Ngày YC</th>
-                      <th>Loại YC</th>
-                      <th>Khu vực</th>
-                      <th>Máy móc/TB</th>
-                      <th>Ngày cần hoàn thành</th>
-                      <th>Mô tả yêu cầu</th>
-                      <th>Người yêu cầu</th>
-                      <th>Người tiếp nhận</th>
-                      <th>ID</th>
-                    </tr>
-                  </thead>
-                  <tbody id="tblYeuCauBody"></tbody>
-                </table>
+          <section id="request-view-requests">
+            <div class="card border-0 shadow-sm mb-3">
+              <div class="card-body">
+                <div class="row g-2 align-items-center">
+                  <div class="col-md-4">
+                    <input type="text" id="filterYCSearch" class="form-control form-control-sm" placeholder="Tìm kiếm mô tả, MMTB, ID..." oninput="resetYCPagingAndRender()">
+                  </div>
+                  <div class="col-md-3">
+                    <select id="filterYCKhuVuc" class="form-select form-select-sm" onchange="resetYCPagingAndRender()">
+                      <option value="">-- Tất cả Khu vực --</option>
+                    </select>
+                  </div>
+                  <div class="col-md-3">
+                    <select id="filterYCTrangThai" class="form-select form-select-sm" onchange="resetYCPagingAndRender()">
+                      <option value="">-- Tất cả Trạng thái --</option>
+                      <option value="Chờ tiếp nhận">Chờ tiếp nhận</option>
+                      <option value="Đang thực hiện">Đang thực hiện</option>
+                      <option value="Đã tiếp nhận">Đã tiếp nhận</option>
+                      <option value="Chờ xác nhận">Chờ xác nhận</option>
+                      <option value="Hoàn thành">Hoàn thành</option>
+                      <option value="Đã hủy">Đã hủy</option>
+                    </select>
+                  </div>
+                  <div class="col-md-2 text-end">
+                    <button id="btnYeuCauAdd" class="btn btn-primary btn-sm w-100 fw-bold" onclick="openModalYC('ADD')">
+                      <i class="fa-solid fa-plus me-1"></i> Tạo yêu cầu
+                    </button>
+                  </div>
+                </div>
               </div>
-
             </div>
-            <div class="card-footer bg-white d-flex justify-content-between align-items-center py-2">
-              <div class="d-flex align-items-center gap-2">
-                <span class="small text-muted" id="pageInfoYC">0 trong 0</span>
-                <select class="form-select form-select-sm" style="width: 80px;" onchange="changePageSizeYC(this.value)">
-                  <option value="20">20</option>
-                  <option value="50">50</option>
-                  <option value="100">100</option>
-                </select>
+            <div class="card border-0 shadow-sm">
+              <div class="card-body p-0">
+                <div class="table-responsive table-container">
+                  <table class="table table-custom table-hover align-middle mb-0" id="tblYeuCau">
+                    <thead class="table-light">
+                      <tr>
+                        <th class="text-center" style="width: 80px;">Thao tác</th>
+                        <th>Trạng thái</th>
+                        <th>Ngày YC</th>
+                        <th>Loại YC</th>
+                        <th>Khu vực</th>
+                        <th>Máy móc/TB</th>
+                        <th>Ngày cần hoàn thành</th>
+                        <th>Mô tả yêu cầu</th>
+                        <th>Người yêu cầu</th>
+                        <th>Người tiếp nhận</th>
+                        <th>ID</th>
+                      </tr>
+                    </thead>
+                    <tbody id="tblYeuCauBody"></tbody>
+                  </table>
+                </div>
               </div>
-              <div class="btn-group btn-group-sm" id="paginationControlsYC"></div>
+              <div class="card-footer bg-white d-flex justify-content-between align-items-center py-2">
+                <div class="d-flex align-items-center gap-2">
+                  <span class="small text-muted" id="pageInfoYC">0 trong 0</span>
+                  <select class="form-select form-select-sm" style="width: 80px;" onchange="changePageSizeYC(this.value)">
+                    <option value="20">20</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                  </select>
+                </div>
+                <div class="btn-group btn-group-sm" id="paginationControlsYC"></div>
+              </div>
             </div>
-          </div>
+          </section>
+          <section id="request-view-types" class="d-none">
+            <div class="card border-0 shadow-sm">
+              <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <span class="fw-bold"><i class="fa-solid fa-tags me-1"></i> Loại yêu cầu</span>
+                <button id="btnLoaiYCActions" class="btn btn-sm btn-outline-primary" onclick="openModalLoaiYC('ADD')" aria-label="Thêm loại yêu cầu"><i class="fa-solid fa-plus"></i></button>
+              </div>
+              <ul class="list-group list-group-flush overflow-auto" id="listLoaiYC" style="max-height: 60vh;"></ul>
+            </div>
+          </section>
         </div>
 
         <div id="tab-yeucauth" class="tab-pane d-none">
@@ -288,6 +305,7 @@
               <div class="nav nav-tabs" role="tablist">
                 <button type="button" class="nav-link active" onclick="showMachineView('catalog', this)">Danh mục máy móc thiết bị</button>
                 <button type="button" class="nav-link" onclick="showMachineView('replacement', this)">Vật tư thay thế theo máy</button>
+                <button type="button" class="nav-link" onclick="showMachineView('areas', this)">Khu vực</button>
               </div>
             </div>
           </div>
@@ -384,6 +402,15 @@
               </div>
             </div>
           </section>
+          <section id="machine-view-areas" class="d-none">
+            <div class="card border-0 shadow-sm">
+              <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <span class="fw-bold"><i class="fa-solid fa-location-dot me-1"></i> Khu vực</span>
+                <button id="btnKhuVucActions" class="btn btn-sm btn-outline-primary" onclick="openModalKhuVuc('ADD')" aria-label="Thêm khu vực"><i class="fa-solid fa-plus"></i></button>
+              </div>
+              <ul class="list-group list-group-flush overflow-auto" id="listKhuVuc" style="max-height: 60vh;"></ul>
+            </div>
+          </section>
         </div>
 
         <!-- 4. TAB BÁO CÁO SẢN XUẤT SHAREPOINT -->
@@ -450,7 +477,7 @@
               <div class="col-12 col-md-4"><button id="btnDMVTActions" class="btn btn-primary btn-sm w-100 fw-bold" onclick="openMaterialCatalogModal()"><i class="fa-solid fa-plus me-1"></i> Thêm vật tư</button></div>
             </div></div></div>
             <div class="card border-0 shadow-sm">
-              <div class="table-responsive table-container"><table class="table table-custom align-middle mb-0" id="tblDMVT"><thead><tr><th class="text-center">Thao tác</th><th>Mã vật tư</th><th>Tên vật tư</th><th>Đơn vị tính</th><th>Đơn giá</th><th>Số giờ thay thế</th><th>Ghi chú</th></tr></thead><tbody id="tblDMVTBody"></tbody></table></div>
+              <div class="table-responsive table-container"><table class="table table-custom align-middle mb-0" id="tblDMVT"><thead><tr><th>Mã vật tư</th><th>Tên vật tư</th><th>Đvt</th><th>Người tạo</th><th>Ngày tạo</th></tr></thead><tbody id="tblDMVTBody"></tbody></table></div>
               <div class="card-footer bg-white d-flex justify-content-between align-items-center py-2"><div class="d-flex align-items-center gap-2"><span id="pageInfoDMVT" class="small text-muted">0 trong 0</span><select class="form-select form-select-sm" style="width: 80px;" onchange="changePageSizeDMVT(this.value)"><option>20</option><option>50</option><option>100</option></select></div><div class="btn-group btn-group-sm" id="paginationControlsDMVT"></div></div>
             </div>
           </section>
@@ -478,57 +505,14 @@
           </section>
         </div>
 
-        <!-- 6. TAB DANH MỤC & PUSH -->
+        <!-- 6. TAB NHÂN VIÊN & PHÂN QUYỀN -->
         <div id="tab-danhmuc" class="tab-pane d-none">
-          <div class="card border-0 shadow-sm mb-4">
-            <div class="card-body">
-              <h6 class="fw-bold text-primary mb-3">
-                <i class="fa-solid fa-bell me-1"></i> Thông báo trình duyệt
-              </h6>
-              <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
-                <div class="form-check form-switch fs-5 mb-0">
-                  <input class="form-check-input" type="checkbox" id="chkPushStatus" onchange="togglePushSetting(this.checked)">
-                  <label class="form-check-label fs-6 fw-bold text-dark ms-2" for="chkPushStatus">
-                    Bật thông báo trên trình duyệt này
-                  </label>
-                </div>
-                <div>
-                  <button class="btn btn-primary btn-sm fw-bold" onclick="testNativeNotification()">
-                    <i class="fa-solid fa-paper-plane me-1"></i> Thử thông báo
-                  </button>
-                </div>
-              </div>
+          <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+              <span class="fw-bold"><i class="fa-solid fa-users me-1"></i> Danh sách Nhân viên & Phân quyền</span>
+              <button id="btnUserActions" class="btn btn-sm btn-outline-primary" onclick="openModalUser('ADD')" aria-label="Thêm người dùng"><i class="fa-solid fa-plus"></i></button>
             </div>
-          </div>
-
-          <div class="row g-3">
-            <div class="col-md-4">
-              <div class="card border-0 shadow-sm h-100">
-                <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                  <span class="fw-bold"><i class="fa-solid fa-location-dot me-1"></i> Khu vực</span>
-                  <button id="btnKhuVucActions" class="btn btn-sm btn-outline-primary" onclick="openModalKhuVuc('ADD')" aria-label="Thêm khu vực"><i class="fa-solid fa-plus"></i></button>
-                </div>
-                <ul class="list-group list-group-flush overflow-auto" id="listKhuVuc" style="max-height: 350px;"></ul>
-              </div>
-            </div>
-            <div class="col-md-4">
-              <div class="card border-0 shadow-sm h-100">
-                <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                  <span class="fw-bold"><i class="fa-solid fa-tags me-1"></i> Loại yêu cầu</span>
-                  <button id="btnLoaiYCActions" class="btn btn-sm btn-outline-primary" onclick="openModalLoaiYC('ADD')" aria-label="Thêm loại yêu cầu"><i class="fa-solid fa-plus"></i></button>
-                </div>
-                <ul class="list-group list-group-flush overflow-auto" id="listLoaiYC" style="max-height: 350px;"></ul>
-              </div>
-            </div>
-            <div class="col-md-4">
-              <div class="card border-0 shadow-sm h-100">
-                <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                  <span class="fw-bold"><i class="fa-solid fa-users me-1"></i> Danh sách User & Phân quyền</span>
-                  <button id="btnUserActions" class="btn btn-sm btn-outline-primary" onclick="openModalUser('ADD')" aria-label="Thêm người dùng"><i class="fa-solid fa-plus"></i></button>
-                </div>
-                <ul class="list-group list-group-flush overflow-auto" id="listUsers" style="max-height: 350px;"></ul>
-              </div>
-            </div>
+            <ul class="list-group list-group-flush overflow-auto" id="listUsers" style="max-height: 70vh;"></ul>
           </div>
         </div>
 
@@ -544,7 +528,7 @@
     <button class="nav-item-btn" onclick="switchTab('mmtb', this)"><i class="fa-solid fa-microchip"></i><span>Máy móc</span></button>
     <button class="nav-item-btn" onclick="switchTab('baocaosx', this)"><i class="fa-solid fa-file-excel"></i><span>BC Sản xuất</span></button>
     <button class="nav-item-btn" onclick="switchTab('kho', this)"><i class="fa-solid fa-boxes-stacked"></i><span>Kho</span></button>
-    <button class="nav-item-btn" onclick="switchTab('danhmuc', this)"><i class="fa-solid fa-folder-tree"></i><span>Cài đặt</span></button>
+    <button class="nav-item-btn" onclick="switchTab('danhmuc', this)"><i class="fa-solid fa-users"></i><span>Nhân viên</span></button>
   </div>
 
   <!-- CUSTOM CONTEXT MENU -->
@@ -757,7 +741,7 @@
               </div>
               <div class="col-12 col-sm-6 col-lg-3">
                 <label class="form-label fw-bold small">ĐVT chính</label>
-                <input type="text" id="mmtbDVT" class="form-control" value="Bộ">
+                <input type="text" id="mmtbDVT" class="form-control" value="Bộ" list="inventoryUnitSuggestions" autocomplete="on">
               </div>
               <div class="col-12 col-sm-6 col-lg-3">
                 <label class="form-label fw-bold small">Công suất tiêu thụ (KW/H)</label>
@@ -871,7 +855,7 @@
             <div class="row g-3">
               <div class="col-6">
                 <label class="form-label fw-bold small" for="machineReplacementUnit">Đơn vị</label>
-                <input id="machineReplacementUnit" class="form-control">
+                <input id="machineReplacementUnit" class="form-control" value="Giờ" readonly>
               </div>
               <div class="col-6">
                 <label class="form-label fw-bold small" for="machineReplacementFrequency">Tần suất</label>
@@ -888,16 +872,19 @@
     </div>
   </div>
 
+  <datalist id="inventoryUnitSuggestions"></datalist>
+
   <div class="modal fade" id="modalMaterialCatalog" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content border-0 shadow">
         <div class="modal-header bg-success text-white"><h5 class="modal-title fw-bold" id="materialCatalogEditorTitle">Thêm vật tư</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
         <form id="materialCatalogForm" onsubmit="handleSaveMaterialCatalog(event)">
           <div class="modal-body">
-            <div class="mb-3"><label class="form-label fw-bold small" for="materialCode">Mã vật tư</label><input id="materialCode" class="form-control" required></div>
+            <div class="mb-3"><label class="form-label fw-bold small" for="materialCode">Mã vật tư (tự động)</label><input id="materialCode" class="form-control" readonly placeholder="Tự tăng khi lưu"></div>
             <div class="mb-3"><label class="form-label fw-bold small" for="materialName">Tên vật tư</label><input id="materialName" class="form-control" required></div>
-            <div class="row g-3"><div class="col-6"><label class="form-label fw-bold small" for="materialUnit">Đơn vị tính</label><input id="materialUnit" class="form-control"></div><div class="col-6"><label class="form-label fw-bold small" for="materialPrice">Đơn giá</label><input id="materialPrice" type="number" min="0" step="any" class="form-control"></div><div class="col-12"><label class="form-label fw-bold small" for="materialReplacementHours">Số giờ thay thế</label><input id="materialReplacementHours" type="number" min="0.01" step="any" class="form-control" placeholder="Ví dụ: 100"><div class="form-text">Để trống nếu vật tư không theo dõi chu kỳ thay thế.</div></div></div>
-            <div class="mt-3"><label class="form-label fw-bold small" for="materialNote">Ghi chú</label><input id="materialNote" class="form-control"></div>
+            <div class="mb-3"><label class="form-label fw-bold small" for="materialUnit">Đvt</label><input id="materialUnit" class="form-control" list="inventoryUnitSuggestions" autocomplete="on"></div>
+            <div class="mb-3"><label class="form-label fw-bold small" for="materialCreator">Người tạo</label><input id="materialCreator" class="form-control" readonly></div>
+            <div class="mb-3"><label class="form-label fw-bold small" for="materialCreatedDate">Ngày tạo</label><input id="materialCreatedDate" class="form-control" readonly placeholder="Tự động khi lưu"></div>
           </div>
           <div class="modal-footer bg-light">
             <div id="materialCatalogViewActions" class="d-flex flex-wrap gap-2 me-auto d-none">
@@ -913,20 +900,22 @@
   </div>
 
   <div class="modal fade" id="modalStockReceipt" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
       <div class="modal-content border-0 shadow">
-        <div class="modal-header bg-success text-white"><h5 class="modal-title fw-bold">Ghi nhận nhập / xuất kho</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
+        <div class="modal-header bg-success text-white"><h5 class="modal-title fw-bold" id="stockReceiptTitle">Ghi nhận nhập / xuất kho</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
         <form id="stockReceiptForm" onsubmit="handleSaveStockReceipt(event)">
-          <div class="modal-body">
-            <div class="mb-3"><label class="form-label fw-bold small" for="stockReceiptDate">Ngày nhập xuất</label><input id="stockReceiptDate" type="date" class="form-control" required></div>
-            <div class="mb-3"><label class="form-label fw-bold small" for="stockReceiptMaterialSearch">Mã vật tư (DMVT)</label><div id="stockReceiptMaterialPicker"></div><div class="form-text">Nhập mã hoặc tên để tìm, sau đó chọn vật tư trong danh sách.</div></div>
-            <div class="row g-3"><div class="col-12 col-md-4"><label class="form-label fw-bold small" for="stockReceiptQuantity">Số lượng</label><input id="stockReceiptQuantity" type="number" step="any" class="form-control" required oninput="updateStockReceiptValue()"><div class="form-text">Nhập kho: số lượng &gt; 0; Xuất kho: số lượng &lt; 0.</div></div><div class="col-6 col-md-4"><label class="form-label fw-bold small" for="stockReceiptPrice">Đơn giá</label><input id="stockReceiptPrice" type="number" min="0" step="any" class="form-control" oninput="updateStockReceiptValue()"></div><div class="col-6 col-md-4"><label class="form-label fw-bold small" for="stockReceiptValue">Giá trị (SL × đơn giá)</label><input id="stockReceiptValue" class="form-control" readonly></div></div>
-            <div class="mt-3"><label class="form-label fw-bold small" for="stockReceiptRepairLog">Mã yêu cầu (ID TH, không bắt buộc)</label><select id="stockReceiptRepairLog" class="form-select" onchange="applyStockReceiptInheritedMachine()"><option value="">-- Không liên kết nhật ký --</option></select></div>
-            <div class="mt-3"><label class="form-label fw-bold small" for="stockReceiptMachine">Máy móc/TB</label><select id="stockReceiptMachine" class="form-select"><option value="">-- Không liên kết máy --</option></select><div class="form-text">Tự lấy mã máy từ nhật ký sửa chữa (ID TH) khi chọn Mã yêu cầu.</div></div>
-            <div class="mt-3"><label class="form-label fw-bold small" for="stockReceiptNote">Ghi chú</label><textarea id="stockReceiptNote" class="form-control" rows="3" placeholder="Nhập ghi chú..."></textarea></div>
+          <div class="modal-body row g-3">
+            <div class="col-12 col-md-4"><label class="form-label fw-bold small" for="stockReceiptDate">Ngày nhập xuất</label><input id="stockReceiptDate" type="date" class="form-control" required></div>
+            <div class="col-12 col-md-4"><label class="form-label fw-bold small" for="stockReceiptMaterialSearch">Mã vật tư (DMVT)</label><div id="stockReceiptMaterialPicker"></div><div class="form-text">Nhập mã hoặc tên để tìm, sau đó chọn vật tư trong danh sách.</div></div>
+            <div class="col-12 col-md-4"><label class="form-label fw-bold small" for="stockReceiptRepairLog">Mã yêu cầu (ID TH, không bắt buộc)</label><select id="stockReceiptRepairLog" class="form-select" onchange="applyStockReceiptInheritedMachine()"><option value="">-- Không liên kết nhật ký --</option></select></div>
+            <div class="col-12 col-md-4"><label class="form-label fw-bold small" for="stockReceiptQuantity">Số lượng</label><input id="stockReceiptQuantity" type="number" step="any" class="form-control" required oninput="updateStockReceiptValue()"><div class="form-text">Nhập kho: số lượng &gt; 0; Xuất kho: số lượng &lt; 0.</div></div>
+            <div class="col-12 col-md-4"><label class="form-label fw-bold small" for="stockReceiptPrice">Đơn giá</label><input id="stockReceiptPrice" type="number" min="0" step="any" class="form-control" oninput="updateStockReceiptValue()"></div>
+            <div class="col-12 col-md-4"><label class="form-label fw-bold small" for="stockReceiptValue">Giá trị (SL × đơn giá)</label><input id="stockReceiptValue" class="form-control" readonly></div>
+            <div class="col-12 col-md-4"><label class="form-label fw-bold small" for="stockReceiptMachine">Máy móc/TB</label><select id="stockReceiptMachine" class="form-select"><option value="">-- Không liên kết máy --</option></select><div class="form-text">Tự lấy mã máy từ nhật ký sửa chữa (ID TH) khi chọn Mã yêu cầu.</div></div>
+            <div class="col-12"><label class="form-label fw-bold small" for="stockReceiptNote">Ghi chú</label><textarea id="stockReceiptNote" class="form-control" rows="3" placeholder="Nhập ghi chú..."></textarea></div>
           </div>
 
-          <div class="modal-footer bg-light"><button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Hủy</button><button type="submit" class="btn btn-success btn-sm fw-bold px-4">Ghi nhận nhập / xuất</button></div>
+          <div class="modal-footer bg-light"><button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Hủy</button><button type="submit" id="stockReceiptSaveButton" class="btn btn-success btn-sm fw-bold px-4">Ghi nhận nhập / xuất</button></div>
         </form>
       </div>
     </div>

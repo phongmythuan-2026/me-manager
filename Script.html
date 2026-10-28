@@ -42,6 +42,7 @@
   var machineRuntimeDateInitialized = false;
   var stockReportDatesInitialized = false;
   var editingMaterialCode = '';
+  var editingStockId = '';
   var viewingMaterialCatalogItem = false;
   var currentPageDMVT = 1;
   var pageSizeDMVT = 20;
@@ -180,12 +181,15 @@
         appData.dmvt = appData.dmvt || [];
         appData.thayThe = appData.thayThe || [];
         appData.kho = appData.kho || [];
+        refreshInventoryUnitSuggestions();
         populateDropdowns();
         renderDashboard();
         renderYeuCauTable();
         renderRepairLogTable();
         renderMMTBTable();
         renderMachineReplacementTable();
+        renderKhuVucTab();
+        renderLoaiYCTab();
         renderDanhMucTab();
         renderInventoryViews();
         setDataSyncStatus('Đã đồng bộ lúc ' + new Date().toLocaleTimeString('vi-VN') + ' · tự kiểm tra mỗi 3 giây');
@@ -400,7 +404,7 @@
       if (!targetItem || targetItem['Trạng thái'] !== 'Chờ xác nhận') return false;
       return isAdmin || String(targetItem['Người yêu cầu'] || '').trim() === String(currentUser.maNV).trim();
     }
-    if (action === 'REPAIR_LOG_MANAGE') return isKyThuat;
+    if (action === 'REPAIR_LOG_MANAGE' || action === 'KHO_MANAGE') return isKyThuat;
     if (action === 'MMTB_MANAGE' || action === 'USER_MANAGE' || action === 'KHU_VUC_MANAGE' || action === 'LOAI_YC_MANAGE') return isAdmin;
 
     return false;
@@ -689,10 +693,9 @@
       var catalogFields = {
         'Mã vật tư': ['Mã vật tư', 'Mã VT', 'Mã hàng', 'Mã'],
         'Tên vật tư': ['Tên vật tư', 'Tên hàng', 'Tên'],
-        'Đơn vị tính': ['ĐVT', 'Đơn vị tính', 'ĐVT chính', 'Đơn vị'],
-        'Đơn giá': ['Đơn giá', 'Giá nhập', 'Giá xuất'],
-        'Số giờ thay thế': ['Số giờ thay thế'],
-        'Ghi chú': ['Ghi chú', 'Ghi chú vật tư']
+        'Đvt': ['Đvt', 'ĐVT', 'Đơn vị tính', 'ĐVT chính', 'Đơn vị'],
+        'Người tạo': ['Người tạo'],
+        'Ngày tạo': ['Ngày tạo']
       };
       return getInventoryValue(item, catalogFields[colName] || [colName]);
     }
@@ -992,7 +995,7 @@
       });
       if (!material) return;
       itemsHtml += '<div class="context-menu-item" onclick="openMaterialCatalogItemView(\'' + id + '\')"><i class="fa-solid fa-eye text-info"></i> Xem vật tư</div>';
-      if (can('MMTB_MANAGE')) {
+      if (can('KHO_MANAGE')) {
         itemsHtml += '<div class="context-menu-divider"></div>';
         itemsHtml += '<div class="context-menu-item" onclick="editMaterialCatalogItemByCode(\'' + id + '\')"><i class="fa-solid fa-pen text-primary"></i> Sửa vật tư</div>';
         itemsHtml += '<div class="context-menu-item text-danger" onclick="removeMaterialCatalogItem(\'' + id + '\')"><i class="fa-solid fa-trash"></i> Xóa vật tư</div>';
@@ -1007,6 +1010,15 @@
         return normalizeRecordId(getRepairLogId(log)) === normalizeRecordId(linkedRepairId);
       })) {
         itemsHtml += '<div class="context-menu-item" onclick="openRepairLogModal(\'VIEW\', \'' + linkedRepairId + '\')"><i class="fa-solid fa-eye text-info"></i> Xem nhật ký sửa chữa</div>';
+      }
+      if (can('KHO_MANAGE')) {
+        var stockNote = String(stockEntry['Ghi chú'] || '');
+        if (stockNote.indexOf('Xuất sử dụng cho nhật ký ') === 0) {
+          itemsHtml += '<div class="context-menu-item text-muted" title="Sửa nhật ký để cập nhật vật tư"><i class="fa-solid fa-lock"></i> Dòng kho được quản lý theo nhật ký</div>';
+        } else {
+          itemsHtml += '<div class="context-menu-item" onclick="openStockReceiptModal(\'' + id + '\')"><i class="fa-solid fa-pen text-primary"></i> Sửa giao dịch kho</div>';
+          itemsHtml += '<div class="context-menu-item text-danger" onclick="removeStockReceipt(\'' + id + '\')"><i class="fa-solid fa-trash"></i> Xóa giao dịch kho</div>';
+        }
       }
     } else if (type === 'KHU_VUC' || type === 'LOAI_YC' || type === 'USER') {
       var categoryConfig = {
@@ -1228,7 +1240,7 @@
       KHU_VUC: { permission: 'KHU_VUC_MANAGE', create: function() { return openModalKhuVuc('ADD'); } },
       LOAI_YC: { permission: 'LOAI_YC_MANAGE', create: function() { return openModalLoaiYC('ADD'); } },
       MMTB: { permission: 'MMTB_MANAGE', modalId: 'modalMMTB', create: function() { openModalMMTB('ADD'); } },
-      MATERIAL: { permission: 'MMTB_MANAGE', modalId: 'modalMaterialCatalog', create: function() { openMaterialCatalogModal(); } },
+      MATERIAL: { permission: 'KHO_MANAGE', modalId: 'modalMaterialCatalog', create: function() { openMaterialCatalogModal(); } },
       YEU_CAU: { permission: 'YEU_CAU_ADD', modalId: 'modalYC', create: function() { openModalYC('ADD'); } },
       REPAIR_LOG: { permission: 'REPAIR_LOG_MANAGE', modalId: 'modalRepairLog', create: function() { openRepairLogModal('ADD'); } }
     };
@@ -1473,7 +1485,7 @@
       'mmtb': 'Danh mục Máy móc Thiết bị',
       'baocaosx': 'Báo cáo sản xuất từ SharePoint',
       'kho': 'Kho & Vật tư',
-      'danhmuc': 'Cấu hình & Push Notification'
+      'danhmuc': 'Danh sách Nhân viên & Phân quyền'
     };
     document.getElementById('page-title').innerText = titles[tabName] || 'Hệ thống';
 
@@ -1481,9 +1493,14 @@
       setTimeout(function() { fullCalendarObj.render(); }, 100);
     } else if (tabName === 'yeucau' || tabName === 'mmtb') {
       var tableId = tabName === 'yeucau' ? 'tblYeuCau' : 'tblMMTB';
-      window.requestAnimationFrame(function() {
-        applyTableFreeze(tableId, pinnedCols[tableId] + 1);
-      });
+      var activeView = tabName === 'yeucau'
+        ? document.getElementById('request-view-requests')
+        : document.getElementById('machine-view-catalog');
+      if (!activeView.classList.contains('d-none')) {
+        window.requestAnimationFrame(function() {
+          applyTableFreeze(tableId, pinnedCols[tableId] + 1);
+        });
+      }
     } else if (tabName === 'baocaosx') {
       loadBaoCaoSanXuat();
     } else if (tabName === 'yeucauth') {
@@ -1503,14 +1520,62 @@
     if (viewName === 'ledger') renderStockLedger();
   }
 
+  function showRequestView(viewName, button) {
+    var requests = document.getElementById('request-view-requests');
+    var types = document.getElementById('request-view-types');
+    if (!requests || !types) return;
+    requests.classList.toggle('d-none', viewName !== 'requests');
+    types.classList.toggle('d-none', viewName !== 'types');
+    var tabs = button ? button.parentNode.querySelectorAll('.nav-link') : [];
+    Array.from(tabs).forEach(function(tab) { tab.classList.toggle('active', tab === button); });
+    if (viewName === 'types') renderLoaiYCTab();
+  }
+
   function getInventoryMaterial(code) {
     return appData.dmvt.find(function(item) {
-      return String(getMaterialCatalogField(item, ['Mã vật tư', 'Mã VT', 'Mã hàng', 'Mã'])).trim() === String(code || '').trim();
+      return normalizeMaterialCode(getMaterialCatalogField(item, ['Mã vật tư', 'Mã VT', 'Mã hàng', 'Mã'])) === normalizeMaterialCode(code);
     });
+  }
+
+  function normalizeMaterialCode(value) {
+    var text = String(value == null ? '' : value).trim();
+    if (!text) return '';
+    var number = Number(text);
+    return isFinite(number) && Math.floor(number) === number ? String(number) : text;
+  }
+
+  function getMaterialCodeValue(value) {
+    var normalized = normalizeMaterialCode(value);
+    return normalized && isFinite(Number(normalized)) && Math.floor(Number(normalized)) === Number(normalized)
+      ? Number(normalized)
+      : normalized;
   }
 
   function getInventoryValue(item, names) {
     return getMaterialCatalogField(item, names);
+  }
+
+  function refreshInventoryUnitSuggestions() {
+    var list = document.getElementById('inventoryUnitSuggestions');
+    if (!list) return;
+    var units = {};
+    [
+      { rows: appData.dmvt || [], fields: ['Đvt', 'ĐVT', 'Đơn vị tính', 'ĐVT chính', 'Đơn vị'] },
+      { rows: appData.mmtb || [], fields: ['ĐVT chính', 'ĐVT', 'Đvt', 'Đơn vị tính', 'Đơn vị'] },
+      { rows: appData.thayThe || [], fields: ['Đơn vị', 'ĐVT', 'Đvt', 'Đơn vị tính', 'ĐVT chính'] }
+    ].forEach(function(source) {
+      source.rows.forEach(function(row) {
+        var unit = String(getInventoryValue(row, source.fields) || '').trim();
+        var unitKey = unit.toLocaleLowerCase();
+        if (unit && !units[unitKey]) units[unitKey] = unit;
+      });
+    });
+    list.replaceChildren();
+    Object.keys(units).sort().forEach(function(key) {
+      var option = document.createElement('option');
+      option.value = units[key];
+      list.appendChild(option);
+    });
   }
 
   function normalizeRecordId(value) {
@@ -1537,14 +1602,14 @@
 
   function createSearchableMaterialPicker(container, selectedCode, disabled, onSelect, inputId) {
     if (!container) return;
-    var selected = String(selectedCode || '').trim();
+    var selected = normalizeMaterialCode(selectedCode);
     var items = appData.dmvt.map(function(item) {
       return {
-        code: String(getInventoryValue(item, ['Mã vật tư', 'Mã VT', 'Mã hàng', 'Mã'])).trim(),
+        code: normalizeMaterialCode(getInventoryValue(item, ['Mã vật tư', 'Mã VT', 'Mã hàng', 'Mã'])),
         name: String(getInventoryValue(item, ['Tên vật tư', 'Tên hàng', 'Tên']) || '').trim()
       };
     }).filter(function(item) { return item.code; });
-    var selectedItem = items.find(function(item) { return item.code === selected; });
+    var selectedItem = items.find(function(item) { return normalizeMaterialCode(item.code) === selected; });
     container.className = 'searchable-material-picker';
     container.dataset.selectedValue = selectedItem ? selectedItem.code : '';
     container.innerHTML = '';
@@ -1675,15 +1740,15 @@
     var body = document.getElementById('tblDMVTBody');
     if (!body) return;
     var addMaterialButton = document.getElementById('btnDMVTActions');
-    if (addMaterialButton) addMaterialButton.classList.toggle('d-none', !can('MMTB_MANAGE'));
+    if (addMaterialButton) addMaterialButton.classList.toggle('d-none', !can('KHO_MANAGE'));
     var search = (document.getElementById('filterDMVTSearch')?.value || '').trim().toLowerCase();
     var filtered = appData.dmvt.filter(function(item) {
       return [
         getInventoryValue(item, ['Mã vật tư', 'Mã VT', 'Mã hàng', 'Mã']),
         getInventoryValue(item, ['Tên vật tư', 'Tên hàng', 'Tên']),
-        getInventoryValue(item, ['ĐVT', 'Đơn vị tính', 'ĐVT chính', 'Đơn vị']),
-        getInventoryValue(item, ['Số giờ thay thế']),
-        getInventoryValue(item, ['Ghi chú', 'Ghi chú vật tư'])
+        getInventoryValue(item, ['Đvt', 'ĐVT', 'Đơn vị tính', 'ĐVT chính', 'Đơn vị']),
+        item['Người tạo'],
+        item['Ngày tạo']
       ].some(function(value) { return String(value || '').toLowerCase().indexOf(search) !== -1; });
     });
     sortInventoryRows(filtered, 'DMVT');
@@ -1693,26 +1758,29 @@
     var pageItems = filtered.slice(startIndex, startIndex + pageSizeDMVT);
     body.innerHTML = '';
     pageItems.forEach(function(item) {
-      var code = String(getInventoryValue(item, ['Mã vật tư', 'Mã VT', 'Mã hàng', 'Mã'])).trim();
+      var code = getMaterialCodeValue(getInventoryValue(item, ['Mã vật tư', 'Mã VT', 'Mã hàng', 'Mã']));
       var row = document.createElement('tr');
       row.style.cursor = 'context-menu';
       row.addEventListener('contextmenu', function(event) { showContextMenu(event, 'DMVT', code); });
-      [code, getInventoryValue(item, ['Tên vật tư', 'Tên hàng', 'Tên']), getInventoryValue(item, ['ĐVT', 'Đơn vị tính', 'ĐVT chính', 'Đơn vị']), formatInventoryMoney(getInventoryValue(item, ['Đơn giá', 'Giá nhập', 'Giá xuất'])), getInventoryValue(item, ['Số giờ thay thế']), getInventoryValue(item, ['Ghi chú', 'Ghi chú vật tư'])].forEach(function(value) {
-        var cell = document.createElement('td');
-        cell.textContent = value == null ? '' : String(value);
-        row.appendChild(cell);
-      });
-      var actionCell = document.createElement('td');
-      actionCell.className = 'text-center text-nowrap';
+      var codeCell = document.createElement('td');
+      codeCell.className = 'text-nowrap';
+      var codeLabel = document.createElement('span');
+      codeLabel.textContent = String(code == null ? '' : code);
+      codeCell.appendChild(codeLabel);
       var menuButton = document.createElement('button');
       menuButton.type = 'button';
-      menuButton.className = 'btn btn-sm btn-light border';
+      menuButton.className = 'btn btn-sm btn-light border ms-2';
       menuButton.title = 'Chức năng vật tư';
       menuButton.setAttribute('aria-label', 'Chức năng vật tư ' + code);
       menuButton.innerHTML = '<i class="fa-solid fa-ellipsis-vertical"></i>';
       menuButton.addEventListener('click', function(event) { toggleRowDropdown(menuButton, event, 'DMVT', code); });
-      actionCell.appendChild(menuButton);
-      row.insertBefore(actionCell, row.firstChild);
+      codeCell.appendChild(menuButton);
+      row.appendChild(codeCell);
+      [getInventoryValue(item, ['Tên vật tư', 'Tên hàng', 'Tên']), getInventoryValue(item, ['Đvt', 'ĐVT', 'Đơn vị tính', 'ĐVT chính', 'Đơn vị']), formatUserDisplay(item['Người tạo']), item['Ngày tạo']].forEach(function(value) {
+        var cell = document.createElement('td');
+        cell.textContent = value == null ? '' : String(value);
+        row.appendChild(cell);
+      });
       body.appendChild(row);
     });
     document.getElementById('pageInfoDMVT').textContent = filtered.length ? (startIndex + 1) + ' - ' + Math.min(startIndex + pageItems.length, filtered.length) + ' trong ' + filtered.length : '0 trong 0';
@@ -1731,19 +1799,20 @@
   function changePageSizeDMVT(value) { pageSizeDMVT = normalizePageSize(value); currentPageDMVT = 1; renderMaterialCatalog(); }
 
   function openMaterialCatalogModal() {
+    if (!can('KHO_MANAGE')) return;
     resetMaterialCatalogForm();
     bootstrap.Modal.getOrCreateInstance(document.getElementById('modalMaterialCatalog')).show();
   }
 
   function editMaterialCatalogItem(item) {
+    if (!can('KHO_MANAGE')) return;
     if (!item) return;
     editingMaterialCode = String(getInventoryValue(item, ['Mã vật tư', 'Mã VT', 'Mã hàng', 'Mã'])).trim();
     document.getElementById('materialCode').value = editingMaterialCode;
     document.getElementById('materialName').value = getInventoryValue(item, ['Tên vật tư', 'Tên hàng', 'Tên']) || '';
-    document.getElementById('materialUnit').value = getInventoryValue(item, ['ĐVT', 'Đơn vị tính', 'ĐVT chính', 'Đơn vị']) || '';
-    document.getElementById('materialPrice').value = getInventoryValue(item, ['Đơn giá', 'Giá nhập', 'Giá xuất']) || '';
-    document.getElementById('materialReplacementHours').value = getInventoryValue(item, ['Số giờ thay thế']) || '';
-    document.getElementById('materialNote').value = getInventoryValue(item, ['Ghi chú', 'Ghi chú vật tư']) || '';
+    document.getElementById('materialUnit').value = getInventoryValue(item, ['Đvt', 'ĐVT', 'Đơn vị tính', 'ĐVT chính', 'Đơn vị']) || '';
+    document.getElementById('materialCreator').value = formatUserDisplay(item['Người tạo']);
+    document.getElementById('materialCreatedDate').value = item['Ngày tạo'] || '';
     setMaterialCatalogFormMode('EDIT');
     bootstrap.Modal.getOrCreateInstance(document.getElementById('modalMaterialCatalog')).show();
   }
@@ -1759,10 +1828,9 @@
     editingMaterialCode = String(getInventoryValue(item, ['Mã vật tư', 'Mã VT', 'Mã hàng', 'Mã'])).trim();
     document.getElementById('materialCode').value = editingMaterialCode;
     document.getElementById('materialName').value = getInventoryValue(item, ['Tên vật tư', 'Tên hàng', 'Tên']) || '';
-    document.getElementById('materialUnit').value = getInventoryValue(item, ['ĐVT', 'Đơn vị tính', 'ĐVT chính', 'Đơn vị']) || '';
-    document.getElementById('materialPrice').value = getInventoryValue(item, ['Đơn giá', 'Giá nhập', 'Giá xuất']) || '';
-    document.getElementById('materialReplacementHours').value = getInventoryValue(item, ['Số giờ thay thế']) || '';
-    document.getElementById('materialNote').value = getInventoryValue(item, ['Ghi chú', 'Ghi chú vật tư']) || '';
+    document.getElementById('materialUnit').value = getInventoryValue(item, ['Đvt', 'ĐVT', 'Đơn vị tính', 'ĐVT chính', 'Đơn vị']) || '';
+    document.getElementById('materialCreator').value = formatUserDisplay(item['Người tạo']);
+    document.getElementById('materialCreatedDate').value = item['Ngày tạo'] || '';
     setMaterialCatalogFormMode('VIEW');
     bootstrap.Modal.getOrCreateInstance(document.getElementById('modalMaterialCatalog')).show();
   }
@@ -1781,23 +1849,26 @@
   function resetMaterialCatalogForm() {
     document.getElementById('materialCatalogForm').reset();
     editingMaterialCode = '';
+    document.getElementById('materialCreator').value = formatUserDisplay(currentUser && currentUser.maNV);
+    document.getElementById('materialCreatedDate').value = '';
     setMaterialCatalogFormMode('ADD');
   }
 
   function setMaterialCatalogFormMode(mode) {
     var isView = mode === 'VIEW';
     viewingMaterialCatalogItem = isView;
-    var fields = ['materialCode', 'materialName', 'materialUnit', 'materialPrice', 'materialReplacementHours', 'materialNote'];
+    var fields = ['materialCode', 'materialName', 'materialUnit', 'materialCreator', 'materialCreatedDate'];
     fields.forEach(function(id) {
       var field = document.getElementById(id);
       field.disabled = isView;
-      field.readOnly = id === 'materialCode' && mode === 'EDIT';
+      field.readOnly = id !== 'materialName' && id !== 'materialUnit';
+      if (id === 'materialCode') field.placeholder = mode === 'ADD' ? 'Tự tăng khi lưu' : '';
     });
     document.getElementById('materialCatalogEditorTitle').textContent = mode === 'VIEW'
       ? 'Chi tiết vật tư ' + editingMaterialCode
       : mode === 'EDIT' ? 'Sửa vật tư ' + editingMaterialCode : 'Thêm vật tư';
     document.getElementById('btnMaterialCatalogSave').classList.toggle('d-none', isView);
-    document.getElementById('materialCatalogViewActions').classList.toggle('d-none', !isView || !can('MMTB_MANAGE'));
+    document.getElementById('materialCatalogViewActions').classList.toggle('d-none', !isView || !can('KHO_MANAGE'));
     document.getElementById('btnMaterialCatalogViewEdit').onclick = function() {
       editMaterialCatalogItemByCode(editingMaterialCode);
     };
@@ -1816,14 +1887,11 @@
 
   function handleSaveMaterialCatalog(event) {
     event.preventDefault();
-    if (viewingMaterialCatalogItem) return;
+    if (viewingMaterialCatalogItem || !can('KHO_MANAGE')) return;
     var data = {
       ma: editingMaterialCode || document.getElementById('materialCode').value,
       ten: document.getElementById('materialName').value,
-      dvt: document.getElementById('materialUnit').value,
-      donGia: document.getElementById('materialPrice').value,
-      soGioThayThe: document.getElementById('materialReplacementHours').value,
-      ghiChu: document.getElementById('materialNote').value
+      dvt: document.getElementById('materialUnit').value
     };
     google.script.run.withSuccessHandler(function(result) {
       if (!result || !result.success) { Swal.fire('Lỗi', result && result.message ? result.message : 'Không thể lưu vật tư.', 'error'); return; }
@@ -1831,13 +1899,14 @@
       bootstrap.Modal.getOrCreateInstance(document.getElementById('modalMaterialCatalog')).hide();
       resetMaterialCatalogForm();
       Swal.fire('Thành công', result.message, 'success');
-      loadAllData(function() { completeReferenceCreate('MATERIAL', String(data.ma || '').trim()); });
+      loadAllData(function() { completeReferenceCreate('MATERIAL', String(result.ma || data.ma || '').trim()); });
     }).withFailureHandler(function(error) {
       Swal.fire('Lỗi hệ thống', error && error.message ? error.message : 'Không thể lưu vật tư.', 'error');
     }).saveMaterialCatalogItem(data, currentUser);
   }
 
   function removeMaterialCatalogItem(code) {
+    if (!can('KHO_MANAGE')) return;
     Swal.fire({ title: 'Xóa vật tư ' + code + '?', text: 'Không thể xóa vật tư đã có phát sinh trong sổ kho.', icon: 'warning', showCancelButton: true, confirmButtonText: 'Xóa', cancelButtonText: 'Hủy' }).then(function(result) {
       if (!result.isConfirmed) return;
       google.script.run.withSuccessHandler(function(response) {
@@ -1877,6 +1946,7 @@
 
   function handleSaveStockReceipt(event) {
     event.preventDefault();
+    if (!can('KHO_MANAGE')) return;
     var materialCode = getSearchableMaterialCode('stockReceiptMaterialPicker');
     if (!materialCode) {
       Swal.fire('Chưa chọn vật tư', 'Hãy tìm và chọn mã vật tư trong danh mục DMVT.', 'warning');
@@ -1890,6 +1960,7 @@
       return;
     }
     var data = {
+      id: editingStockId,
       ngay: document.getElementById('stockReceiptDate').value,
       maVatTu: materialCode,
       soLuong: quantity,
@@ -1902,6 +1973,8 @@
       if (!result || !result.success) { Swal.fire('Lỗi', result && result.message ? result.message : 'Không thể ghi nhận nhập / xuất kho.', 'error'); return; }
       bootstrap.Modal.getOrCreateInstance(document.getElementById('modalStockReceipt')).hide();
       document.getElementById('stockReceiptForm').reset();
+      editingStockId = '';
+      setStockReceiptFormMode('ADD');
       document.getElementById('stockReceiptMaterialPicker').dataset.selectedValue = '';
       populateStockMaterialOptions();
       document.getElementById('stockReceiptDate').value = getLocalMachineRuntimeDate();
@@ -1916,17 +1989,71 @@
     }).saveStockReceipt(data, currentUser);
   }
 
-  function openStockReceiptModal() {
+  function setStockReceiptFormMode(mode) {
+    var isEdit = mode === 'EDIT';
+    document.getElementById('stockReceiptTitle').textContent = isEdit ? 'Sửa giao dịch kho' : 'Ghi nhận nhập / xuất kho';
+    document.getElementById('stockReceiptSaveButton').textContent = isEdit ? 'Lưu thay đổi' : 'Ghi nhận nhập / xuất';
+  }
+
+  function openStockReceiptModal(id) {
+    if (!can('KHO_MANAGE')) return;
     document.getElementById('stockReceiptForm').reset();
+    editingStockId = id ? String(id) : '';
     var materialPicker = document.getElementById('stockReceiptMaterialPicker');
-    if (materialPicker) materialPicker.dataset.selectedValue = '';
+    var stock = editingStockId ? appData.kho.find(function(item) {
+      return normalizeRecordId(item['ID KHO'] || item.ID) === normalizeRecordId(editingStockId);
+    }) : null;
+    if (editingStockId && !stock) {
+      Swal.fire('Không tìm thấy giao dịch', 'Vui lòng đồng bộ dữ liệu kho rồi thử lại.', 'warning');
+      editingStockId = '';
+      return;
+    }
+    if (stock && String(stock['Ghi chú'] || '').indexOf('Xuất sử dụng cho nhật ký ') === 0) {
+      Swal.fire('Không thể sửa trực tiếp', 'Dòng xuất vật tư này được tạo từ nhật ký sửa chữa. Hãy sửa nhật ký để cập nhật.', 'info');
+      editingStockId = '';
+      return;
+    }
+    if (materialPicker) materialPicker.dataset.selectedValue = stock ? String(stock['Mã vật tư'] || '') : '';
     populateStockMaterialOptions();
     var stockMachine = document.getElementById('stockReceiptMachine');
     if (stockMachine) { stockMachine.disabled = false; stockMachine.value = ''; }
-    document.getElementById('stockReceiptDate').value = getLocalMachineRuntimeDate();
+    document.getElementById('stockReceiptDate').value = stock ? normalizeRuntimeDate(stock['Ngày nhập xuất']) : getLocalMachineRuntimeDate();
+    if (stock) {
+      document.getElementById('stockReceiptQuantity').value = stock['Số lượng'];
+      document.getElementById('stockReceiptPrice').value = stock['Đơn giá'] || '';
+      document.getElementById('stockReceiptNote').value = stock['Ghi chú'] || '';
+      document.getElementById('stockReceiptRepairLog').value = stock['Mã yêu cầu'] || '';
+      if (stockMachine) stockMachine.value = stock['Mã máy móc/thiết bị'] || stock['Máy móc/thiết bị'] || '';
+      applyStockReceiptInheritedMachine();
+    }
+    setStockReceiptFormMode(stock ? 'EDIT' : 'ADD');
     updateStockReceiptValue();
     syncAllSearchableSelects();
     bootstrap.Modal.getOrCreateInstance(document.getElementById('modalStockReceipt')).show();
+  }
+
+  function removeStockReceipt(id) {
+    if (!can('KHO_MANAGE')) return;
+    Swal.fire({
+      title: 'Xóa giao dịch kho #' + id + '?',
+      text: 'Thao tác này không thể hoàn tác.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Xóa giao dịch',
+      cancelButtonText: 'Hủy'
+    }).then(function(result) {
+      if (!result.isConfirmed) return;
+      google.script.run.withSuccessHandler(function(response) {
+        if (!response || !response.success) {
+          Swal.fire('Không thể xóa', response && response.message ? response.message : 'Đã xảy ra lỗi.', 'warning');
+          return;
+        }
+        Swal.fire('Đã xóa', response.message, 'success');
+        loadAllData();
+      }).withFailureHandler(function(error) {
+        Swal.fire('Lỗi hệ thống', error && error.message ? error.message : 'Không thể xóa giao dịch kho.', 'error');
+      }).deleteStockReceipt(id, currentUser);
+    });
   }
 
   function formatInventoryNumber(value) {
@@ -1942,7 +2069,7 @@
     var body = document.getElementById('tblKHOBody');
     if (!body) return;
     var stockActionButton = document.getElementById('btnKHOActions');
-    if (stockActionButton) stockActionButton.classList.toggle('d-none', !can('MMTB_MANAGE'));
+    if (stockActionButton) stockActionButton.classList.toggle('d-none', !can('KHO_MANAGE'));
     var search = (document.getElementById('filterKHOQuery')?.value || '').trim().toLowerCase();
     var startDate = document.getElementById('filterKHOStart')?.value || '';
     var endDate = document.getElementById('filterKHOEnd')?.value || '';
@@ -1968,7 +2095,7 @@
       var machineDisplay = machine ? machineCode + ' - ' + machine['Tên'] : machineCode;
       var stockValue = item['Giá trị xuất/nhập kho'];
       if (stockValue === '' || stockValue === null || stockValue === undefined) stockValue = Number(item['Số lượng'] || 0) * Number(item['Đơn giá'] || 0);
-      var values = [item['ID KHO'] || item['ID'], item['Ngày nhập xuất'], item['Mã vật tư'], formatInventoryNumber(item['Số lượng']), formatInventoryMoney(item['Đơn giá']), formatInventoryMoney(stockValue), machineDisplay, item['Ghi chú'], formatUserDisplay(item['Người thực hiện']), item['Ngày thực hiện'], item['Mã yêu cầu']];
+      var values = [item['ID KHO'] || item['ID'], item['Ngày nhập xuất'], getMaterialCodeValue(item['Mã vật tư']), formatInventoryNumber(item['Số lượng']), formatInventoryMoney(item['Đơn giá']), formatInventoryMoney(stockValue), machineDisplay, item['Ghi chú'], formatUserDisplay(item['Người thực hiện']), item['Ngày thực hiện'], item['Mã yêu cầu']];
       var row = document.createElement('tr');
       var stockId = String(item['ID KHO'] || item.ID || '');
       row.style.cursor = 'context-menu';
@@ -2379,6 +2506,41 @@
     stockReportDatesInitialized = true;
   }
 
+  function calculateStockReportItems(materials, transactions, startDate, endDate) {
+    var balances = {};
+    materials.forEach(function(item) {
+      var code = normalizeMaterialCode(getInventoryValue(item, ['Mã vật tư', 'Mã VT', 'Mã hàng', 'Mã']));
+      if (code) balances[code] = {
+        code: getMaterialCodeValue(code),
+        name: getInventoryValue(item, ['Tên vật tư', 'Tên hàng', 'Tên']),
+        unit: getInventoryValue(item, ['Đvt', 'ĐVT', 'Đơn vị tính', 'ĐVT chính', 'Đơn vị']),
+        opening: 0,
+        incoming: 0,
+        outgoing: 0
+      };
+    });
+    transactions.forEach(function(item) {
+      var code = normalizeMaterialCode(item['Mã vật tư']);
+      if (!code) return;
+      if (!balances[code]) balances[code] = { code: getMaterialCodeValue(code), name: '', unit: '', opening: 0, incoming: 0, outgoing: 0 };
+      var date = normalizeRuntimeDate(item['Ngày nhập xuất']);
+      var quantity = Number(item['Số lượng']) || 0;
+      if (!date) return;
+      if (date < startDate) {
+        balances[code].opening += quantity;
+        return;
+      }
+      if (date > endDate) return;
+      if (quantity > 0) balances[code].incoming += quantity;
+      else balances[code].outgoing += Math.abs(quantity);
+    });
+    return Object.keys(balances).map(function(code) {
+      var item = balances[code];
+      item.ending = item.opening + item.incoming - item.outgoing;
+      return item;
+    });
+  }
+
   function renderStockReport() {
     var body = document.getElementById('tblBaoCaoTonBody');
     if (!body) return;
@@ -2391,28 +2553,7 @@
       renderPaginationControls('paginationBaoCaoTon', 1, 1, function() {});
       return;
     }
-    var balances = {};
-    appData.dmvt.forEach(function(item) {
-      var code = String(getInventoryValue(item, ['Mã vật tư', 'Mã VT', 'Mã hàng', 'Mã'])).trim();
-      if (code) balances[code] = { code: code, name: getInventoryValue(item, ['Tên vật tư', 'Tên hàng', 'Tên']), unit: getInventoryValue(item, ['ĐVT', 'Đơn vị tính', 'ĐVT chính', 'Đơn vị']), opening: 0, incoming: 0, outgoing: 0 };
-    });
-    appData.kho.forEach(function(item) {
-      var code = String(item['Mã vật tư'] || '').trim();
-      if (!code) return;
-      if (!balances[code]) balances[code] = { code: code, name: '', unit: '', opening: 0, incoming: 0, outgoing: 0 };
-      var date = normalizeRuntimeDate(item['Ngày nhập xuất']);
-      var quantity = Number(item['Số lượng']) || 0;
-      if (!date) return;
-      if (date < startDate) { balances[code].opening += quantity; return; }
-      if (date > endDate) return;
-      if (quantity > 0) balances[code].incoming += quantity;
-      else balances[code].outgoing += Math.abs(quantity);
-    });
-    var items = Object.keys(balances).map(function(code) {
-      var item = balances[code];
-      item.ending = item.opening + item.incoming - item.outgoing;
-      return item;
-    });
+    var items = calculateStockReportItems(appData.dmvt, appData.kho, startDate, endDate);
     sortInventoryRows(items, 'KHO_REPORT');
     var totalPages = Math.ceil(items.length / pageSizeStockReport) || 1;
     if (currentPageStockReport > totalPages) currentPageStockReport = totalPages;
@@ -3981,12 +4122,15 @@
   function showMachineView(viewName, button) {
     var catalog = document.getElementById('machine-view-catalog');
     var replacement = document.getElementById('machine-view-replacement');
-    if (!catalog || !replacement) return;
+    var areas = document.getElementById('machine-view-areas');
+    if (!catalog || !replacement || !areas) return;
     catalog.classList.toggle('d-none', viewName !== 'catalog');
     replacement.classList.toggle('d-none', viewName !== 'replacement');
+    areas.classList.toggle('d-none', viewName !== 'areas');
     var tabs = button ? button.parentNode.querySelectorAll('.nav-link') : [];
     Array.from(tabs).forEach(function(tab) { tab.classList.toggle('active', tab === button); });
     if (viewName === 'replacement') renderMachineReplacementTable();
+    if (viewName === 'areas') renderKhuVucTab();
   }
 
   function showMachineDetailTab(viewName, button) {
@@ -4084,7 +4228,7 @@
     document.getElementById('machineReplacementMachine').value = item ? getInventoryValue(item, ['Mã máy']) : '';
     document.getElementById('machineReplacementMaterial').value = item ? getInventoryValue(item, ['Mã vật tư', 'Mã VT', 'Mã hàng', 'Mã']) : '';
     document.getElementById('machineReplacementDescription').value = item ? getInventoryValue(item, ['Phụ tùng / việc bảo trì', 'Phụ tùng/việc bảo trì']) : '';
-    document.getElementById('machineReplacementUnit').value = item ? getInventoryValue(item, ['Đơn vị', 'ĐVT']) : '';
+    document.getElementById('machineReplacementUnit').value = 'Giờ';
     document.getElementById('machineReplacementFrequency').value = item ? getInventoryValue(item, ['Tần suất']) : '';
     document.getElementById('machineReplacementEditorTitle').textContent = item ? 'Chỉnh sửa vật tư thay thế #' + id : 'Khai báo vật tư thay thế';
     syncAllSearchableSelects();
@@ -4098,7 +4242,7 @@
       maMay: document.getElementById('machineReplacementMachine').value,
       maVatTu: document.getElementById('machineReplacementMaterial').value,
       phuTung: document.getElementById('machineReplacementDescription').value.trim(),
-      donVi: document.getElementById('machineReplacementUnit').value.trim(),
+      donVi: 'Giờ',
       tanSuat: document.getElementById('machineReplacementFrequency').value.trim()
     };
     Swal.fire({ title: 'Đang lưu khai báo...', allowOutsideClick: false, didOpen: function() { Swal.showLoading(); } });
@@ -4658,33 +4802,8 @@
   }
 
   function renderDanhMucTab() {
-    document.getElementById('btnKhuVucActions').classList.toggle('d-none', !can('KHU_VUC_MANAGE'));
-    document.getElementById('btnLoaiYCActions').classList.toggle('d-none', !can('LOAI_YC_MANAGE'));
-    document.getElementById('btnUserActions').classList.toggle('d-none', !can('USER_MANAGE'));
-    var pushCheckbox = document.getElementById('chkPushStatus');
-    if (pushCheckbox) {
-      var savedSubscription = appData.pushSubs.find(function(subscription) {
-        return String(subscription['Mã NV']).trim() === String(currentUser.maNV).trim();
-      });
-      pushCheckbox.checked = !!(savedSubscription && savedSubscription['Trạng thái Push'] === 'Bật' && 'Notification' in window && Notification.permission === 'granted');
-    }
-
-    var ulKV = document.getElementById('listKhuVuc');
-    if (ulKV) {
-      ulKV.innerHTML = '';
-      appData.khuVuc.forEach(function(kv) {
-        var code = kv['Mã khu vưc'] || kv['Mã khu vực'] || '';
-        ulKV.appendChild(createCategoryItem('<strong>' + escapeHtml(code) + '</strong> <span class="text-muted small ms-1">' + escapeHtml(kv['Mô tả']) + '</span>', 'KHU_VUC', code));
-      });
-    }
-    var ulLoai = document.getElementById('listLoaiYC');
-    if (ulLoai) {
-      ulLoai.innerHTML = '';
-      appData.loaiYC.forEach(function(l) {
-        var code = l['Mã yêu cầu'] || '';
-        ulLoai.appendChild(createCategoryItem('<strong>' + escapeHtml(code) + '</strong> <span class="ms-1">' + escapeHtml(l['Tên yêu cầu']) + '</span>', 'LOAI_YC', code));
-      });
-    }
+    var userActions = document.getElementById('btnUserActions');
+    if (userActions) userActions.classList.toggle('d-none', !can('USER_MANAGE'));
     var ulUser = document.getElementById('listUsers');
     if (ulUser) {
       ulUser.innerHTML = '';
@@ -4693,6 +4812,30 @@
         ulUser.appendChild(createCategoryItem('<strong>' + escapeHtml(userCode) + '</strong> - ' + escapeHtml(u['Họ tên']) + ' <span class="badge bg-light text-dark border ms-1">' + escapeHtml(u['Vai trò'] || 'Sản xuất') + '</span>', 'USER', userCode));
       });
     }
+  }
+
+  function renderKhuVucTab() {
+    var actions = document.getElementById('btnKhuVucActions');
+    if (actions) actions.classList.toggle('d-none', !can('KHU_VUC_MANAGE'));
+    var ulKV = document.getElementById('listKhuVuc');
+    if (!ulKV) return;
+    ulKV.innerHTML = '';
+    appData.khuVuc.forEach(function(kv) {
+      var code = kv['Mã khu vưc'] || kv['Mã khu vực'] || '';
+      ulKV.appendChild(createCategoryItem('<strong>' + escapeHtml(code) + '</strong> <span class="text-muted small ms-1">' + escapeHtml(kv['Mô tả']) + '</span>', 'KHU_VUC', code));
+    });
+  }
+
+  function renderLoaiYCTab() {
+    var actions = document.getElementById('btnLoaiYCActions');
+    if (actions) actions.classList.toggle('d-none', !can('LOAI_YC_MANAGE'));
+    var ulLoai = document.getElementById('listLoaiYC');
+    if (!ulLoai) return;
+    ulLoai.innerHTML = '';
+    appData.loaiYC.forEach(function(l) {
+      var code = l['Mã yêu cầu'] || '';
+      ulLoai.appendChild(createCategoryItem('<strong>' + escapeHtml(code) + '</strong> <span class="ms-1">' + escapeHtml(l['Tên yêu cầu']) + '</span>', 'LOAI_YC', code));
+    });
   }
 
   function normalizeExcelValue(value) {
@@ -4765,14 +4908,24 @@
     var tabName = 'Dashboard';
 
     if (activeId === 'tab-yeucau') {
-      tabName = 'YeuCau';
-      appendExcelSheet(workbook, 'Yeu cau', getYeuCauExportRows(getFilteredYeuCauRows()), ['ID', 'Trạng thái', 'Ngày yêu cầu', 'Loại yêu cầu', 'Khu vực', 'Máy móc/thiết bị', 'Ngày yêu cầu hoàn thành', 'Mô tả yêu cầu', 'Người yêu cầu', 'Người tiếp nhận']);
+      if (!document.getElementById('request-view-types').classList.contains('d-none')) {
+        tabName = 'LoaiYeuCau';
+        appendExcelSheet(workbook, 'Loai yeu cau', appData.loaiYC, Object.keys(appData.loaiYC[0] || {}));
+      } else {
+        tabName = 'YeuCau';
+        appendExcelSheet(workbook, 'Yeu cau', getYeuCauExportRows(getFilteredYeuCauRows()), ['ID', 'Trạng thái', 'Ngày yêu cầu', 'Loại yêu cầu', 'Khu vực', 'Máy móc/thiết bị', 'Ngày yêu cầu hoàn thành', 'Mô tả yêu cầu', 'Người yêu cầu', 'Người tiếp nhận']);
+      }
     } else if (activeId === 'tab-yeucauth') {
       tabName = 'NhatKySuaChua';
       appendExcelSheet(workbook, 'Nhat ky sua chua', appData.yeuCauTH, ['ID TH', 'Từ giờ', 'Đến giờ', 'Loại công việc', 'Công việc thực hiện', 'Máy móc/thiết bị', 'Mã yêu cầu', 'Hình ảnh thực hiện', 'Người thực hiện', 'Trạng thái']);
     } else if (activeId === 'tab-mmtb') {
-      tabName = 'MayMoc';
-      appendExcelSheet(workbook, 'May moc', getMMTBExportRows(getFilteredMMTBRows()), ['Mã', 'Tên MMTB', 'Khu vực', 'ĐVT', 'Thông tin', 'Hồ sơ tài chính', 'Công suất (KW/H)', 'Hình ảnh', 'Tình trạng', 'Ngày đưa vào sử dụng', 'Thông số kỹ thuật', 'Người tạo', 'Ngày tạo', 'Ghi chú']);
+      if (!document.getElementById('machine-view-areas').classList.contains('d-none')) {
+        tabName = 'KhuVuc';
+        appendExcelSheet(workbook, 'Khu vuc', appData.khuVuc, Object.keys(appData.khuVuc[0] || {}));
+      } else {
+        tabName = 'MayMoc';
+        appendExcelSheet(workbook, 'May moc', getMMTBExportRows(getFilteredMMTBRows()), ['Mã', 'Tên MMTB', 'Khu vực', 'ĐVT', 'Thông tin', 'Hồ sơ tài chính', 'Công suất (KW/H)', 'Hình ảnh', 'Tình trạng', 'Ngày đưa vào sử dụng', 'Thông số kỹ thuật', 'Người tạo', 'Ngày tạo', 'Ghi chú']);
+      }
     } else if (activeId === 'tab-baocaosx') {
       tabName = 'BaoCaoSharePoint';
       var reportKeys = sharePointKeys;
@@ -4784,10 +4937,7 @@
       appendExcelSheet(workbook, 'Bao cao SX', reportRows, reportKeys);
     } else if (activeId === 'tab-danhmuc') {
       tabName = 'DanhMuc';
-      appendExcelSheet(workbook, 'Khu vuc', appData.khuVuc, Object.keys(appData.khuVuc[0] || {}));
-      appendExcelSheet(workbook, 'Loai yeu cau', appData.loaiYC, Object.keys(appData.loaiYC[0] || {}));
       appendExcelSheet(workbook, 'Nguoi dung', appData.user, Object.keys(appData.user[0] || {}));
-      appendExcelSheet(workbook, 'Thong bao', appData.pushSubs, Object.keys(appData.pushSubs[0] || {}));
     } else if (activeId === 'tab-kho' && !document.getElementById('inventory-view-ledger').classList.contains('d-none')) {
       tabName = 'SoKho';
       var stockRows = appData.kho.map(function(item) {
@@ -4848,7 +4998,7 @@
   function initResizableColumns() {
     initSortableTable('tblYeuCau', 'YEU_CAU', [null, 'Trạng thái', 'Ngày yêu cầu', 'Loại yêu cầu', 'Khu vực', 'Máy móc/thiết bị', 'Ngày yêu cầu hoàn thành', 'Mô tả yêu cầu', 'Người yêu cầu', 'Người tiếp nhận', 'ID YC']);
     initSortableTable('tblMMTB', 'MMTB', [null, 'Mã', 'Tên', 'Khu vực', 'ĐVT chính', 'Thông tin MMTB', 'Hồ sơ tài chính MMTB', 'Công suất tiêu thụ (KW/H)', 'Hình ảnh', 'Tình trạng MMTB', 'Ngày đưa vào sử dụng', 'Thông số kỹ thuật cơ điện quản lý', 'Người tạo', 'Ngày tạo', 'Ghi chú tình trạng sử dụng']);
-    initSortableTable('tblDMVT', 'DMVT', [null, 'Mã vật tư', 'Tên vật tư', 'Đơn vị tính', 'Đơn giá', 'Số giờ thay thế', 'Ghi chú']);
+    initSortableTable('tblDMVT', 'DMVT', ['Mã vật tư', 'Tên vật tư', 'Đvt', 'Người tạo', 'Ngày tạo']);
     initSortableTable('tblKHO', 'KHO', [null, 'ID KHO', 'Ngày nhập xuất', 'Mã vật tư', 'Số lượng', 'Đơn giá', 'Giá trị xuất/nhập kho', 'Mã máy móc/thiết bị', 'Ghi chú', 'Người thực hiện', 'Ngày thực hiện', 'Mã yêu cầu']);
     initSortableTable('tblBaoCaoTon', 'KHO_REPORT', [null, 'Mã vật tư', 'Tên vật tư', 'ĐVT', 'Tồn đầu kỳ', 'Nhập trong kỳ', 'Xuất trong kỳ', 'Tồn cuối kỳ']);
     initSortableTable('tblYeuCauTH', 'YEU_CAU_TH', [null, 'ID TH', 'Từ giờ', 'Đến giờ', 'Loại công việc', 'Công việc thực hiện', 'Máy móc/thiết bị', 'Mã yêu cầu', 'Hình ảnh thực hiện', 'Người thực hiện', 'Trạng thái']);

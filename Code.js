@@ -122,6 +122,7 @@ function checkPermission(user, action, targetObject) {
       return !!targetObject && status === 'Chờ xác nhận' && (isAdmin || normalizeEmployeeCode(owner) === normalizeEmployeeCode(user.maNV));
 
     case 'REPAIR_LOG_MANAGE':
+    case 'KHO_MANAGE':
       return isKyThuat;
 
     case 'MMTB_MANAGE':
@@ -189,6 +190,18 @@ function changePassword(maNV, oldPassword, newPassword) {
 function getAppData() {
   var yeuCau = sheetToObjects('YEU_CAU');
   var yeuCauTH = sheetToObjects('YEU_CAU_TH');
+  var dmvt = sheetToObjects('DMVT');
+  var kho = sheetToObjects('KHO');
+  var thayThe = sheetToObjects('THAY_THE');
+  var yeuCauVT = sheetToObjects('YEU_CAU_VT');
+  [dmvt, kho, thayThe, yeuCauVT].forEach(function(rows) {
+    rows.forEach(function(row) {
+      var codeKey = Object.keys(row).find(function(key) {
+        return ['mã vật tư', 'mã vt', 'mã hàng', 'mã'].indexOf(String(key).trim().toLowerCase()) !== -1;
+      });
+      if (codeKey) row[codeKey] = getMaterialCodeValue(row[codeKey]);
+    });
+  });
   yeuCau.forEach(function(request) {
     var legacyStatus = String(request['Trạng thái'] || '').trim();
     if (legacyStatus === 'Đã hoàn thành') {
@@ -203,9 +216,10 @@ function getAppData() {
     mmtb: sheetToObjects('MMTB'),
     yeuCau: yeuCau,
     yeuCauTH: yeuCauTH,
-    dmvt: sheetToObjects('DMVT'),
-    thayThe: sheetToObjects('THAY_THE'),
-    kho: sheetToObjects('KHO'),
+    dmvt: dmvt,
+    thayThe: thayThe,
+    yeuCauVT: yeuCauVT,
+    kho: kho,
     user: sheetToObjects('USER'),
     khuVuc: sheetToObjects('KHU_VUC'),
     loaiYC: sheetToObjects('LOAI_YC'),
@@ -242,10 +256,10 @@ function saveMachineReplacementItem(data, currentUser) {
     }
 
     var machineCode = String(data.maMay || '').trim();
-    var materialCode = String(data.maVatTu || '').trim();
+    var materialCode = normalizeMaterialCode(data.maVatTu);
     var machine = sheetToObjects('MMTB').find(function(item) { return String(item['Mã'] || '').trim() === machineCode; });
     var material = sheetToObjects('DMVT').find(function(item) {
-      return String(item['Mã vật tư'] || item['Mã VT'] || item['Mã hàng'] || item['Mã'] || '').trim() === materialCode;
+      return normalizeMaterialCode(item['Mã vật tư'] || item['Mã VT'] || item['Mã hàng'] || item['Mã']) === materialCode;
     });
     var maintenance = String(data.phuTung || '').trim();
     if (!machineCode || !materialCode || !maintenance) return { success: false, message: 'Vui lòng chọn máy, vật tư và nhập phụ tùng / việc bảo trì.' };
@@ -264,17 +278,18 @@ function saveMachineReplacementItem(data, currentUser) {
     row[idIndex] = targetRow > 0 ? row[idIndex] : getNextInventoryId(values, idIndex);
     row[machineCodeIndex] = machineCode;
     if (machineNameIndex !== -1) row[machineNameIndex] = machine['Tên'] || '';
-    row[materialCodeIndex] = materialCode;
+    row[materialCodeIndex] = getMaterialCodeValue(materialCode);
     row[maintenanceIndex] = maintenance;
-    if (unitIndex !== -1) row[unitIndex] = String(data.donVi || '').trim() || material['ĐVT'] || material['Đơn vị tính'] || '';
+    if (unitIndex !== -1) row[unitIndex] = 'Giờ';
     if (frequencyIndex !== -1) row[frequencyIndex] = String(data.tanSuat || '').trim();
+    var savedRow = targetRow > 0 ? targetRow : sheet.getLastRow() + 1;
     if (targetRow === -1) {
       if (creatorIndex !== -1) row[creatorIndex] = getCanonicalEmployeeCode(currentUser.maNV);
       if (createdDateIndex !== -1) row[createdDateIndex] = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm:ss');
       sheet.appendRow(row);
-      return { success: true, message: 'Đã thêm khai báo vật tư thay thế #' + row[idIndex] + '.' };
-    }
-    sheet.getRange(targetRow, 1, 1, headers.length).setValues([row]);
+    } else sheet.getRange(targetRow, 1, 1, headers.length).setValues([row]);
+    if (typeof getMaterialCodeValue(row[materialCodeIndex]) === 'number') sheet.getRange(savedRow, materialCodeIndex + 1).setNumberFormat('0');
+    if (targetRow === -1) return { success: true, message: 'Đã thêm khai báo vật tư thay thế #' + row[idIndex] + '.' };
     return { success: true, message: 'Đã cập nhật khai báo vật tư thay thế #' + id + '.' };
   } catch (error) {
     return { success: false, message: error.toString() };
@@ -310,6 +325,20 @@ function inventoryColumnIndex(headers, candidates) {
   return -1;
 }
 
+function normalizeMaterialCode(value) {
+  var text = String(value == null ? '' : value).trim();
+  if (!text) return '';
+  var number = Number(text);
+  return isFinite(number) && Math.floor(number) === number ? String(number) : text;
+}
+
+function getMaterialCodeValue(value) {
+  var normalized = normalizeMaterialCode(value);
+  return normalized && isFinite(Number(normalized)) && Math.floor(Number(normalized)) === Number(normalized)
+    ? Number(normalized)
+    : normalized;
+}
+
 function getOrCreateInventorySheet(sheetName, defaultHeaders) {
   var spreadsheet = getDb();
   var sheet = findDatabaseSheet(sheetName);
@@ -322,7 +351,51 @@ function getOrCreateInventorySheet(sheetName, defaultHeaders) {
       return inventoryColumnIndex(headers, [header]) === -1;
     });
     if (missingHeaders.length) sheet.getRange(1, sheet.getLastColumn() + 1, 1, missingHeaders.length).setValues([missingHeaders]);
+    if (['DMVT', 'KHO', 'THAY_THE', 'YEU_CAU_VT'].indexOf(sheetName) !== -1 && sheet.getLastRow() > 1) {
+      var materialHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+      var materialCodeColumnIndex = inventoryColumnIndex(materialHeaders, ['Mã vật tư']);
+      if (materialCodeColumnIndex !== -1) {
+        var storedCodes = sheet.getRange(2, materialCodeColumnIndex + 1, sheet.getLastRow() - 1, 1).getValues();
+        var numericCodes = storedCodes.map(function(row) {
+          var normalizedCode = getMaterialCodeValue(row[0]);
+          return [typeof row[0] === 'string' && typeof normalizedCode === 'number' ? normalizedCode : row[0]];
+        });
+        if (storedCodes.some(function(row, index) { return row[0] !== numericCodes[index][0]; })) {
+          sheet.getRange(2, materialCodeColumnIndex + 1, numericCodes.length, 1).setValues(numericCodes);
+        }
+        sheet.getRange(2, materialCodeColumnIndex + 1, storedCodes.length, 1).setNumberFormat('0');
+      }
+    }
     if (sheetName === 'KHO') {
+      var noteHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+      var noteIndexes = [];
+      noteHeaders.forEach(function(header, index) {
+        if (String(header == null ? '' : header).trim().toLowerCase() === 'ghi chú') noteIndexes.push(index);
+      });
+      while (noteIndexes.length > 1) {
+        var primaryNoteIndex = noteIndexes[0];
+        var duplicateNoteIndex = noteIndexes[noteIndexes.length - 1];
+        if (sheet.getLastRow() > 1) {
+          var noteValues = sheet.getRange(2, 1, sheet.getLastRow() - 1, sheet.getLastColumn()).getValues();
+          var primaryNotes = [];
+          noteValues.forEach(function(row) {
+            var primaryNote = String(row[primaryNoteIndex] == null ? '' : row[primaryNoteIndex]).trim();
+            var duplicateNote = String(row[duplicateNoteIndex] == null ? '' : row[duplicateNoteIndex]).trim();
+            if (duplicateNote) {
+              if (!primaryNote) primaryNote = duplicateNote;
+              else if (primaryNote !== duplicateNote) primaryNote += '\n' + duplicateNote;
+            }
+            primaryNotes.push([primaryNote]);
+          });
+          sheet.getRange(2, primaryNoteIndex + 1, primaryNotes.length, 1).setValues(primaryNotes);
+        }
+        sheet.deleteColumn(duplicateNoteIndex + 1);
+        noteHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+        noteIndexes = [];
+        noteHeaders.forEach(function(header, index) {
+          if (String(header == null ? '' : header).trim().toLowerCase() === 'ghi chú') noteIndexes.push(index);
+        });
+      }
       var currentHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
       var legacyMachineIndex = inventoryColumnIndex(currentHeaders, ['Máy móc/thiết bị']);
       var machineCodeIndex = inventoryColumnIndex(currentHeaders, ['Mã máy móc/thiết bị']);
@@ -362,59 +435,63 @@ function getNextInventoryId(rows, idColumnIndex) {
 }
 
 function saveMaterialCatalogItem(data, currentUser) {
-  if (!checkPermission(currentUser, 'MMTB_MANAGE')) return { success: false, message: 'Chỉ Admin mới có quyền quản lý vật tư!' };
+  if (!checkPermission(currentUser, 'KHO_MANAGE')) return { success: false, message: 'Bạn không có quyền quản lý vật tư.' };
+  var lock = LockService.getDocumentLock();
+  lock.waitLock(30000);
   try {
-    var sheet = getOrCreateInventorySheet('DMVT', ['Mã vật tư', 'Tên vật tư', 'ĐVT', 'Đơn giá', 'Số giờ thay thế', 'Ghi chú']);
+    var sheet = getOrCreateInventorySheet('DMVT', ['Mã vật tư', 'Tên vật tư', 'Đvt', 'Người tạo', 'Ngày tạo']);
     var values = sheet.getDataRange().getValues();
     var headers = values[0];
     var codeIndex = inventoryColumnIndex(headers, ['Mã vật tư', 'Mã VT', 'Mã hàng', 'Mã']);
     var nameIndex = inventoryColumnIndex(headers, ['Tên vật tư', 'Tên hàng', 'Tên']);
-    var unitIndex = inventoryColumnIndex(headers, ['ĐVT', 'Đơn vị tính', 'ĐVT chính', 'Đơn vị']);
-    var priceIndex = inventoryColumnIndex(headers, ['Đơn giá', 'Giá nhập', 'Giá xuất']);
-    var replacementHoursIndex = inventoryColumnIndex(headers, ['Số giờ thay thế']);
-    var noteIndex = inventoryColumnIndex(headers, ['Ghi chú', 'Ghi chú vật tư']);
+    var unitIndex = inventoryColumnIndex(headers, ['Đvt', 'ĐVT', 'Đơn vị tính', 'ĐVT chính', 'Đơn vị']);
+    var creatorIndex = inventoryColumnIndex(headers, ['Người tạo']);
+    var createdDateIndex = inventoryColumnIndex(headers, ['Ngày tạo']);
     if (codeIndex === -1 || nameIndex === -1) return { success: false, message: 'Sheet DMVT cần có cột Mã vật tư và Tên vật tư.' };
 
-    var code = String(data.ma || '').trim();
-    if (!code || !String(data.ten || '').trim()) return { success: false, message: 'Vui lòng nhập mã và tên vật tư.' };
-    var replacementHoursValue = String(data.soGioThayThe == null ? '' : data.soGioThayThe).trim();
-    var replacementHours = replacementHoursValue === '' ? '' : Number(replacementHoursValue);
-    if (replacementHoursValue !== '' && (!isFinite(replacementHours) || replacementHours <= 0)) {
-      return { success: false, message: 'Số giờ thay thế phải lớn hơn 0 hoặc để trống.' };
-    }
-    if (replacementHoursIndex === -1) {
-      replacementHoursIndex = headers.length;
-      sheet.getRange(1, replacementHoursIndex + 1).setValue('Số giờ thay thế');
-      headers.push('Số giờ thay thế');
-    }
+    var code = normalizeMaterialCode(data.ma);
+    if (!String(data.ten || '').trim()) return { success: false, message: 'Vui lòng nhập tên vật tư.' };
     var targetRow = -1;
-    for (var rowIndex = 1; rowIndex < values.length; rowIndex++) {
-      if (String(values[rowIndex][codeIndex]).trim() === code) { targetRow = rowIndex + 1; break; }
+    if (code) {
+      for (var rowIndex = 1; rowIndex < values.length; rowIndex++) {
+        if (normalizeMaterialCode(values[rowIndex][codeIndex]) === code) { targetRow = rowIndex + 1; break; }
+      }
+      if (targetRow === -1) return { success: false, message: 'Không tìm thấy mã vật tư cần cập nhật.' };
     }
     var row = targetRow > 0 ? values[targetRow - 1].slice() : Array(headers.length).fill('');
     while (row.length < headers.length) row.push('');
-    row[codeIndex] = code;
+    if (targetRow === -1) code = String(getNextInventoryId(values, codeIndex));
+    row[codeIndex] = getMaterialCodeValue(code);
     row[nameIndex] = String(data.ten).trim();
     if (unitIndex !== -1) row[unitIndex] = data.dvt || '';
-    if (priceIndex !== -1) row[priceIndex] = data.donGia || '';
-    row[replacementHoursIndex] = replacementHours;
-    if (noteIndex !== -1) row[noteIndex] = data.ghiChu || '';
-    if (targetRow > 0) sheet.getRange(targetRow, 1, 1, headers.length).setValues([row]);
+    if (targetRow === -1) {
+      if (creatorIndex !== -1) row[creatorIndex] = getCanonicalEmployeeCode(currentUser.maNV);
+      if (createdDateIndex !== -1) row[createdDateIndex] = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm:ss');
+    }
+    var savedRow = targetRow > 0 ? targetRow : sheet.getLastRow() + 1;
+    if (targetRow > 0) sheet.getRange(savedRow, 1, 1, headers.length).setValues([row]);
     else sheet.appendRow(row);
-    return { success: true, message: targetRow > 0 ? 'Đã cập nhật vật tư.' : 'Đã thêm vật tư.' };
+    var savedCode = getMaterialCodeValue(row[codeIndex]);
+    var codeCell = sheet.getRange(savedRow, codeIndex + 1);
+    if (typeof savedCode === 'number') codeCell.setNumberFormat('0');
+    codeCell.setValue(savedCode);
+    if (creatorIndex !== -1 && targetRow === -1) setEmployeeCodeCell(sheet, savedRow, creatorIndex + 1, row[creatorIndex]);
+    return { success: true, message: targetRow > 0 ? 'Đã cập nhật vật tư.' : 'Đã thêm vật tư #' + code + '.', ma: savedCode };
   } catch (error) {
     return { success: false, message: error.toString() };
+  } finally {
+    lock.releaseLock();
   }
 }
 
 function deleteMaterialCatalogItem(materialCode, currentUser) {
-  if (!checkPermission(currentUser, 'MMTB_MANAGE')) return { success: false, message: 'Chỉ Admin mới có quyền quản lý vật tư!' };
+  if (!checkPermission(currentUser, 'KHO_MANAGE')) return { success: false, message: 'Bạn không có quyền quản lý vật tư.' };
   try {
-    var code = String(materialCode || '').trim();
+    var code = normalizeMaterialCode(materialCode);
     var usageRows = sheetToObjects('YEU_CAU_VT');
     var stockRows = sheetToObjects('KHO');
-    var hasUsage = usageRows.some(function(row) { return String(row['Mã vật tư'] || '').trim() === code; });
-    var hasStock = stockRows.some(function(row) { return String(row['Mã vật tư'] || '').trim() === code; });
+    var hasUsage = usageRows.some(function(row) { return normalizeMaterialCode(row['Mã vật tư']) === code; });
+    var hasStock = stockRows.some(function(row) { return normalizeMaterialCode(row['Mã vật tư']) === code; });
     if (hasUsage || hasStock) return { success: false, message: 'Vật tư đã có phát sinh trong yêu cầu hoặc sổ kho nên không thể xóa.' };
 
     var sheet = getDb().getSheetByName('DMVT');
@@ -423,7 +500,7 @@ function deleteMaterialCatalogItem(materialCode, currentUser) {
     var codeIndex = inventoryColumnIndex(values[0], ['Mã vật tư', 'Mã VT', 'Mã hàng', 'Mã']);
     if (codeIndex === -1) return { success: false, message: 'Không tìm thấy cột mã vật tư trong DMVT.' };
     for (var i = values.length - 1; i >= 1; i--) {
-      if (String(values[i][codeIndex]).trim() === code) {
+      if (normalizeMaterialCode(values[i][codeIndex]) === code) {
         sheet.deleteRow(i + 1);
         return { success: true, message: 'Đã xóa vật tư ' + code + '.' };
       }
@@ -435,7 +512,9 @@ function deleteMaterialCatalogItem(materialCode, currentUser) {
 }
 
 function saveStockReceipt(data, currentUser) {
-  if (!checkPermission(currentUser, 'MMTB_MANAGE')) return { success: false, message: 'Bạn không có quyền ghi nhận nhập / xuất kho.' };
+  if (!checkPermission(currentUser, 'KHO_MANAGE')) return { success: false, message: 'Bạn không có quyền quản lý sổ kho.' };
+  var lock = LockService.getDocumentLock();
+  lock.waitLock(30000);
   try {
     var sheet = getOrCreateInventorySheet('KHO', ['ID KHO', 'Ngày nhập xuất', 'Mã vật tư', 'Số lượng', 'Đơn giá', 'Ghi chú', 'Người thực hiện', 'Ngày thực hiện', 'Mã yêu cầu', 'Mã máy móc/thiết bị', 'Giá trị xuất/nhập kho']);
     var rows = sheet.getDataRange().getValues();
@@ -445,13 +524,37 @@ function saveStockReceipt(data, currentUser) {
     var dateIndex = inventoryColumnIndex(headers, ['Ngày nhập xuất']);
     var idIndex = inventoryColumnIndex(headers, ['ID KHO', 'ID']);
     var requestIndex = inventoryColumnIndex(headers, ['Mã yêu cầu']);
+    var noteIndex = inventoryColumnIndex(headers, ['Ghi chú']);
+    var priceIndex = inventoryColumnIndex(headers, ['Đơn giá']);
+    var valueIndex = inventoryColumnIndex(headers, ['Giá trị xuất/nhập kho']);
+    var performerIndex = inventoryColumnIndex(headers, ['Người thực hiện']);
+    var performedDateIndex = inventoryColumnIndex(headers, ['Ngày thực hiện']);
+    var machineIndex = inventoryColumnIndex(headers, ['Mã máy móc/thiết bị', 'Máy móc/thiết bị']);
     if ([codeIndex, quantityIndex, dateIndex, idIndex, requestIndex].some(function(index) { return index === -1; })) {
       return { success: false, message: 'Sheet KHO thiếu một hoặc nhiều cột theo thiết kế mới.' };
     }
+    var existingRowIndex = -1;
+    var stockId = normalizeInventoryId(data.id);
+    if (stockId) {
+      for (var existingIndex = 1; existingIndex < rows.length; existingIndex++) {
+        if (normalizeInventoryId(rows[existingIndex][idIndex]) === stockId) {
+          existingRowIndex = existingIndex;
+          break;
+        }
+      }
+      if (existingRowIndex === -1) return { success: false, message: 'Không tìm thấy giao dịch kho #' + stockId + '.' };
+      var existingNote = noteIndex === -1 ? '' : String(rows[existingRowIndex][noteIndex] || '');
+      if (existingNote.indexOf('Xuất sử dụng cho nhật ký ') === 0) {
+        return { success: false, message: 'Vật tư đã tự động ghi từ nhật ký sửa chữa; hãy sửa nhật ký để cập nhật dòng kho này.' };
+      }
+    }
     var quantity = Number(data.soLuong);
     if (!data.maVatTu || !isFinite(quantity) || quantity === 0) return { success: false, message: 'Vui lòng chọn vật tư và nhập số lượng khác 0 (nhập kho số dương, xuất kho số âm).' };
+    var priceInput = String(data.donGia == null ? '' : data.donGia).trim();
+    var price = priceInput === '' ? 0 : Number(priceInput);
+    if (!isFinite(price) || price < 0) return { success: false, message: 'Đơn giá phải là số không âm.' };
     var materialExists = sheetToObjects('DMVT').some(function(item) {
-      return String(item['Mã vật tư'] || item['Mã VT'] || item['Mã hàng'] || item['Mã'] || '').trim() === String(data.maVatTu).trim();
+      return normalizeMaterialCode(item['Mã vật tư'] || item['Mã VT'] || item['Mã hàng'] || item['Mã']) === normalizeMaterialCode(data.maVatTu);
     });
     if (!materialExists) return { success: false, message: 'Mã vật tư không tồn tại trong DMVT.' };
     var logId = normalizeInventoryId(data.maYeuCau);
@@ -466,17 +569,11 @@ function saveStockReceipt(data, currentUser) {
     if (machineCode && !sheetToObjects('MMTB').some(function(machine) {
       return String(machine['Mã'] || '').trim() === machineCode;
     })) return { success: false, message: 'Máy móc/thiết bị không tồn tại trong danh mục MMTB.' };
-    var row = Array(headers.length).fill('');
-    row[idIndex] = getNextInventoryId(rows, idIndex);
+    var row = existingRowIndex === -1 ? Array(headers.length).fill('') : rows[existingRowIndex].slice();
+    row[idIndex] = existingRowIndex === -1 ? getNextInventoryId(rows, idIndex) : rows[existingRowIndex][idIndex];
     row[dateIndex] = data.ngay || Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd');
-    row[codeIndex] = data.maVatTu;
+    row[codeIndex] = getMaterialCodeValue(data.maVatTu);
     row[quantityIndex] = quantity;
-    var priceIndex = inventoryColumnIndex(headers, ['Đơn giá']);
-    var valueIndex = inventoryColumnIndex(headers, ['Giá trị xuất/nhập kho']);
-    var noteIndex = inventoryColumnIndex(headers, ['Ghi chú']);
-    var performerIndex = inventoryColumnIndex(headers, ['Người thực hiện']);
-    var performedDateIndex = inventoryColumnIndex(headers, ['Ngày thực hiện']);
-    var machineIndex = inventoryColumnIndex(headers, ['Mã máy móc/thiết bị', 'Máy móc/thiết bị']);
     if (requestIndex !== -1 && machineIndex !== -1) {
       var repairLogs = sheetToObjects('YEU_CAU_TH');
       for (var stockRow = 1; stockRow < rows.length; stockRow++) {
@@ -491,20 +588,55 @@ function saveStockReceipt(data, currentUser) {
       }
     }
     var employeeCode = getCanonicalEmployeeCode(currentUser.maNV);
-    if (priceIndex !== -1) row[priceIndex] = data.donGia || '';
-    if (valueIndex !== -1) row[valueIndex] = quantity * Number(data.donGia || 0);
+    if (priceIndex !== -1) row[priceIndex] = priceInput === '' ? '' : price;
+    if (valueIndex !== -1) row[valueIndex] = quantity * price;
     if (noteIndex !== -1) row[noteIndex] = data.ghiChu || '';
     if (performerIndex !== -1) row[performerIndex] = employeeCode;
     if (performedDateIndex !== -1) row[performedDateIndex] = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm:ss');
     if (machineIndex !== -1) row[machineIndex] = machineCode;
     row[requestIndex] = logId;
-    var newRowIndex = sheet.getLastRow() + 1;
-    sheet.appendRow(row);
+    var newRowIndex = existingRowIndex === -1 ? sheet.getLastRow() + 1 : existingRowIndex + 1;
+    if (existingRowIndex === -1) sheet.appendRow(row);
+    else sheet.getRange(newRowIndex, 1, 1, headers.length).setValues([row]);
     if (idIndex !== -1) sheet.getRange(newRowIndex, idIndex + 1).setNumberFormat('@').setValue(String(row[idIndex]));
+    if (typeof getMaterialCodeValue(row[codeIndex]) === 'number') sheet.getRange(newRowIndex, codeIndex + 1).setNumberFormat('0');
     if (performerIndex !== -1) setEmployeeCodeCell(sheet, newRowIndex, performerIndex + 1, employeeCode);
-    return { success: true, message: quantity > 0 ? 'Đã ghi nhận nhập kho.' : 'Đã ghi nhận xuất kho.' };
+    return { success: true, message: existingRowIndex === -1
+      ? (quantity > 0 ? 'Đã ghi nhận nhập kho.' : 'Đã ghi nhận xuất kho.')
+      : 'Đã cập nhật giao dịch kho #' + stockId + '.' };
   } catch (error) {
     return { success: false, message: error.toString() };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function deleteStockReceipt(stockId, currentUser) {
+  if (!checkPermission(currentUser, 'KHO_MANAGE')) return { success: false, message: 'Bạn không có quyền quản lý sổ kho.' };
+  var lock = LockService.getDocumentLock();
+  lock.waitLock(30000);
+  try {
+    var sheet = findDatabaseSheet('KHO');
+    if (!sheet || sheet.getLastRow() < 2) return { success: false, message: 'Không tìm thấy giao dịch kho.' };
+    var rows = sheet.getDataRange().getValues();
+    var idIndex = inventoryColumnIndex(rows[0], ['ID KHO', 'ID']);
+    var noteIndex = inventoryColumnIndex(rows[0], ['Ghi chú']);
+    if (idIndex === -1) throw new Error('Sheet KHO thiếu cột ID KHO.');
+    var targetId = normalizeInventoryId(stockId);
+    for (var i = rows.length - 1; i > 0; i--) {
+      if (normalizeInventoryId(rows[i][idIndex]) !== targetId) continue;
+      var note = noteIndex === -1 ? '' : String(rows[i][noteIndex] || '');
+      if (note.indexOf('Xuất sử dụng cho nhật ký ') === 0) {
+        return { success: false, message: 'Vật tư đã tự động ghi từ nhật ký sửa chữa; hãy sửa hoặc xóa nhật ký để cập nhật dòng kho này.' };
+      }
+      sheet.deleteRow(i + 1);
+      return { success: true, message: 'Đã xóa giao dịch kho #' + targetId + '.' };
+    }
+    return { success: false, message: 'Không tìm thấy giao dịch kho #' + targetId + '.' };
+  } catch (error) {
+    return { success: false, message: error.toString() };
+  } finally {
+    lock.releaseLock();
   }
 }
 
@@ -615,7 +747,7 @@ function saveRepairLog(data, currentUser) {
         var quantity = Number(item.soLuong);
         if (!code || !isFinite(quantity) || quantity <= 0) throw new Error('Mỗi dòng vật tư cần chọn mã vật tư và nhập số lượng lớn hơn 0.');
         if (!catalog.some(function(material) {
-          return String(material['Mã vật tư'] || material['Mã VT'] || material['Mã hàng'] || material['Mã'] || '').trim() === code;
+          return normalizeMaterialCode(material['Mã vật tư'] || material['Mã VT'] || material['Mã hàng'] || material['Mã']) === normalizeMaterialCode(code);
         })) throw new Error('Mã vật tư ' + code + ' không tồn tại trong DMVT.');
       });
 
@@ -655,7 +787,7 @@ function saveRepairLog(data, currentUser) {
         var values = previous ? previous.values.slice() : Array(stockHeaders.length).fill('');
         values[stockIdIndex] = previous ? values[stockIdIndex] : nextStockId++;
         values[stockDateIndex] = item.ngay || String(data.denGio || '').slice(0, 10) || now.slice(0, 10);
-        values[stockCodeIndex] = String(item.maVatTu).trim();
+        values[stockCodeIndex] = getMaterialCodeValue(item.maVatTu);
         values[stockQuantityIndex] = -Number(item.soLuong);
         if (stockPriceIndex !== -1) values[stockPriceIndex] = Number(item.donGia) || 0;
         if (stockValueIndex !== -1) values[stockValueIndex] = -Number(item.soLuong) * (Number(item.donGia) || 0);
@@ -666,6 +798,7 @@ function saveRepairLog(data, currentUser) {
         values[stockLogIndex] = logId;
         if (previous) {
           if (stockUserIndex !== -1) stockSheet.getRange(previous.row, stockUserIndex + 1).setNumberFormat('@');
+          if (typeof getMaterialCodeValue(values[stockCodeIndex]) === 'number') stockSheet.getRange(previous.row, stockCodeIndex + 1).setNumberFormat('0');
           stockSheet.getRange(previous.row, 1, 1, stockHeaders.length).setValues([values]);
         } else {
           newStockRows.push(values);
@@ -676,6 +809,7 @@ function saveRepairLog(data, currentUser) {
         if (stockUserIndex !== -1) {
           stockSheet.getRange(firstNewStockRow, stockUserIndex + 1, newStockRows.length, 1).setNumberFormat('@');
         }
+        stockSheet.getRange(firstNewStockRow, stockCodeIndex + 1, newStockRows.length, 1).setNumberFormat('0');
         stockSheet.getRange(firstNewStockRow, 1, newStockRows.length, stockHeaders.length).setValues(newStockRows);
       }
       previousStock.slice(materialRows.length).sort(function(a, b) { return b.row - a.row; }).forEach(function(item) {
@@ -798,7 +932,7 @@ function syncYeuCauVatTu_(requestId, submittedItems, currentUser) {
       var quantity = Number(item.soLuong);
       if (!materialCode || !isFinite(quantity) || quantity <= 0) throw new Error('Mỗi dòng vật tư cần có mã vật tư và số lượng lớn hơn 0.');
       if (!catalogRows.some(function(material) {
-        return String(material['Mã vật tư'] || material['Mã VT'] || material['Mã hàng'] || material['Mã'] || '').trim() === materialCode;
+        return normalizeMaterialCode(material['Mã vật tư'] || material['Mã VT'] || material['Mã hàng'] || material['Mã']) === normalizeMaterialCode(materialCode);
       })) throw new Error('Mã vật tư ' + materialCode + ' không tồn tại trong DMVT.');
       var id = String(item.id || '').trim();
       var existing = id && existingById[id];
@@ -808,16 +942,18 @@ function syncYeuCauVatTu_(requestId, submittedItems, currentUser) {
       usageValues[usageIdIndex] = id;
       usageValues[usageRequestIndex] = requestId;
       usageValues[usageDateIndex] = item.ngaySuDung || timestamp.slice(0, 10);
-      usageValues[usageCodeIndex] = materialCode;
+      usageValues[usageCodeIndex] = getMaterialCodeValue(materialCode);
       usageValues[usageQuantityIndex] = quantity;
       if (usagePriceIndex !== -1) usageValues[usagePriceIndex] = Number(item.donGia) || 0;
       if (usageUserIndex !== -1) usageValues[usageUserIndex] = employeeCode;
       if (usagePerformedIndex !== -1) usageValues[usagePerformedIndex] = timestamp;
       if (existing) {
+        if (typeof getMaterialCodeValue(usageValues[usageCodeIndex]) === 'number') usageSheet.getRange(existing.rowNumber, usageCodeIndex + 1).setNumberFormat('0');
         usageSheet.getRange(existing.rowNumber, 1, 1, usageColumns.length).setValues([usageValues]);
         if (usageUserIndex !== -1) setEmployeeCodeCell(usageSheet, existing.rowNumber, usageUserIndex + 1, employeeCode);
       } else {
         var newUsageRow = usageSheet.getLastRow() + 1;
+        if (typeof getMaterialCodeValue(usageValues[usageCodeIndex]) === 'number') usageSheet.getRange(newUsageRow, usageCodeIndex + 1).setNumberFormat('0');
         usageSheet.appendRow(usageValues);
         if (usageUserIndex !== -1) setEmployeeCodeCell(usageSheet, newUsageRow, usageUserIndex + 1, employeeCode);
       }
@@ -832,7 +968,7 @@ function syncYeuCauVatTu_(requestId, submittedItems, currentUser) {
       var stockValues = stockRowNumber > 0 ? stockRows[stockRowNumber - 1].slice() : Array(stockColumns.length).fill('');
       if (stockIdIndex !== -1 && stockRowNumber < 0) stockValues[stockIdIndex] = nextStockId++;
       stockValues[stockDateIndex] = usageValues[usageDateIndex];
-      stockValues[stockCodeIndex] = materialCode;
+      stockValues[stockCodeIndex] = getMaterialCodeValue(materialCode);
       stockValues[stockQuantityIndex] = -quantity;
       if (stockPriceIndex !== -1) stockValues[stockPriceIndex] = usageValues[usagePriceIndex] || 0;
       if (stockNoteIndex !== -1) stockValues[stockNoteIndex] = 'Xuất sử dụng cho yêu cầu ' + requestId;
@@ -841,10 +977,12 @@ function syncYeuCauVatTu_(requestId, submittedItems, currentUser) {
       stockValues[stockUsageIdIndex] = id;
       stockValues[stockRequestIndex] = requestId;
       if (stockRowNumber > 0) {
+        if (typeof getMaterialCodeValue(stockValues[stockCodeIndex]) === 'number') stockSheet.getRange(stockRowNumber, stockCodeIndex + 1).setNumberFormat('0');
         stockSheet.getRange(stockRowNumber, 1, 1, stockColumns.length).setValues([stockValues]);
         if (stockUserIndex !== -1) setEmployeeCodeCell(stockSheet, stockRowNumber, stockUserIndex + 1, employeeCode);
       } else {
         var newStockRow = stockSheet.getLastRow() + 1;
+        if (typeof getMaterialCodeValue(stockValues[stockCodeIndex]) === 'number') stockSheet.getRange(newStockRow, stockCodeIndex + 1).setNumberFormat('0');
         stockSheet.appendRow(stockValues);
         if (stockUserIndex !== -1) setEmployeeCodeCell(stockSheet, newStockRow, stockUserIndex + 1, employeeCode);
       }

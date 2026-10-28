@@ -4632,33 +4632,6 @@
     });
   }
 
-  function createCategoryItem(contentHtml, type, id) {
-    var item = document.createElement('li');
-    item.className = 'list-group-item d-flex justify-content-between align-items-center gap-2';
-    item.style.cursor = 'context-menu';
-    item.addEventListener('contextmenu', function(event) { showContextMenu(event, type, id); });
-    var content = document.createElement('div');
-    content.className = 'min-w-0';
-    content.innerHTML = contentHtml;
-    item.appendChild(content);
-
-    var permissionByType = { KHU_VUC: 'KHU_VUC_MANAGE', LOAI_YC: 'LOAI_YC_MANAGE', USER: 'USER_MANAGE' };
-    if (can(permissionByType[type])) {
-      var actions = document.createElement('div');
-      actions.className = 'd-flex gap-1 flex-shrink-0';
-      var menuButton = document.createElement('button');
-      menuButton.type = 'button';
-      menuButton.className = 'btn btn-sm btn-light border';
-      menuButton.title = 'Chức năng';
-      menuButton.setAttribute('aria-label', 'Chức năng ' + id);
-      menuButton.innerHTML = '<i class="fa-solid fa-ellipsis-vertical"></i>';
-      menuButton.addEventListener('click', function(event) { toggleRowDropdown(menuButton, event, type, id); });
-      actions.appendChild(menuButton);
-      item.appendChild(actions);
-    }
-    return item;
-  }
-
   function openAdminForm(title, fields, onSave) {
     var fieldsHtml = fields.map(function(field) {
       var value = escapeHtml(field.value);
@@ -4928,25 +4901,70 @@
   function renderKhuVucTab() {
     var actions = document.getElementById('btnKhuVucActions');
     if (actions) actions.classList.toggle('d-none', !can('KHU_VUC_MANAGE'));
-    var ulKV = document.getElementById('listKhuVuc');
-    if (!ulKV) return;
-    ulKV.innerHTML = '';
-    appData.khuVuc.forEach(function(kv) {
-      var code = kv['Mã khu vưc'] || kv['Mã khu vực'] || '';
-      ulKV.appendChild(createCategoryItem('<strong>' + escapeHtml(code) + '</strong> <span class="text-muted small ms-1">' + escapeHtml(kv['Mô tả']) + '</span>', 'KHU_VUC', code));
+    renderAdminCategoryTable({
+      tableId: 'tblKhuVuc',
+      bodyId: 'tblKhuVucBody',
+      permission: 'KHU_VUC_MANAGE',
+      type: 'KHU_VUC',
+      rows: appData.khuVuc,
+      getCode: function(item) { return item['Mã khu vưc'] || item['Mã khu vực'] || ''; },
+      getName: function(item) { return item['Mô tả'] || ''; }
     });
   }
 
   function renderLoaiYCTab() {
     var actions = document.getElementById('btnLoaiYCActions');
     if (actions) actions.classList.toggle('d-none', !can('LOAI_YC_MANAGE'));
-    var ulLoai = document.getElementById('listLoaiYC');
-    if (!ulLoai) return;
-    ulLoai.innerHTML = '';
-    appData.loaiYC.forEach(function(l) {
-      var code = l['Mã yêu cầu'] || '';
-      ulLoai.appendChild(createCategoryItem('<strong>' + escapeHtml(code) + '</strong> <span class="ms-1">' + escapeHtml(l['Tên yêu cầu']) + '</span>', 'LOAI_YC', code));
+    renderAdminCategoryTable({
+      tableId: 'tblLoaiYC',
+      bodyId: 'tblLoaiYCBody',
+      permission: 'LOAI_YC_MANAGE',
+      type: 'LOAI_YC',
+      rows: appData.loaiYC,
+      getCode: function(item) { return item['Mã yêu cầu'] || ''; },
+      getName: function(item) { return item['Tên yêu cầu'] || ''; }
     });
+  }
+
+  function renderAdminCategoryTable(config) {
+    var tbody = document.getElementById(config.bodyId);
+    if (!tbody) return;
+    tbody.innerHTML = '';
+    config.rows.forEach(function(item) {
+      var code = String(config.getCode(item) || '');
+      var row = document.createElement('tr');
+      row.style.cursor = 'context-menu';
+      row.addEventListener('contextmenu', function(event) {
+        showContextMenu(event, config.type, code);
+      });
+
+      var actions = document.createElement('td');
+      actions.className = 'text-center text-nowrap';
+      if (can(config.permission)) {
+        var menuButton = document.createElement('button');
+        menuButton.type = 'button';
+        menuButton.className = 'btn btn-sm btn-light border';
+        menuButton.title = 'Chức năng';
+        menuButton.setAttribute('aria-label', 'Chức năng ' + code);
+        menuButton.innerHTML = '<i class="fa-solid fa-ellipsis-vertical"></i>';
+        menuButton.addEventListener('click', function(event) {
+          toggleRowDropdown(menuButton, event, config.type, code);
+        });
+        actions.appendChild(menuButton);
+      }
+      row.appendChild(actions);
+
+      [code, config.getName(item)].forEach(function(value) {
+        var cell = document.createElement('td');
+        cell.textContent = String(value == null ? '' : value);
+        row.appendChild(cell);
+      });
+      tbody.appendChild(row);
+    });
+    if (!config.rows.length) {
+      tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted py-3">Chưa có dữ liệu.</td></tr>';
+    }
+    applyMobileTableLabels(config.tableId);
   }
 
   function normalizeExcelValue(value) {

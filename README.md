@@ -31,7 +31,7 @@
 
 Danh mục `DMVT` dùng các cột `Mã vật tư`, `Tên vật tư`, `Đvt`, `Người tạo`, `Ngày tạo`. Mã vật tư là số tự tăng; mã trong `KHO` được lưu dạng số và tham chiếu tới danh mục này. Form danh mục chỉ nhập tên và đơn vị tính; người tạo, ngày tạo và mã được hệ thống cấp.
 
-Menu `Quản lý Yêu cầu` có tab `Loại yêu cầu`; menu `Máy móc thiết bị` có tab `Khu vực`. Menu `Nhân viên & Phân quyền` chỉ quản lý danh sách nhân viên và vai trò qua bảng dữ liệu. Các trường đơn vị trong DMVT, MMTB và vật tư thay thế gợi ý đơn vị đã dùng nhưng vẫn cho nhập giá trị mới.
+Menu `Quản lý Yêu cầu` có tab `Loại yêu cầu`; menu `Máy móc thiết bị` có tab `Khu vực`. Cả hai danh mục hiển thị dưới dạng bảng với cột thao tác, mã và tên. Menu `Nhân viên & Phân quyền` chỉ quản lý danh sách nhân viên và vai trò qua bảng dữ liệu. Các trường đơn vị trong DMVT, MMTB và vật tư thay thế gợi ý đơn vị đã dùng nhưng vẫn cho nhập giá trị mới.
 
 Sổ `KHO` lưu thêm mã máy móc/thiết bị và giá trị xuất/nhập (số lượng × đơn giá) bên cạnh các cột: `ID KHO`, `Ngày nhập xuất`, `Mã vật tư`, `Số lượng`, `Đơn giá`, `Ghi chú`, `Người thực hiện`, `Ngày thực hiện`, `Mã yêu cầu`. Sổ chỉ có một cột `Ghi chú`. Trên bảng và file Excel, hai cột thiết bị và giá trị hiển thị lần lượt là `Máy móc/TB` và `Giá trị`; máy móc được lấy theo `ID TH` trong `YEU_CAU_TH` khi có liên kết nhật ký sửa chữa. Admin và Kỹ thuật được phép thêm, sửa, xóa danh mục vật tư và giao dịch kho; dòng xuất vật tư được tạo tự động từ nhật ký phải được cập nhật thông qua nhật ký sửa chữa.
 

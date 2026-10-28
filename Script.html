@@ -13,9 +13,18 @@
   var dataSyncIntervalMs = 3000;
   var pendingReferenceCreate = null;
 
-  var pinnedCols = { 'tblYeuCau': -1, 'tblMMTB': -1, 'tblBaoCaoSX': -1, 'tblDMVT': -1, 'tblKHO': -1, 'tblBaoCaoTon': -1 };
+  var pinnedCols = {
+    'tblYeuCau': -1, 'tblMMTB': -1, 'tblBaoCaoSX': -1, 'tblDMVT': -1, 'tblKHO': -1, 'tblBaoCaoTon': -1,
+    'tblMachineReplacement': -1, 'tblUsers': -1, 'tblKhuVuc': -1, 'tblLoaiYC': -1
+  };
   var sortStateYC = { col: 'Trạng thái', dir: 'asc' };
   var sortStateMMTB = { col: 'Mã', dir: 'asc' };
+  var sortStateMachineReplacement = { col: 'ID TT', dir: 'asc' };
+  var sortStateAdminCategories = {
+    USER: { col: 'Mã NV', dir: 'asc' },
+    KHU_VUC: { col: 'Mã khu vực', dir: 'asc' },
+    LOAI_YC: { col: 'Mã yêu cầu', dir: 'asc' }
+  };
   var sortStateDMVT = { col: 'Mã vật tư', dir: 'asc' };
   var sortStateKHO = { col: 'Ngày nhập xuất', dir: 'desc' };
   var sortStateStockReport = { col: 'Mã vật tư', dir: 'asc' };
@@ -55,6 +64,8 @@
   var pageSizeMaterialUsage = 20;
   var currentPageMaterialCycles = 1;
   var pageSizeMaterialCycles = 20;
+  var currentPageMachineReplacement = 1;
+  var pageSizeMachineReplacement = 20;
   var adminCategoryTableState = {
     users: { page: 1, pageSize: 20, query: '' },
     khuVuc: { page: 1, pageSize: 20, query: '' },
@@ -663,7 +674,28 @@
       else if (tableType === 'KHO') renderStockLedger();
       else renderStockReport();
       updateSortIndicators(tableId, state);
+    } else if (tableType === 'MACHINE_REPLACEMENT') {
+      if (sortStateMachineReplacement.col === colName) sortStateMachineReplacement.dir = sortStateMachineReplacement.dir === 'asc' ? 'desc' : 'asc';
+      else { sortStateMachineReplacement.col = colName; sortStateMachineReplacement.dir = 'asc'; }
+      renderMachineReplacementTable();
+      updateSortIndicators('tblMachineReplacement', sortStateMachineReplacement);
+    } else if (sortStateAdminCategories[tableType]) {
+      var categoryState = sortStateAdminCategories[tableType];
+      if (categoryState.col === colName) categoryState.dir = categoryState.dir === 'asc' ? 'desc' : 'asc';
+      else { categoryState.col = colName; categoryState.dir = 'asc'; }
+      if (tableType === 'USER') renderDanhMucTab();
+      else if (tableType === 'KHU_VUC') renderKhuVucTab();
+      else renderLoaiYCTab();
+      updateSortIndicators(tableType === 'USER' ? 'tblUsers' : tableType === 'KHU_VUC' ? 'tblKhuVuc' : 'tblLoaiYC', categoryState);
     }
+  }
+
+  function getTableSortState(tableType) {
+    if (tableType === 'YEU_CAU') return sortStateYC;
+    if (tableType === 'MMTB') return sortStateMMTB;
+    if (tableType === 'MACHINE_REPLACEMENT') return sortStateMachineReplacement;
+    if (sortStateAdminCategories[tableType]) return sortStateAdminCategories[tableType];
+    return getInventorySortState(tableType);
   }
 
   function getInventorySortState(tableType) {
@@ -788,7 +820,7 @@
     header.appendChild(button);
   }
 
-  function initSortableTable(tableId, tableType, sortKeys) {
+  function initSortableTable(tableId, tableType, sortKeys, skipResize) {
     var table = document.getElementById(tableId);
     if (!table || !table.tHead || !table.tHead.rows.length) return;
 
@@ -814,8 +846,7 @@
       }
     });
 
-    updateSortIndicators(tableId, tableType === 'YEU_CAU' ? sortStateYC
-      : (tableType === 'MMTB' ? sortStateMMTB : getInventorySortState(tableType)));
+    updateSortIndicators(tableId, getTableSortState(tableType));
     var storedColumn = pinnedCols[tableId];
     try {
       var saved = localStorage.getItem('meManagerPinnedColumn:' + tableId);
@@ -823,7 +854,7 @@
     } catch (error) {}
     pinnedCols[tableId] = isNaN(storedColumn) ? -1 : storedColumn;
     applyTableFreeze(tableId, pinnedCols[tableId] + 1);
-    initResizableTableColumns(tableId);
+    if (!skipResize) initResizableTableColumns(tableId);
   }
 
   function initResizableTableColumns(tableId, measurementValues) {
@@ -4157,6 +4188,14 @@
       loadMachineRuntimeReport(true);
     }
     if (viewName === 'areas') renderKhuVucTab();
+    var tableId = viewName === 'catalog' ? 'tblMMTB'
+      : viewName === 'replacement' ? 'tblMachineReplacement'
+        : viewName === 'areas' ? 'tblKhuVuc' : '';
+    if (tableId) {
+      window.requestAnimationFrame(function() {
+        applyTableFreeze(tableId, pinnedCols[tableId] + 1);
+      });
+    }
   }
 
   function showMachineDetailTab(viewName, button) {
@@ -4256,6 +4295,33 @@
     });
   }
 
+  function getMachineReplacementSortValue(item, cycle, column) {
+    if (column === 'ID TT') return getInventoryValue(item, ['ID TT', 'ID']);
+    if (column === 'Mã máy') return getInventoryValue(item, ['Mã máy']);
+    if (column === 'Tên máy') return getInventoryValue(item, ['Tên máy']);
+    if (column === 'Mã vật tư') return getInventoryValue(item, ['Mã vật tư', 'Mã VT', 'Mã hàng', 'Mã']);
+    if (column === 'Phụ tùng / việc bảo trì') return getInventoryValue(item, ['Phụ tùng / việc bảo trì', 'Phụ tùng/việc bảo trì']);
+    if (column === 'Đơn vị') return getInventoryValue(item, ['Đơn vị', 'ĐVT']);
+    if (column === 'Tần suất') return getInventoryValue(item, ['Tần suất']);
+    if (column === 'Ngày thay thế gần nhất') return cycle.date;
+    if (column === 'Số giờ đã chạy') return cycle.hours === null ? '' : cycle.hours;
+    if (column === 'Trạng thái') return cycle.status;
+    if (column === 'Người tạo') return getInventoryValue(item, ['Người tạo']);
+    if (column === 'Ngày tạo') return normalizeRuntimeDate(getInventoryValue(item, ['Ngày tạo']));
+    return '';
+  }
+
+  function updateMachineReplacementSearch() {
+    currentPageMachineReplacement = 1;
+    renderMachineReplacementTable();
+  }
+
+  function changePageSizeMachineReplacement(value) {
+    pageSizeMachineReplacement = normalizePageSize(value);
+    currentPageMachineReplacement = 1;
+    renderMachineReplacementTable();
+  }
+
   function renderMachineReplacementTable() {
     var tbody = document.getElementById('tblMachineReplacementBody');
     if (!tbody) return;
@@ -4272,10 +4338,26 @@
         getInventoryValue(item, ['Đơn vị', 'ĐVT']),
         getInventoryValue(item, ['Tần suất'])
       ].join(' ').toLocaleLowerCase().indexOf(query) !== -1;
+    }).map(function(item) {
+      return { item: item, cycle: getMachineReplacementCycleInfo(item) };
     });
-    tbody.innerHTML = rows.length ? rows.map(function(item) {
+    rows.sort(function(a, b) {
+      return compareDynamicValues(
+        { value: getMachineReplacementSortValue(a.item, a.cycle, sortStateMachineReplacement.col) },
+        { value: getMachineReplacementSortValue(b.item, b.cycle, sortStateMachineReplacement.col) },
+        'value',
+        sortStateMachineReplacement.dir
+      );
+    });
+    var totalItems = rows.length;
+    var totalPages = Math.ceil(totalItems / pageSizeMachineReplacement) || 1;
+    if (currentPageMachineReplacement > totalPages) currentPageMachineReplacement = totalPages;
+    var startIndex = (currentPageMachineReplacement - 1) * pageSizeMachineReplacement;
+    var pageRows = rows.slice(startIndex, startIndex + pageSizeMachineReplacement);
+    tbody.innerHTML = pageRows.length ? pageRows.map(function(rowData) {
+      var item = rowData.item;
+      var cycle = rowData.cycle;
       var id = getInventoryValue(item, ['ID TT', 'ID']);
-      var cycle = getMachineReplacementCycleInfo(item);
       return '<tr style="cursor: pointer;" oncontextmenu="showContextMenu(event, \'MACHINE_REPLACEMENT\', \'' + escapeHtml(id) + '\')">' +
         '<td class="text-center" onclick="event.stopPropagation();"><button class="btn btn-sm btn-light border" title="Chức năng" onclick="toggleRowDropdown(this, event, \'MACHINE_REPLACEMENT\', \'' + escapeHtml(id) + '\')"><i class="fa-solid fa-ellipsis-vertical"></i></button></td>' +
         '<td>' + escapeHtml(id) + '</td>' +
@@ -4290,10 +4372,21 @@
         '<td><span class="badge ' + cycle.badgeClass + '">' + escapeHtml(cycle.status) + '</span></td>' +
         '<td>' + entityLinkMarkup(formatUserDisplay(getInventoryValue(item, ['Người tạo'])), 'USER', getInventoryValue(item, ['Người tạo'])) + '</td>' +
         '<td>' + escapeHtml(getInventoryValue(item, ['Ngày tạo'])) + '</td></tr>';
-    }).join('') : '<tr><td colspan="13" class="text-center text-muted py-3">Chưa có khai báo vật tư thay thế phù hợp.</td></tr>';
+    }).join('') : '<tr><td colspan="13" class="text-center text-muted py-3">' +
+      (query ? 'Không tìm thấy khai báo vật tư thay thế phù hợp.' : 'Chưa có khai báo vật tư thay thế.') + '</td></tr>';
     var count = document.getElementById('machineReplacementCount');
-    if (count) count.textContent = rows.length + ' khai báo';
+    if (count) count.textContent = totalItems + ' khai báo';
+    var pageInfo = document.getElementById('pageInfoMachineReplacement');
+    if (pageInfo) pageInfo.textContent = totalItems
+      ? (startIndex + 1) + ' - ' + Math.min(startIndex + pageRows.length, totalItems) + ' trong ' + totalItems
+      : '0 trong 0';
     applyMobileTableLabels('tblMachineReplacement');
+    applyTableFreeze('tblMachineReplacement', pinnedCols.tblMachineReplacement + 1);
+    updateSortIndicators('tblMachineReplacement', sortStateMachineReplacement);
+    renderPaginationControls('paginationMachineReplacement', currentPageMachineReplacement, totalPages, function(page) {
+      currentPageMachineReplacement = page;
+      renderMachineReplacementTable();
+    });
   }
 
   function openMachineReplacementModal(mode, id) {
@@ -4925,6 +5018,12 @@
       getCode: function(item) { return item['Mã NV'] || ''; },
       getName: function(item) { return item['Họ tên'] || ''; },
       getRole: function(item) { return item['Vai trò'] || 'Sản xuất'; },
+      getSortValue: function(item, column) {
+        if (column === 'Mã NV') return item['Mã NV'];
+        if (column === 'Họ tên') return item['Họ tên'];
+        if (column === 'Vai trò') return item['Vai trò'] || 'Sản xuất';
+        return '';
+      },
       getSearchText: function(item) { return [item['Mã NV'], item['Họ tên'], item['Vai trò'] || 'Sản xuất'].join(' '); }
     });
   }
@@ -4942,6 +5041,11 @@
       rows: appData.khuVuc,
       getCode: function(item) { return item['Mã khu vưc'] || item['Mã khu vực'] || ''; },
       getName: function(item) { return item['Mô tả'] || ''; },
+      getSortValue: function(item, column) {
+        if (column === 'Mã khu vực') return item['Mã khu vưc'] || item['Mã khu vực'];
+        if (column === 'Tên khu vực') return item['Mô tả'];
+        return '';
+      },
       getSearchText: function(item) { return [item['Mã khu vưc'], item['Mã khu vực'], item['Mô tả']].join(' '); }
     });
   }
@@ -4959,6 +5063,11 @@
       rows: appData.loaiYC,
       getCode: function(item) { return item['Mã yêu cầu'] || ''; },
       getName: function(item) { return item['Tên yêu cầu'] || ''; },
+      getSortValue: function(item, column) {
+        if (column === 'Mã yêu cầu') return item['Mã yêu cầu'];
+        if (column === 'Tên yêu cầu') return item['Tên yêu cầu'];
+        return '';
+      },
       getSearchText: function(item) { return [item['Mã yêu cầu'], item['Tên yêu cầu']].join(' '); }
     });
   }
@@ -4970,6 +5079,15 @@
     var query = state.query.trim().toLocaleLowerCase();
     var filteredRows = config.rows.filter(function(item) {
       return String(config.getSearchText(item) || '').toLocaleLowerCase().indexOf(query) !== -1;
+    });
+    var sortState = sortStateAdminCategories[config.type];
+    filteredRows.sort(function(a, b) {
+      return compareDynamicValues(
+        { value: config.getSortValue(a, sortState.col) },
+        { value: config.getSortValue(b, sortState.col) },
+        'value',
+        sortState.dir
+      );
     });
     var totalPages = Math.ceil(filteredRows.length / state.pageSize) || 1;
     if (state.page > totalPages) state.page = totalPages;
@@ -5029,6 +5147,8 @@
       state.page = page;
       renderAdminCategoryTable(config);
     });
+    applyTableFreeze(config.tableId, pinnedCols[config.tableId] + 1);
+    updateSortIndicators(config.tableId, sortState);
   }
 
   function filterAdminCategoryTable(key, query) {
@@ -5211,6 +5331,10 @@
   function initResizableColumns() {
     initSortableTable('tblYeuCau', 'YEU_CAU', [null, 'Trạng thái', 'Ngày yêu cầu', 'Loại yêu cầu', 'Khu vực', 'Máy móc/thiết bị', 'Ngày yêu cầu hoàn thành', 'Mô tả yêu cầu', 'Người yêu cầu', 'Người tiếp nhận', 'ID YC']);
     initSortableTable('tblMMTB', 'MMTB', [null, 'Mã', 'Tên', 'Khu vực', 'ĐVT chính', 'Thông tin MMTB', 'Hồ sơ tài chính MMTB', 'Công suất tiêu thụ (KW/H)', 'Hình ảnh', 'Tình trạng MMTB', 'Ngày đưa vào sử dụng', 'Thông số kỹ thuật cơ điện quản lý', 'Người tạo', 'Ngày tạo', 'Ghi chú tình trạng sử dụng']);
+    initSortableTable('tblMachineReplacement', 'MACHINE_REPLACEMENT', [null, 'ID TT', 'Mã máy', 'Tên máy', 'Mã vật tư', 'Phụ tùng / việc bảo trì', 'Đơn vị', 'Tần suất', 'Ngày thay thế gần nhất', 'Số giờ đã chạy', 'Trạng thái', 'Người tạo', 'Ngày tạo']);
+    initSortableTable('tblUsers', 'USER', [null, 'Mã NV', 'Họ tên', 'Vai trò'], true);
+    initSortableTable('tblKhuVuc', 'KHU_VUC', [null, 'Mã khu vực', 'Tên khu vực'], true);
+    initSortableTable('tblLoaiYC', 'LOAI_YC', [null, 'Mã yêu cầu', 'Tên yêu cầu'], true);
     initSortableTable('tblDMVT', 'DMVT', ['Mã vật tư', 'Tên vật tư', 'Đvt', 'Người tạo', 'Ngày tạo']);
     initSortableTable('tblKHO', 'KHO', [null, 'ID KHO', 'Ngày nhập xuất', 'Mã vật tư', 'Số lượng', 'Đơn giá', 'Giá trị xuất/nhập kho', 'Mã máy móc/thiết bị', 'Ghi chú', 'Người thực hiện', 'Ngày thực hiện', 'Mã yêu cầu']);
     initSortableTable('tblBaoCaoTon', 'KHO_REPORT', [null, 'Mã vật tư', 'Tên vật tư', 'ĐVT', 'Tồn đầu kỳ', 'Nhập trong kỳ', 'Xuất trong kỳ', 'Tồn cuối kỳ']);

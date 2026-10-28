@@ -84,7 +84,7 @@
           <button type="button" class="btn btn-sm btn-outline-primary" id="btnDataSync" onclick="syncCurrentTab()" title="Đồng bộ dữ liệu màn hình đang mở" aria-label="Đồng bộ dữ liệu màn hình đang mở">
             <i class="fa-solid fa-rotate"></i><span class="d-none d-sm-inline ms-1">Đồng bộ</span>
           </button>
-          <span id="data-sync-status" class="small text-muted d-none d-xl-inline" role="status" aria-live="polite" title="Tự động kiểm tra thay đổi dữ liệu Google Sheets mỗi 3 giây"></span>
+          <span id="data-sync-status" class="small text-muted d-none d-xl-inline" role="status" aria-live="polite" title="Tự động kiểm tra thay đổi dữ liệu Google Sheets mỗi 15 giây"></span>
         </div>
         <div class="d-flex align-items-center gap-2">
           <button class="btn btn-sm btn-outline-success" onclick="exportCurrentViewExcel()" title="Xuất dữ liệu đang xem ra Excel" aria-label="Xuất Excel">
@@ -184,6 +184,27 @@
                       <h3 class="fw-bold mb-0 text-success" id="stat-completed">0</h3>
                     </div>
                   </div>
+                </div>
+              </div>
+              <div class="card border-0 shadow-sm mb-2">
+                <div class="card-header bg-white py-3">
+                  <h5 class="m-0 fw-bold text-secondary">Vật tư cần thay thế</h5>
+                </div>
+                <div class="table-custom-wrapper" style="max-height: 320px;">
+                  <table class="table table-custom table-hover align-middle mb-0" id="tblDashboardReplacementAlerts">
+                    <thead class="table-light">
+                      <tr>
+                        <th>Trạng thái</th>
+                        <th>Tên vật tư (Mã vật tư)</th>
+                        <th>Tên máy (Mã máy)</th>
+                        <th>Ngày thay thế gần nhất</th>
+                        <th class="text-end">Số giờ đã chạy</th>
+                      </tr>
+                    </thead>
+                    <tbody id="dashboardReplacementAlertsBody">
+                      <tr><td colspan="5" class="text-center text-muted py-3">Đang tải dữ liệu giờ chạy...</td></tr>
+                    </tbody>
+                  </table>
                 </div>
               </div>
               <div class="card border-0 shadow-sm h-100">
@@ -438,7 +459,7 @@
             <div class="card-body py-2">
               <div class="d-flex justify-content-between align-items-center gap-2">
                 <h5 class="m-0 fw-bold text-primary"><i class="fa-solid fa-file-excel text-success me-2"></i>Báo cáo sản xuất (SharePoint)</h5>
-                <button class="btn btn-sm btn-primary fw-bold flex-shrink-0" onclick="loadBaoCaoSanXuat()">
+                <button class="btn btn-sm btn-primary fw-bold flex-shrink-0" onclick="loadBaoCaoSanXuat(true)">
                   <i class="fa-solid fa-rotate me-1"></i> Làm mới dữ liệu
                 </button>
               </div>

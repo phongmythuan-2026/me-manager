@@ -1865,10 +1865,14 @@
   }
 
   function updateStockReceiptValue() {
-    var quantity = Number(document.getElementById('stockReceiptQuantity').value);
-    var price = Number(document.getElementById('stockReceiptPrice').value);
+    var quantityInput = document.getElementById('stockReceiptQuantity').value;
+    var priceInput = document.getElementById('stockReceiptPrice').value;
+    var quantity = Number(quantityInput);
+    var price = Number(priceInput);
     var value = isFinite(quantity) && isFinite(price) ? quantity * price : 0;
-    document.getElementById('stockReceiptValue').value = value ? value.toLocaleString('vi-VN', { maximumFractionDigits: 3 }) : '';
+    document.getElementById('stockReceiptValue').value = quantityInput !== ''
+      ? value.toLocaleString('vi-VN', { maximumFractionDigits: 3 })
+      : '';
   }
 
   function handleSaveStockReceipt(event) {
@@ -1959,7 +1963,12 @@
       var linkedRepairLog = item['Mã yêu cầu'] ? (appData.yeuCauTH || []).find(function(log) {
         return normalizeRecordId(getRepairLogId(log)) === normalizeRecordId(item['Mã yêu cầu']);
       }) : null;
-      var values = [item['ID KHO'] || item['ID'], item['Ngày nhập xuất'], item['Mã vật tư'], formatInventoryNumber(item['Số lượng']), formatInventoryMoney(item['Đơn giá']), item['Ghi chú'], formatUserDisplay(item['Người thực hiện']), item['Ngày thực hiện'], item['Mã yêu cầu'], item['Mã máy móc/thiết bị'] || item['Máy móc/thiết bị'] || (linkedRepairLog ? linkedRepairLog['Máy móc/thiết bị'] : ''), formatInventoryMoney(item['Giá trị xuất/nhập kho'] || Number(item['Số lượng'] || 0) * Number(item['Đơn giá'] || 0))];
+      var machineCode = item['Mã máy móc/thiết bị'] || item['Máy móc/thiết bị'] || (linkedRepairLog ? linkedRepairLog['Máy móc/thiết bị'] : '');
+      var machine = (appData.mmtb || []).find(function(entry) { return String(entry['Mã'] || '').trim() === String(machineCode || '').trim(); });
+      var machineDisplay = machine ? machineCode + ' - ' + machine['Tên'] : machineCode;
+      var stockValue = item['Giá trị xuất/nhập kho'];
+      if (stockValue === '' || stockValue === null || stockValue === undefined) stockValue = Number(item['Số lượng'] || 0) * Number(item['Đơn giá'] || 0);
+      var values = [item['ID KHO'] || item['ID'], item['Ngày nhập xuất'], item['Mã vật tư'], formatInventoryNumber(item['Số lượng']), formatInventoryMoney(item['Đơn giá']), formatInventoryMoney(stockValue), machineDisplay, item['Ghi chú'], formatUserDisplay(item['Người thực hiện']), item['Ngày thực hiện'], item['Mã yêu cầu']];
       var row = document.createElement('tr');
       var stockId = String(item['ID KHO'] || item.ID || '');
       row.style.cursor = 'context-menu';
@@ -1978,8 +1987,10 @@
       values.forEach(function(value, index) {
         var cell = document.createElement('td');
         if (index === 2) setEntityLink(cell, value, 'MATERIAL', item['Mã vật tư']);
-        else if (index === 6) setEntityLink(cell, value, 'USER', item['Người thực hiện']);
-        else if (index === 8) setEntityLink(cell, value, 'REPAIR_LOG', item['Mã yêu cầu']);
+        else if (index === 6) setEntityLink(cell, value, 'MMTB', machineCode);
+        else if (index === 7) cell.style.whiteSpace = 'pre-wrap';
+        else if (index === 8) setEntityLink(cell, value, 'USER', item['Người thực hiện']);
+        else if (index === 10) setEntityLink(cell, value, 'REPAIR_LOG', item['Mã yêu cầu']);
         else cell.textContent = value == null ? '' : String(value);
         row.appendChild(cell);
       });
@@ -4786,15 +4797,17 @@
           'Mã vật tư': item['Mã vật tư'],
           'Số lượng': item['Số lượng'],
           'Đơn giá': item['Đơn giá'],
+          'Giá trị': item['Giá trị xuất/nhập kho'] === '' || item['Giá trị xuất/nhập kho'] === null || item['Giá trị xuất/nhập kho'] === undefined
+            ? Number(item['Số lượng'] || 0) * Number(item['Đơn giá'] || 0)
+            : item['Giá trị xuất/nhập kho'],
+          'Máy móc/TB': item['Mã máy móc/thiết bị'] || item['Máy móc/thiết bị'],
           'Ghi chú': item['Ghi chú'],
           'Người thực hiện': formatUserDisplay(item['Người thực hiện']),
           'Ngày thực hiện': item['Ngày thực hiện'],
-          'Mã yêu cầu': item['Mã yêu cầu'],
-          'Mã máy móc/thiết bị': item['Mã máy móc/thiết bị'] || item['Máy móc/thiết bị'],
-          'Giá trị xuất/nhập kho': item['Giá trị xuất/nhập kho'] || Number(item['Số lượng'] || 0) * Number(item['Đơn giá'] || 0)
+          'Mã yêu cầu': item['Mã yêu cầu']
         };
       });
-      appendExcelSheet(workbook, 'So kho', stockRows, ['ID KHO', 'Ngày nhập xuất', 'Mã vật tư', 'Số lượng', 'Đơn giá', 'Ghi chú', 'Người thực hiện', 'Ngày thực hiện', 'Mã yêu cầu', 'Mã máy móc/thiết bị', 'Giá trị xuất/nhập kho']);
+      appendExcelSheet(workbook, 'So kho', stockRows, ['ID KHO', 'Ngày nhập xuất', 'Mã vật tư', 'Số lượng', 'Đơn giá', 'Giá trị', 'Máy móc/TB', 'Ghi chú', 'Người thực hiện', 'Ngày thực hiện', 'Mã yêu cầu']);
     } else {
       appendExcelSheet(workbook, 'Yeu cau', getYeuCauExportRows(appData.yeuCau), ['ID', 'Trạng thái', 'Ngày yêu cầu', 'Loại yêu cầu', 'Khu vực', 'Máy móc/thiết bị', 'Ngày yêu cầu hoàn thành', 'Mô tả yêu cầu', 'Người yêu cầu', 'Người tiếp nhận']);
     }
@@ -4836,7 +4849,7 @@
     initSortableTable('tblYeuCau', 'YEU_CAU', [null, 'Trạng thái', 'Ngày yêu cầu', 'Loại yêu cầu', 'Khu vực', 'Máy móc/thiết bị', 'Ngày yêu cầu hoàn thành', 'Mô tả yêu cầu', 'Người yêu cầu', 'Người tiếp nhận', 'ID YC']);
     initSortableTable('tblMMTB', 'MMTB', [null, 'Mã', 'Tên', 'Khu vực', 'ĐVT chính', 'Thông tin MMTB', 'Hồ sơ tài chính MMTB', 'Công suất tiêu thụ (KW/H)', 'Hình ảnh', 'Tình trạng MMTB', 'Ngày đưa vào sử dụng', 'Thông số kỹ thuật cơ điện quản lý', 'Người tạo', 'Ngày tạo', 'Ghi chú tình trạng sử dụng']);
     initSortableTable('tblDMVT', 'DMVT', [null, 'Mã vật tư', 'Tên vật tư', 'Đơn vị tính', 'Đơn giá', 'Số giờ thay thế', 'Ghi chú']);
-    initSortableTable('tblKHO', 'KHO', [null, 'ID KHO', 'Ngày nhập xuất', 'Mã vật tư', 'Số lượng', 'Đơn giá', 'Ghi chú', 'Người thực hiện', 'Ngày thực hiện', 'Mã yêu cầu', 'Mã máy móc/thiết bị', 'Giá trị xuất/nhập kho']);
+    initSortableTable('tblKHO', 'KHO', [null, 'ID KHO', 'Ngày nhập xuất', 'Mã vật tư', 'Số lượng', 'Đơn giá', 'Giá trị xuất/nhập kho', 'Mã máy móc/thiết bị', 'Ghi chú', 'Người thực hiện', 'Ngày thực hiện', 'Mã yêu cầu']);
     initSortableTable('tblBaoCaoTon', 'KHO_REPORT', [null, 'Mã vật tư', 'Tên vật tư', 'ĐVT', 'Tồn đầu kỳ', 'Nhập trong kỳ', 'Xuất trong kỳ', 'Tồn cuối kỳ']);
     initSortableTable('tblYeuCauTH', 'YEU_CAU_TH', [null, 'ID TH', 'Từ giờ', 'Đến giờ', 'Loại công việc', 'Công việc thực hiện', 'Máy móc/thiết bị', 'Mã yêu cầu', 'Hình ảnh thực hiện', 'Người thực hiện', 'Trạng thái']);
   }

@@ -15,7 +15,7 @@
 
   var pinnedCols = {
     'tblYeuCau': -1, 'tblMMTB': -1, 'tblBaoCaoSX': -1, 'tblDMVT': -1, 'tblKHO': -1, 'tblBaoCaoTon': -1,
-    'tblMachineReplacement': -1, 'tblUsers': -1, 'tblKhuVuc': -1, 'tblLoaiYC': -1
+    'tblMachineReplacement': -1, 'tblUsers': -1, 'tblKhuVuc': -1, 'tblLoaiYC': -1, 'tblYeuCauTH': -1
   };
   var sortStateYC = { col: 'Trạng thái', dir: 'asc' };
   var sortStateMMTB = { col: 'Mã', dir: 'asc' };
@@ -959,7 +959,8 @@
         if (cell && !cell.hasAttribute('colspan')) contentWidth = Math.max(contentWidth, cell.getBoundingClientRect().width);
       });
       var isMachineTable = tableId === 'tblMMTB';
-      if (isMachineTable) {
+      var measureHeader = isMachineTable || tableId === 'tblYeuCauTH';
+      if (measureHeader) {
         var headerContent = header.cloneNode(true);
         headerContent.querySelectorAll('.resizer, .pin-btn, .sort-indicator').forEach(function(element) { element.remove(); });
         var headerLabel = (headerContent.innerText || headerContent.textContent || '').replace(/\s+/g, ' ').trim();
@@ -973,7 +974,7 @@
         }
       }
       var minimumWidth = tableId === 'tblMMTB' && index > 0 ? 76 : 64;
-      var maximumWidth = tableId === 'tblMMTB' ? 320 : 280;
+      var maximumWidth = isMachineTable ? 320 : (tableId === 'tblYeuCauTH' ? 360 : 280);
       return Math.min(maximumWidth, Math.max(minimumWidth, Math.ceil(contentWidth + 2)));
     });
     measuringTable.remove();
@@ -984,6 +985,9 @@
       var width = tableId === 'tblMMTB'
         ? Math.max(measuredWidths[index], savedWidth)
         : Math.max(56, savedWidth || measuredWidths[index]);
+      if (tableId === 'tblYeuCauTH') {
+        width = Math.min(360, Math.max(measuredWidths[index], savedWidth || measuredWidths[index]));
+      }
       setResizableColumnWidth(rows, index, width, headers.length);
 
       if (!header.querySelector('.resizer')) {
@@ -1003,7 +1007,8 @@
           document.body.classList.add('resizing-column');
 
           function moveHandler(moveEvent) {
-            widths[index] = Math.max(56, Math.round(startWidth + moveEvent.clientX - startX));
+            var resizedWidth = Math.max(56, Math.round(startWidth + moveEvent.clientX - startX));
+            widths[index] = tableId === 'tblYeuCauTH' ? Math.min(360, resizedWidth) : resizedWidth;
             setResizableColumnWidth(rows, index, widths[index], headers.length);
             updateResizableTableWidth(table, headers.length, widths);
           }
@@ -2287,6 +2292,8 @@
     });
     applyMobileTableLabels('tblYeuCauTH');
     applyTableCellEllipsis('tblYeuCauTH');
+    initResizableTableColumns('tblYeuCauTH');
+    applyTableFreeze('tblYeuCauTH', pinnedCols.tblYeuCauTH + 1);
   }
 
   function openRepairLogModal(mode, id, requestId) {

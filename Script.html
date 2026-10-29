@@ -1345,7 +1345,7 @@
 
   function getReferenceCreateConfig(type) {
     var config = {
-      KHU_VUC: { permission: 'KHU_VUC_MANAGE', create: function() { return openModalKhuVuc('ADD'); } },
+      KHU_VUC: { permission: 'KHU_VUC_MANAGE', modalId: 'modalKhuVucEditor', create: function() { return openModalKhuVuc('ADD'); } },
       LOAI_YC: { permission: 'LOAI_YC_MANAGE', create: function() { return openModalLoaiYC('ADD'); } },
       MMTB: { permission: 'MMTB_MANAGE', modalId: 'modalMMTB', create: function() { openModalMMTB('ADD'); } },
       MATERIAL: { permission: 'KHO_MANAGE', modalId: 'modalMaterialCatalog', create: function() { openMaterialCatalogModal(); } },
@@ -4934,6 +4934,12 @@
     var runner = google.script.run
       .withSuccessHandler(function(res) {
         if (res && res.success) {
+          if (method === 'khuVuc') {
+            var khuVucModal = document.getElementById('modalKhuVucEditor');
+            khuVucModal.dataset.confirmed = 'true';
+            markReferenceCreateSaving('KHU_VUC');
+            bootstrap.Modal.getOrCreateInstance(khuVucModal).hide();
+          }
           Swal.fire('Thành công', res.message || successMessage, 'success');
           var referenceType = method === 'khuVuc' ? 'KHU_VUC' : method === 'loaiYC' ? 'LOAI_YC' : '';
           loadAllData(function() {
@@ -4941,13 +4947,13 @@
           });
         } else {
           var failedReferenceType = method === 'khuVuc' ? 'KHU_VUC' : method === 'loaiYC' ? 'LOAI_YC' : '';
-          if (failedReferenceType && pendingReferenceCreate && pendingReferenceCreate.type === failedReferenceType) pendingReferenceCreate = null;
+          if (failedReferenceType && failedReferenceType !== 'KHU_VUC' && pendingReferenceCreate && pendingReferenceCreate.type === failedReferenceType) pendingReferenceCreate = null;
           Swal.fire('Không thể lưu', res && res.message ? res.message : 'Thao tác thất bại.', 'error');
         }
       })
       .withFailureHandler(function(error) {
         var failedReferenceType = method === 'khuVuc' ? 'KHU_VUC' : method === 'loaiYC' ? 'LOAI_YC' : '';
-        if (failedReferenceType && pendingReferenceCreate && pendingReferenceCreate.type === failedReferenceType) pendingReferenceCreate = null;
+        if (failedReferenceType && failedReferenceType !== 'KHU_VUC' && pendingReferenceCreate && pendingReferenceCreate.type === failedReferenceType) pendingReferenceCreate = null;
         Swal.fire('Lỗi hệ thống', error && error.message ? error.message : 'Không gọi được máy chủ.', 'error');
       });
 
@@ -5058,11 +5064,29 @@
   function openModalKhuVuc(mode, code) {
     if (!can('KHU_VUC_MANAGE')) return Swal.fire('Không có quyền', 'Chỉ Admin mới được quản lý khu vực.', 'warning');
     var item = appData.khuVuc.find(function(value) { return String(value['Mã khu vưc'] || value['Mã khu vực'] || '').trim() === String(code || '').trim(); });
-    var formPromise = openAdminForm(mode === 'EDIT' ? 'Sửa khu vực' : 'Thêm khu vực', [
-      { id: 'adminCategoryCode', name: 'ma', label: 'Mã khu vực', value: item ? (item['Mã khu vưc'] || item['Mã khu vực']) : '', required: true, readonly: mode === 'EDIT' },
-      { id: 'adminCategoryDescription', name: 'moTa', label: 'Tên khu vực', value: item ? item['Mô tả'] : '', required: true }
-    ], function(data) { runAdminMutation('khuVuc', data, 'Đã lưu khu vực.'); });
+    var modal = document.getElementById('modalKhuVucEditor');
+    var form = document.getElementById('khuVucEditorForm');
+    form.reset();
+    modal.dataset.confirmed = 'false';
+    document.getElementById('khuVucEditorCode').value = item ? (item['Mã khu vưc'] || item['Mã khu vực']) : '';
+    document.getElementById('khuVucEditorCode').readOnly = mode === 'EDIT';
+    document.getElementById('khuVucEditorName').value = item ? item['Mô tả'] : '';
+    document.getElementById('modalKhuVucEditorTitle').textContent = mode === 'EDIT' ? 'Sửa khu vực' : 'Thêm khu vực';
+    var formPromise = new Promise(function(resolve) {
+      modal.addEventListener('hidden.bs.modal', function() {
+        resolve({ isConfirmed: modal.dataset.confirmed === 'true' });
+      }, { once: true });
+    });
+    bootstrap.Modal.getOrCreateInstance(modal).show();
     return formPromise;
+  }
+
+  function handleSaveKhuVuc(event) {
+    event.preventDefault();
+    runAdminMutation('khuVuc', {
+      ma: document.getElementById('khuVucEditorCode').value.trim(),
+      moTa: document.getElementById('khuVucEditorName').value.trim()
+    }, 'Đã lưu khu vực.');
   }
 
   function openModalLoaiYC(mode, code) {

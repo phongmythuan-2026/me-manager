@@ -347,16 +347,26 @@
           <section id="machine-view-catalog">
           <div class="card border-0 shadow-sm mb-2">
             <div class="card-body compact-data-toolbar">
-                <input type="text" id="filterMMTBSearch" class="form-control form-control-sm compact-toolbar-search" placeholder="Tìm theo Mã hoặc Tên MMTB..." oninput="resetMMTBPagingAndRender()">
-                <select id="filterMMTBKhuVuc" class="form-select form-select-sm compact-toolbar-filter" onchange="resetMMTBPagingAndRender()">
-                  <option value="">-- Tất cả Khu vực --</option>
-                </select>
+              <div class="mmtb-filter-row">
+                <div>
+                  <label class="form-label small fw-bold mb-1" for="filterMMTBSearch">Tìm theo mã hoặc tên MMTB</label>
+                  <input type="search" id="filterMMTBSearch" class="form-control form-control-sm" placeholder="Nhập mã hoặc tên máy móc thiết bị..." oninput="resetMMTBPagingAndRender()" aria-label="Tìm theo mã hoặc tên MMTB">
+                </div>
+                <div>
+                  <label class="form-label small fw-bold mb-1" for="filterMMTBKhuVuc">Lọc theo khu vực</label>
+                  <select id="filterMMTBKhuVuc" class="form-select form-select-sm" onchange="resetMMTBPagingAndRender()" aria-label="Lọc máy móc thiết bị theo khu vực">
+                    <option value="">-- Tất cả khu vực --</option>
+                  </select>
+                </div>
+              </div>
+              <div class="mmtb-toolbar-actions">
                 <button id="btnMMTBExport" class="btn btn-outline-secondary btn-sm compact-toolbar-action fw-bold" onclick="exportMMTBPrintTemplate()">
                   <i class="fa-solid fa-print me-1"></i> Xuất mẫu in
                 </button>
                 <button id="btnMMTBAdd" class="btn btn-primary btn-sm compact-toolbar-action fw-bold" onclick="openModalMMTB('ADD')">
                   <i class="fa-solid fa-plus me-1"></i> Thêm MMTB
                 </button>
+              </div>
             </div>
           </div>
 
@@ -539,7 +549,8 @@
             <div class="card border-0 shadow-sm mb-3"><div class="card-body"><div class="row g-2 align-items-end">
               <div class="col-6 col-md-3"><label class="form-label small" for="stockReportStartDate">Từ ngày</label><input id="stockReportStartDate" type="date" class="form-control form-control-sm" onchange="renderStockReport()"></div>
               <div class="col-6 col-md-3"><label class="form-label small" for="stockReportEndDate">Đến ngày</label><input id="stockReportEndDate" type="date" class="form-control form-control-sm" onchange="renderStockReport()"></div>
-              <div class="col-12 col-md-6 text-md-end"><span id="stockReportSummary" class="small text-muted"></span></div>
+              <div class="col-12 col-md-6"><label class="form-label small" for="filterStockReportSearch">Tìm vật tư</label><input id="filterStockReportSearch" type="search" class="form-control form-control-sm" placeholder="Nhập mã hoặc tên vật tư..." oninput="resetStockReportPagingAndRender()" aria-label="Tìm mã hoặc tên vật tư trong báo cáo tồn kho"></div>
+              <div class="col-12 text-md-end"><span id="stockReportSummary" class="small text-muted"></span></div>
             </div></div></div>
             <div class="card border-0 shadow-sm"><div class="table-responsive table-container"><table class="table table-custom align-middle mb-0" id="tblBaoCaoTon"><thead><tr><th class="text-center">Thao tác</th><th>Mã vật tư</th><th>Tên vật tư</th><th>ĐVT</th><th>Tồn đầu kỳ</th><th>Nhập trong kỳ</th><th>Xuất trong kỳ</th><th>Tồn cuối kỳ</th></tr></thead><tbody id="tblBaoCaoTonBody"></tbody></table></div><div class="card-footer bg-white d-flex justify-content-between align-items-center py-2"><div class="d-flex align-items-center gap-2"><span id="pageInfoBaoCaoTon" class="small text-muted">0 trong 0</span><select class="form-select form-select-sm" style="width:80px" onchange="changePageSizeStockReport(this.value)" aria-label="Số dòng tồn kho mỗi trang"><option>20</option><option>50</option><option>100</option></select></div><div class="btn-group btn-group-sm" id="paginationBaoCaoTon"></div></div></div>
           </section>
@@ -899,7 +910,7 @@
             </div>
             <div class="mb-3">
               <label class="form-label fw-bold small" for="machineReplacementDescription">Phụ tùng / việc bảo trì</label>
-              <input id="machineReplacementDescription" class="form-control" required>
+              <input id="machineReplacementDescription" class="form-control" required readonly aria-readonly="true">
             </div>
             <div class="row g-3">
               <div class="col-6">

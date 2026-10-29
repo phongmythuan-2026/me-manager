@@ -261,10 +261,11 @@ function saveMachineReplacementItem(data, currentUser) {
     var material = sheetToObjects('DMVT').find(function(item) {
       return normalizeMaterialCode(item['Mã vật tư'] || item['Mã VT'] || item['Mã hàng'] || item['Mã']) === materialCode;
     });
-    var maintenance = String(data.phuTung || '').trim();
-    if (!machineCode || !materialCode || !maintenance) return { success: false, message: 'Vui lòng chọn máy, vật tư và nhập phụ tùng / việc bảo trì.' };
+    if (!machineCode || !materialCode) return { success: false, message: 'Vui lòng chọn máy và vật tư.' };
     if (!machine) return { success: false, message: 'Mã máy không tồn tại trong danh mục MMTB.' };
     if (!material) return { success: false, message: 'Mã vật tư không tồn tại trong danh mục DMVT.' };
+    var maintenance = String(material['Tên vật tư'] || material['Tên hàng'] || material['Tên'] || '').trim();
+    if (!maintenance) return { success: false, message: 'Vật tư đã chọn chưa có tên trong danh mục DMVT.' };
 
     var id = String(data.id || '').trim();
     var targetRow = -1;

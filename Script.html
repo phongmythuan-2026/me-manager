@@ -158,12 +158,39 @@
       if (!document.hidden) checkForDataUpdates();
     });
     window.addEventListener('focus', checkForDataUpdates);
+    document.addEventListener('show.bs.modal', function(event) {
+      var modal = event.target;
+      if (!modal.classList || !modal.classList.contains('modal')) return;
+      var openModalCount = document.querySelectorAll('.modal.show').length;
+      var modalZIndex = 1055 + openModalCount * 20;
+      modal.style.setProperty('z-index', String(modalZIndex), 'important');
+      modal.dataset.stackedZIndex = String(modalZIndex);
+    }, true);
+    document.addEventListener('shown.bs.modal', function(event) {
+      var modal = event.target;
+      if (!modal.classList || !modal.classList.contains('modal')) return;
+      var unassignedBackdrops = Array.from(document.querySelectorAll('.modal-backdrop')).filter(function(backdrop) {
+        return !backdrop.dataset.stackedZIndex;
+      });
+      var backdrop = unassignedBackdrops[unassignedBackdrops.length - 1];
+      if (!backdrop) return;
+      backdrop.style.setProperty('z-index', String(Number(modal.dataset.stackedZIndex) - 10), 'important');
+      backdrop.dataset.stackedZIndex = modal.dataset.stackedZIndex;
+    }, true);
+    document.addEventListener('hidden.bs.modal', function(event) {
+      var modal = event.target;
+      if (modal.classList && modal.classList.contains('modal')) {
+        modal.style.removeProperty('z-index');
+        delete modal.dataset.stackedZIndex;
+      }
+    });
     document.addEventListener('hidden.bs.modal', function() {
       if (pendingDataSync && !isAnyModalOpen()) {
         pendingDataSync = false;
         loadAllData();
       }
     });
+    document.getElementById('machineReplacementMaterial').addEventListener('change', syncMachineReplacementDescription);
   });
 
   // ----------------------------------------------------
@@ -2582,10 +2609,9 @@
 
   function initializeStockReportDates() {
     if (stockReportDatesInitialized) return;
-    var dates = appData.kho.map(function(item) { return normalizeRuntimeDate(item['Ngày nhập xuất']); }).filter(Boolean).sort();
     var today = getLocalMachineRuntimeDate();
-    document.getElementById('stockReportStartDate').value = dates[0] || today;
-    document.getElementById('stockReportEndDate').value = dates[dates.length - 1] || today;
+    document.getElementById('stockReportStartDate').value = shiftMachineRuntimeDate(today, -30);
+    document.getElementById('stockReportEndDate').value = today;
     document.getElementById('stockReceiptDate').value = today;
     stockReportDatesInitialized = true;
   }
@@ -2637,7 +2663,10 @@
       renderPaginationControls('paginationBaoCaoTon', 1, 1, function() {});
       return;
     }
-    var items = calculateStockReportItems(appData.dmvt, appData.kho, startDate, endDate);
+    var query = String((document.getElementById('filterStockReportSearch') || {}).value || '').trim().toLocaleLowerCase();
+    var items = calculateStockReportItems(appData.dmvt, appData.kho, startDate, endDate).filter(function(item) {
+      return [item.code, item.name, item.unit].join(' ').toLocaleLowerCase().indexOf(query) !== -1;
+    });
     sortInventoryRows(items, 'KHO_REPORT');
     var totalPages = Math.ceil(items.length / pageSizeStockReport) || 1;
     if (currentPageStockReport > totalPages) currentPageStockReport = totalPages;
@@ -2676,6 +2705,11 @@
     updateSortIndicators('tblBaoCaoTon', sortStateStockReport);
     initResizableTableColumns('tblBaoCaoTon');
     applyTableFreeze('tblBaoCaoTon', pinnedCols.tblBaoCaoTon + 1);
+  }
+
+  function resetStockReportPagingAndRender() {
+    currentPageStockReport = 1;
+    renderStockReport();
   }
 
   function changePageSizeStockReport(value) {
@@ -4377,15 +4411,13 @@
       var id = String(getInventoryValue(item, ['ID TT', 'ID']));
       var materialCode = getInventoryValue(item, ['Mã vật tư', 'Mã VT', 'Mã hàng', 'Mã']);
       var material = getInventoryMaterial(materialCode);
-      var materialName = material
-        ? getInventoryValue(material, ['Tên vật tư', 'Tên VT', 'Tên hàng', 'Tên'])
-        : '';
+      var materialName = material ? getInventoryValue(material, ['Tên vật tư', 'Tên VT', 'Tên hàng', 'Tên']) : '';
       return '<tr oncontextmenu="showContextMenu(event, \'MACHINE_REPLACEMENT\', \'' + escapeHtml(id) + '\')">' +
         '<td class="text-center text-nowrap"><button type="button" class="btn btn-sm btn-light border" title="Chức năng" aria-label="Chức năng vật tư thay thế #' + escapeHtml(id) + '" onclick="toggleRowDropdown(this, event, \'MACHINE_REPLACEMENT\', \'' + escapeHtml(id) + '\')"><i class="fa-solid fa-ellipsis-vertical"></i></button></td>' +
         '<td>' + escapeHtml(getInventoryValue(item, ['ID TT', 'ID'])) + '</td>' +
         '<td>' + entityLinkMarkup(materialCode, 'MATERIAL', materialCode) + '</td>' +
         '<td>' + entityLinkMarkup(materialName, 'MATERIAL', materialCode) + '</td>' +
-        '<td>' + escapeHtml(getInventoryValue(item, ['Phụ tùng / việc bảo trì', 'Phụ tùng/việc bảo trì'])) + '</td>' +
+        '<td>' + escapeHtml(materialName) + '</td>' +
         '<td>' + escapeHtml(getInventoryValue(item, ['Đơn vị', 'ĐVT'])) + '</td>' +
         '<td>' + escapeHtml(getInventoryValue(item, ['Tần suất'])) + '</td></tr>';
     }).join('');
@@ -4403,7 +4435,7 @@
     if (column === 'Mã máy') return getInventoryValue(item, ['Mã máy']);
     if (column === 'Tên máy') return getInventoryValue(item, ['Tên máy']);
     if (column === 'Mã vật tư') return getInventoryValue(item, ['Mã vật tư', 'Mã VT', 'Mã hàng', 'Mã']);
-    if (column === 'Phụ tùng / việc bảo trì') return getInventoryValue(item, ['Phụ tùng / việc bảo trì', 'Phụ tùng/việc bảo trì']);
+    if (column === 'Phụ tùng / việc bảo trì') return getMachineReplacementMaterialName(item);
     if (column === 'Đơn vị') return getInventoryValue(item, ['Đơn vị', 'ĐVT']);
     if (column === 'Tần suất') return getInventoryValue(item, ['Tần suất']);
     if (column === 'Ngày thay thế gần nhất') return cycle.date;
@@ -4417,6 +4449,18 @@
   function updateMachineReplacementSearch() {
     currentPageMachineReplacement = 1;
     renderMachineReplacementTable();
+  }
+
+  function getMachineReplacementMaterialName(item) {
+    var material = getInventoryMaterial(getInventoryValue(item, ['Mã vật tư', 'Mã VT', 'Mã hàng', 'Mã']));
+    return material ? String(getInventoryValue(material, ['Tên vật tư', 'Tên VT', 'Tên hàng', 'Tên']) || '') : '';
+  }
+
+  function syncMachineReplacementDescription() {
+    var materialCode = document.getElementById('machineReplacementMaterial').value;
+    document.getElementById('machineReplacementDescription').value = getMachineReplacementMaterialName({
+      'Mã vật tư': materialCode
+    });
   }
 
   function changePageSizeMachineReplacement(value) {
@@ -4437,7 +4481,7 @@
         getInventoryValue(item, ['Mã máy']),
         getInventoryValue(item, ['Tên máy']),
         getInventoryValue(item, ['Mã vật tư', 'Mã VT', 'Mã hàng', 'Mã']),
-        getInventoryValue(item, ['Phụ tùng / việc bảo trì', 'Phụ tùng/việc bảo trì']),
+        getMachineReplacementMaterialName(item),
         getInventoryValue(item, ['Đơn vị', 'ĐVT']),
         getInventoryValue(item, ['Tần suất'])
       ].join(' ').toLocaleLowerCase().indexOf(query) !== -1;
@@ -4467,7 +4511,7 @@
         '<td>' + entityLinkMarkup(getInventoryValue(item, ['Mã máy']), 'MMTB', getInventoryValue(item, ['Mã máy'])) + '</td>' +
         '<td>' + entityLinkMarkup(getInventoryValue(item, ['Tên máy']), 'MMTB', getInventoryValue(item, ['Mã máy'])) + '</td>' +
         '<td>' + entityLinkMarkup(getInventoryValue(item, ['Mã vật tư', 'Mã VT', 'Mã hàng', 'Mã']), 'MATERIAL', getInventoryValue(item, ['Mã vật tư', 'Mã VT', 'Mã hàng', 'Mã'])) + '</td>' +
-        '<td>' + escapeHtml(getInventoryValue(item, ['Phụ tùng / việc bảo trì', 'Phụ tùng/việc bảo trì'])) + '</td>' +
+        '<td>' + escapeHtml(getMachineReplacementMaterialName(item)) + '</td>' +
         '<td>' + escapeHtml(getInventoryValue(item, ['Đơn vị', 'ĐVT'])) + '</td>' +
         '<td>' + escapeHtml(getInventoryValue(item, ['Tần suất'])) + '</td>' +
         '<td class="text-nowrap">' + escapeHtml(formatMachineReplacementDate(cycle.date)) + '</td>' +
@@ -4508,7 +4552,7 @@
     document.getElementById('machineReplacementId').value = item ? getInventoryValue(item, ['ID TT', 'ID']) : '';
     document.getElementById('machineReplacementMachine').value = item ? getInventoryValue(item, ['Mã máy']) : '';
     document.getElementById('machineReplacementMaterial').value = item ? getInventoryValue(item, ['Mã vật tư', 'Mã VT', 'Mã hàng', 'Mã']) : '';
-    document.getElementById('machineReplacementDescription').value = item ? getInventoryValue(item, ['Phụ tùng / việc bảo trì', 'Phụ tùng/việc bảo trì']) : '';
+    syncMachineReplacementDescription();
     document.getElementById('machineReplacementUnit').value = 'Giờ';
     document.getElementById('machineReplacementFrequency').value = item ? getInventoryValue(item, ['Tần suất']) : '';
     document.getElementById('machineReplacementEditorTitle').textContent = item ? 'Chỉnh sửa vật tư thay thế #' + id : 'Khai báo vật tư thay thế';
@@ -4518,11 +4562,18 @@
 
   function handleSaveMachineReplacement(event) {
     event.preventDefault();
+    var materialCode = document.getElementById('machineReplacementMaterial').value;
+    var material = getInventoryMaterial(materialCode);
+    var materialName = material ? String(getInventoryValue(material, ['Tên vật tư', 'Tên VT', 'Tên hàng', 'Tên']) || '').trim() : '';
+    if (!materialName) {
+      Swal.fire('Thiếu tên vật tư', 'Vui lòng chọn mã vật tư có tên trong danh mục trước khi lưu.', 'warning');
+      return;
+    }
     var data = {
       id: document.getElementById('machineReplacementId').value,
       maMay: document.getElementById('machineReplacementMachine').value,
-      maVatTu: document.getElementById('machineReplacementMaterial').value,
-      phuTung: document.getElementById('machineReplacementDescription').value.trim(),
+      maVatTu: materialCode,
+      phuTung: materialName,
       donVi: 'Giờ',
       tanSuat: document.getElementById('machineReplacementFrequency').value.trim()
     };

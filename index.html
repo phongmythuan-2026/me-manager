@@ -917,6 +917,73 @@
     </div>
   </div>
 
+  <div class="modal fade" id="modalLoaiYCEditor" tabindex="-1" aria-labelledby="modalLoaiYCEditorTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0 shadow">
+        <div class="modal-header bg-primary text-white">
+          <h5 class="modal-title fw-bold" id="modalLoaiYCEditorTitle">Thêm loại yêu cầu</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Đóng"></button>
+        </div>
+        <form id="loaiYCEditorForm" onsubmit="handleSaveLoaiYC(event)">
+          <div class="modal-body">
+            <div class="mb-3">
+              <label class="form-label fw-bold small" for="loaiYCEditorCode">Mã yêu cầu</label>
+              <input id="loaiYCEditorCode" class="form-control" required>
+            </div>
+            <div>
+              <label class="form-label fw-bold small" for="loaiYCEditorName">Tên yêu cầu</label>
+              <input id="loaiYCEditorName" class="form-control" required>
+            </div>
+          </div>
+          <div class="modal-footer bg-light">
+            <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Hủy</button>
+            <button type="submit" class="btn btn-primary btn-sm fw-bold px-4">Lưu loại yêu cầu</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="modalUserEditor" tabindex="-1" aria-labelledby="modalUserEditorTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0 shadow">
+        <div class="modal-header bg-primary text-white">
+          <h5 class="modal-title fw-bold" id="modalUserEditorTitle">Thêm nhân viên</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Đóng"></button>
+        </div>
+        <form id="userEditorForm" onsubmit="handleSaveUser(event)">
+          <div class="modal-body">
+            <div class="mb-3">
+              <label class="form-label fw-bold small" for="userEditorCode">Mã nhân viên</label>
+              <input id="userEditorCode" class="form-control" autocomplete="username" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-bold small" for="userEditorName">Họ tên</label>
+              <input id="userEditorName" class="form-control" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-bold small" for="userEditorPassword">Mật khẩu</label>
+              <input id="userEditorPassword" type="password" class="form-control" autocomplete="new-password">
+              <div id="userEditorPasswordHelp" class="form-text d-none">Để trống nếu không đổi mật khẩu.</div>
+            </div>
+            <div>
+              <label class="form-label fw-bold small" for="userEditorRole">Vai trò</label>
+              <select id="userEditorRole" class="form-select">
+                <option>Admin</option>
+                <option>Kỹ thuật</option>
+                <option>Sản xuất</option>
+              </select>
+            </div>
+          </div>
+          <div class="modal-footer bg-light">
+            <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Hủy</button>
+            <button type="submit" class="btn btn-primary btn-sm fw-bold px-4">Lưu nhân viên</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
   <div class="modal fade" id="modalMachineReplacement" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content border-0 shadow">

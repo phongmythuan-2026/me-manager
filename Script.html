@@ -1346,7 +1346,7 @@
   function getReferenceCreateConfig(type) {
     var config = {
       KHU_VUC: { permission: 'KHU_VUC_MANAGE', modalId: 'modalKhuVucEditor', create: function() { return openModalKhuVuc('ADD'); } },
-      LOAI_YC: { permission: 'LOAI_YC_MANAGE', create: function() { return openModalLoaiYC('ADD'); } },
+      LOAI_YC: { permission: 'LOAI_YC_MANAGE', modalId: 'modalLoaiYCEditor', create: function() { return openModalLoaiYC('ADD'); } },
       MMTB: { permission: 'MMTB_MANAGE', modalId: 'modalMMTB', create: function() { openModalMMTB('ADD'); } },
       MATERIAL: { permission: 'KHO_MANAGE', modalId: 'modalMaterialCatalog', create: function() { openMaterialCatalogModal(); } },
       YEU_CAU: { permission: 'YEU_CAU_ADD', modalId: 'modalYC', create: function() { openModalYC('ADD'); } },
@@ -4888,72 +4888,44 @@
     });
   }
 
-  function openAdminForm(title, fields, onSave) {
-    var fieldsHtml = fields.map(function(field) {
-      var value = escapeHtml(field.value);
-      var control;
-      if (field.options) {
-        control = '<select id="' + field.id + '" class="form-select">' + field.options.map(function(option) {
-          var selected = option === field.value ? ' selected' : '';
-          return '<option value="' + escapeHtml(option) + '"' + selected + '>' + escapeHtml(option) + '</option>';
-        }).join('') + '</select>';
-      } else {
-        control = '<input id="' + field.id + '" type="' + (field.type || 'text') + '" class="form-control" value="' + value + '"' + (field.required ? ' required' : '') + (field.readonly ? ' readonly' : '') + '>';
-      }
-      return '<div class="text-start mb-3"><label class="form-label" for="' + field.id + '">' + escapeHtml(field.label) + '</label>' + control + '</div>';
-    }).join('');
-
-    return Swal.fire({
-      title: title,
-      html: fieldsHtml,
-      showCancelButton: true,
-      confirmButtonText: 'Lưu',
-      cancelButtonText: 'Hủy',
-      focusConfirm: false,
-      preConfirm: function() {
-        var values = {};
-        for (var i = 0; i < fields.length; i++) {
-          var field = fields[i];
-          var value = document.getElementById(field.id).value.trim();
-          if (field.required && !value) {
-            Swal.showValidationMessage('Vui lòng nhập ' + field.label.toLowerCase() + '.');
-            return false;
-          }
-          values[field.name] = value;
-        }
-        return values;
-      }
-    }).then(function(result) {
-      if (result.isConfirmed) onSave(result.value);
-      return result;
+  function showAdminEditorModal(modalId, titleId, title) {
+    var modal = document.getElementById(modalId);
+    modal.dataset.confirmed = 'false';
+    document.getElementById(titleId).textContent = title;
+    var formPromise = new Promise(function(resolve) {
+      modal.addEventListener('hidden.bs.modal', function() {
+        resolve({ isConfirmed: modal.dataset.confirmed === 'true' });
+      }, { once: true });
     });
+    bootstrap.Modal.getOrCreateInstance(modal).show();
+    return formPromise;
   }
 
   function runAdminMutation(method, data, successMessage) {
+    var editorConfig = {
+      khuVuc: { modalId: 'modalKhuVucEditor', referenceType: 'KHU_VUC' },
+      loaiYC: { modalId: 'modalLoaiYCEditor', referenceType: 'LOAI_YC' },
+      user: { modalId: 'modalUserEditor' }
+    }[method];
     Swal.fire({ title: 'Đang lưu...', allowOutsideClick: false, didOpen: function() { Swal.showLoading(); } });
     var runner = google.script.run
       .withSuccessHandler(function(res) {
         if (res && res.success) {
-          if (method === 'khuVuc') {
-            var khuVucModal = document.getElementById('modalKhuVucEditor');
-            khuVucModal.dataset.confirmed = 'true';
-            markReferenceCreateSaving('KHU_VUC');
-            bootstrap.Modal.getOrCreateInstance(khuVucModal).hide();
+          if (editorConfig) {
+            var editorModal = document.getElementById(editorConfig.modalId);
+            editorModal.dataset.confirmed = 'true';
+            if (editorConfig.referenceType) markReferenceCreateSaving(editorConfig.referenceType);
+            bootstrap.Modal.getOrCreateInstance(editorModal).hide();
           }
           Swal.fire('Thành công', res.message || successMessage, 'success');
-          var referenceType = method === 'khuVuc' ? 'KHU_VUC' : method === 'loaiYC' ? 'LOAI_YC' : '';
           loadAllData(function() {
-            if (referenceType) completeReferenceCreate(referenceType, data.ma);
+            if (editorConfig && editorConfig.referenceType) completeReferenceCreate(editorConfig.referenceType, data.ma);
           });
         } else {
-          var failedReferenceType = method === 'khuVuc' ? 'KHU_VUC' : method === 'loaiYC' ? 'LOAI_YC' : '';
-          if (failedReferenceType && failedReferenceType !== 'KHU_VUC' && pendingReferenceCreate && pendingReferenceCreate.type === failedReferenceType) pendingReferenceCreate = null;
           Swal.fire('Không thể lưu', res && res.message ? res.message : 'Thao tác thất bại.', 'error');
         }
       })
       .withFailureHandler(function(error) {
-        var failedReferenceType = method === 'khuVuc' ? 'KHU_VUC' : method === 'loaiYC' ? 'LOAI_YC' : '';
-        if (failedReferenceType && failedReferenceType !== 'KHU_VUC' && pendingReferenceCreate && pendingReferenceCreate.type === failedReferenceType) pendingReferenceCreate = null;
         Swal.fire('Lỗi hệ thống', error && error.message ? error.message : 'Không gọi được máy chủ.', 'error');
       });
 
@@ -5092,22 +5064,46 @@
   function openModalLoaiYC(mode, code) {
     if (!can('LOAI_YC_MANAGE')) return Swal.fire('Không có quyền', 'Chỉ Admin mới được quản lý loại yêu cầu.', 'warning');
     var item = appData.loaiYC.find(function(value) { return String(value['Mã yêu cầu']).trim() === String(code || '').trim(); });
-    var formPromise = openAdminForm(mode === 'EDIT' ? 'Sửa loại yêu cầu' : 'Thêm loại yêu cầu', [
-      { id: 'adminTypeCode', name: 'ma', label: 'Mã yêu cầu', value: item ? item['Mã yêu cầu'] : '', required: true, readonly: mode === 'EDIT' },
-      { id: 'adminTypeName', name: 'ten', label: 'Tên yêu cầu', value: item ? item['Tên yêu cầu'] : '', required: true }
-    ], function(data) { runAdminMutation('loaiYC', data, 'Đã lưu loại yêu cầu.'); });
-    return formPromise;
+    var form = document.getElementById('loaiYCEditorForm');
+    form.reset();
+    document.getElementById('loaiYCEditorCode').value = item ? item['Mã yêu cầu'] : '';
+    document.getElementById('loaiYCEditorCode').readOnly = mode === 'EDIT';
+    document.getElementById('loaiYCEditorName').value = item ? item['Tên yêu cầu'] : '';
+    return showAdminEditorModal('modalLoaiYCEditor', 'modalLoaiYCEditorTitle', mode === 'EDIT' ? 'Sửa loại yêu cầu' : 'Thêm loại yêu cầu');
+  }
+
+  function handleSaveLoaiYC(event) {
+    event.preventDefault();
+    runAdminMutation('loaiYC', {
+      ma: document.getElementById('loaiYCEditorCode').value.trim(),
+      ten: document.getElementById('loaiYCEditorName').value.trim()
+    }, 'Đã lưu loại yêu cầu.');
   }
 
   function openModalUser(mode, maNV) {
     if (!can('USER_MANAGE')) return Swal.fire('Không có quyền', 'Chỉ Admin mới được quản lý người dùng.', 'warning');
     var item = appData.user.find(function(value) { return String(value['Mã NV']).trim() === String(maNV || '').trim(); });
-    openAdminForm(mode === 'EDIT' ? 'Sửa người dùng' : 'Thêm người dùng', [
-      { id: 'adminUserCode', name: 'maNV', label: 'Mã nhân viên', value: item ? item['Mã NV'] : '', required: true, readonly: mode === 'EDIT' },
-      { id: 'adminUserName', name: 'hoTen', label: 'Họ tên', value: item ? item['Họ tên'] : '', required: true },
-      { id: 'adminUserPassword', name: 'password', label: mode === 'EDIT' ? 'Mật khẩu mới (để trống nếu giữ nguyên)' : 'Mật khẩu', value: '', type: 'password', required: mode !== 'EDIT' },
-      { id: 'adminUserRole', name: 'vaiTro', label: 'Vai trò', value: item ? (item['Vai trò'] || 'Sản xuất') : 'Sản xuất', options: ['Admin', 'Kỹ thuật', 'Sản xuất'] }
-    ], function(data) { runAdminMutation('user', data, 'Đã lưu người dùng.'); });
+    var form = document.getElementById('userEditorForm');
+    form.reset();
+    document.getElementById('userEditorCode').value = item ? item['Mã NV'] : '';
+    document.getElementById('userEditorCode').readOnly = mode === 'EDIT';
+    document.getElementById('userEditorName').value = item ? item['Họ tên'] : '';
+    var passwordField = document.getElementById('userEditorPassword');
+    passwordField.required = mode !== 'EDIT';
+    passwordField.placeholder = mode === 'EDIT' ? 'Để trống nếu không đổi mật khẩu' : '';
+    document.getElementById('userEditorPasswordHelp').classList.toggle('d-none', mode !== 'EDIT');
+    document.getElementById('userEditorRole').value = item ? (item['Vai trò'] || 'Sản xuất') : 'Sản xuất';
+    return showAdminEditorModal('modalUserEditor', 'modalUserEditorTitle', mode === 'EDIT' ? 'Sửa nhân viên' : 'Thêm nhân viên');
+  }
+
+  function handleSaveUser(event) {
+    event.preventDefault();
+    runAdminMutation('user', {
+      maNV: document.getElementById('userEditorCode').value.trim(),
+      hoTen: document.getElementById('userEditorName').value.trim(),
+      password: document.getElementById('userEditorPassword').value,
+      vaiTro: document.getElementById('userEditorRole').value
+    }, 'Đã lưu nhân viên.');
   }
 
   function saveBrowserNotificationSetting(enabled) {

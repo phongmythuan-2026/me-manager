@@ -4925,6 +4925,7 @@
       }
     }).then(function(result) {
       if (result.isConfirmed) onSave(result.value);
+      return result;
     });
   }
 

@@ -121,7 +121,7 @@
         var callbacks = sharePointReportRequestCallbacks.splice(0);
         callbacks.forEach(function(onComplete) { onComplete(null, error); });
       })
-      .getBaoCaoSanXuatFromSharePoint();
+      .getBaoCaoSanXuatFromGoogleSheets();
   }
 
   function applyTableCellEllipsis(tableId) {
@@ -1591,7 +1591,7 @@
       'yeucau': 'Quản lý Yêu cầu Khắc phục',
       'yeucauth': 'Nhật ký sửa chữa',
       'mmtb': 'Danh mục Máy móc Thiết bị',
-      'baocaosx': 'Báo cáo sản xuất từ SharePoint',
+      'baocaosx': 'Báo cáo sản xuất',
       'kho': 'Kho & Vật tư',
       'danhmuc': 'Danh sách Nhân viên & Phân quyền'
     };
@@ -2731,19 +2731,19 @@
   function loadBaoCaoSanXuat(forceReload) {
     var tbody = document.getElementById('tblBaoCaoSXBody');
     var thead = document.getElementById('tblBaoCaoSXHead');
-    tbody.innerHTML = '<tr><td colspan="10" class="text-center text-primary py-4"><i class="fa-solid fa-spinner fa-spin me-2"></i> Đang đồng bộ dữ liệu từ SharePoint...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="10" class="text-center text-primary py-4"><i class="fa-solid fa-spinner fa-spin me-2"></i> Đang tải dữ liệu báo cáo sản xuất...</td></tr>';
 
     fetchSharePointReport(!!forceReload, function(res, error) {
         if (error) {
           sharePointRows = [];
-          tbody.innerHTML = '<tr><td colspan="10" class="text-center text-danger py-3">Lỗi: ' + escapeHtml(error && error.message ? error.message : 'Không tải được dữ liệu SharePoint.') + '</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="10" class="text-center text-danger py-3">Lỗi: ' + escapeHtml(error && error.message ? error.message : 'Không tải được dữ liệu báo cáo sản xuất.') + '</td></tr>';
           document.getElementById('baoCaoResultInfo').innerText = '';
           return;
         }
         if (!res || !res.success || !Array.isArray(res.data)) {
           sharePointRows = [];
           sharePointKeys = [];
-          tbody.innerHTML = '<tr><td colspan="10" class="text-center text-muted py-3">Không có dữ liệu hoặc lỗi kết nối SharePoint.</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="10" class="text-center text-muted py-3">Không có dữ liệu báo cáo sản xuất.</td></tr>';
           document.getElementById('baoCaoResultInfo').innerText = '';
           return;
         }
@@ -3131,8 +3131,8 @@
     machineRuntimeLoading = true;
     machineRuntimeError = '';
     var replacementStatus = document.getElementById('machineReplacementRuntimeStatus');
-    if (replacementStatus) replacementStatus.textContent = 'Đang tải báo cáo giờ chạy từ SharePoint...';
-    document.getElementById('machineRuntimeStatus').innerText = 'Đang tải báo cáo SharePoint...';
+    if (replacementStatus) replacementStatus.textContent = 'Đang tải giờ chạy từ báo cáo sản xuất...';
+    document.getElementById('machineRuntimeStatus').innerText = 'Đang tải báo cáo sản xuất...';
     renderDashboardReplacementAlerts();
     fetchSharePointReport(!!forceReload, function(result, error) {
         machineRuntimeLoading = false;
@@ -3140,7 +3140,7 @@
           machineRuntimeRows = [];
           machineRuntimeLoaded = true;
           machineRuntimeError = error && error.message ? error.message : 'không rõ lỗi';
-          document.getElementById('machineRuntimeStatus').innerText = 'Lỗi tải SharePoint: ' + machineRuntimeError;
+          document.getElementById('machineRuntimeStatus').innerText = 'Lỗi tải báo cáo sản xuất: ' + machineRuntimeError;
           if (replacementStatus) replacementStatus.textContent = 'Không tải được báo cáo giờ chạy: ' + machineRuntimeError;
           renderDashboardReplacementAlerts();
           renderMachineRuntimeReport();
@@ -3177,7 +3177,7 @@
   }
 
   function refreshDashboardReports() {
-    document.getElementById('machineRuntimeStatus').innerText = 'Đang làm mới dữ liệu SharePoint...';
+    document.getElementById('machineRuntimeStatus').innerText = 'Đang làm mới dữ liệu báo cáo sản xuất...';
     google.script.run
       .withSuccessHandler(function(data) {
         if (data) {
@@ -3245,7 +3245,7 @@
     document.getElementById('runtimeAverageUtilization').innerText = summary.averageUtilization.toFixed(2) + '%';
 
     document.getElementById('machineRuntimeStatus').innerText = machineRuntimeLoading
-      ? 'Đang tải báo cáo SharePoint...'
+      ? 'Đang tải báo cáo sản xuất...'
       : (!summary.validDateRange ? 'Chọn khoảng ngày hợp lệ, ngày kết thúc không được trước ngày bắt đầu.'
         : (summary.machineCount ? summary.capacityDays + ' ngày · tối đa ' + summary.capacityHours + ' giờ/máy'
           : ('Không có giờ chạy máy trong kỳ được chọn.' + (dataRange ? ' Dữ liệu hiện có: ' + formatMachineRuntimeDate(dataRange.start) + '–' + formatMachineRuntimeDate(dataRange.end) + '.' : ''))));
@@ -5435,7 +5435,7 @@
         appendExcelSheet(workbook, 'May moc', getMMTBExportRows(getFilteredMMTBRows()), ['Mã', 'Tên MMTB', 'Khu vực', 'ĐVT', 'Thông tin', 'Hồ sơ tài chính', 'Công suất (KW/H)', 'Hình ảnh', 'Tình trạng', 'Ngày đưa vào sử dụng', 'Thông số kỹ thuật', 'Người tạo', 'Ngày tạo', 'Ghi chú']);
       }
     } else if (activeId === 'tab-baocaosx') {
-      tabName = 'BaoCaoSharePoint';
+      tabName = 'BaoCaoSanXuat';
       var reportKeys = sharePointKeys;
       var reportRows = getFilteredBaoCaoRows().map(function(row) {
         var output = {};

@@ -68,7 +68,7 @@
         <a class="nav-link" href="#" onclick="switchTab('yeucau', this)"><i class="fa-solid fa-list-check"></i> Quản lý Yêu cầu</a>
         <a class="nav-link" href="#" onclick="switchTab('yeucauth', this)"><i class="fa-solid fa-screwdriver-wrench"></i> Nhật ký sửa chữa</a>
         <a class="nav-link" href="#" onclick="switchTab('mmtb', this)"><i class="fa-solid fa-microchip"></i> Máy móc thiết bị</a>
-        <a class="nav-link" href="#" onclick="switchTab('baocaosx', this)"><i class="fa-solid fa-file-excel text-success"></i> BC Sản xuất (SP)</a>
+        <a class="nav-link" href="#" onclick="switchTab('baocaosx', this)"><i class="fa-solid fa-file-excel text-success"></i> Báo cáo sản xuất</a>
         <a class="nav-link" href="#" onclick="switchTab('kho', this)"><i class="fa-solid fa-boxes-stacked"></i> Kho & Vật tư</a>
         <a class="nav-link" href="#" onclick="switchTab('danhmuc', this)"><i class="fa-solid fa-users"></i> Nhân viên & Phân quyền</a>
       </div>
@@ -113,7 +113,7 @@
                 <div class="card-header bg-white d-flex flex-wrap align-items-center justify-content-between gap-2 py-3">
                   <div>
                     <h5 class="m-0 fw-bold text-secondary">Theo dõi giờ chạy máy</h5>
-                    <div class="small text-muted mt-1">Nguồn: Báo cáo sản xuất SharePoint</div>
+                    <div class="small text-muted mt-1">Nguồn: Google Sheets · BK_BCSX</div>
                   </div>
                   <div class="d-flex flex-wrap align-items-end gap-2 runtime-date-filters">
                     <div class="runtime-date-filter">
@@ -468,7 +468,7 @@
           <div class="card border-0 shadow-sm mb-3">
             <div class="card-body py-2">
               <div class="d-flex justify-content-between align-items-center gap-2">
-                <h5 class="m-0 fw-bold text-primary"><i class="fa-solid fa-file-excel text-success me-2"></i>Báo cáo sản xuất (SharePoint)</h5>
+                <h5 class="m-0 fw-bold text-primary"><i class="fa-solid fa-file-excel text-success me-2"></i>Báo cáo sản xuất</h5>
                 <button class="btn btn-sm btn-primary fw-bold flex-shrink-0" onclick="loadBaoCaoSanXuat(true)">
                   <i class="fa-solid fa-rotate me-1"></i> Làm mới dữ liệu
                 </button>
@@ -490,7 +490,7 @@
                 <table class="table table-custom table-hover align-middle mb-0" id="tblBaoCaoSX">
                   <thead class="table-light" id="tblBaoCaoSXHead"></thead>
                   <tbody id="tblBaoCaoSXBody">
-                    <tr><td colspan="10" class="text-center text-muted py-4">Đang tải dữ liệu từ SharePoint...</td></tr>
+                    <tr><td colspan="10" class="text-center text-muted py-4">Đang tải dữ liệu báo cáo sản xuất...</td></tr>
                   </tbody>
                 </table>
               </div>
@@ -586,7 +586,7 @@
     <button class="nav-item-btn" onclick="switchTab('yeucau', this)"><i class="fa-solid fa-list-check"></i><span>Yêu cầu</span></button>
     <button class="nav-item-btn" onclick="switchTab('yeucauth', this)"><i class="fa-solid fa-screwdriver-wrench"></i><span>Nhật ký</span></button>
     <button class="nav-item-btn" onclick="switchTab('mmtb', this)"><i class="fa-solid fa-microchip"></i><span>Máy móc</span></button>
-    <button class="nav-item-btn" onclick="switchTab('baocaosx', this)"><i class="fa-solid fa-file-excel"></i><span>BC Sản xuất</span></button>
+    <button class="nav-item-btn" onclick="switchTab('baocaosx', this)"><i class="fa-solid fa-file-excel"></i><span>Báo cáo sản xuất</span></button>
     <button class="nav-item-btn" onclick="switchTab('kho', this)"><i class="fa-solid fa-boxes-stacked"></i><span>Kho</span></button>
     <button class="nav-item-btn" onclick="switchTab('danhmuc', this)"><i class="fa-solid fa-users"></i><span>Nhân viên</span></button>
   </div>

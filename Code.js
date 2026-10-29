@@ -400,13 +400,22 @@ function getOrCreateInventorySheet(sheetName, defaultHeaders) {
       var currentHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
       var legacyMachineIndex = inventoryColumnIndex(currentHeaders, ['Máy móc/thiết bị']);
       var machineCodeIndex = inventoryColumnIndex(currentHeaders, ['Mã máy móc/thiết bị']);
+      if (legacyMachineIndex !== -1 && machineCodeIndex !== -1 && legacyMachineIndex !== machineCodeIndex) {
+        if (sheet.getLastRow() > 1) {
+          var legacyMachineValues = sheet.getRange(2, legacyMachineIndex + 1, sheet.getLastRow() - 1, 1).getValues();
+          var machineCodeValues = sheet.getRange(2, machineCodeIndex + 1, sheet.getLastRow() - 1, 1).getValues();
+          var mergedMachineValues = machineCodeValues.map(function(row, index) {
+            var machineCode = String(row[0] == null ? '' : row[0]).trim();
+            return [machineCode ? row[0] : legacyMachineValues[index][0]];
+          });
+          sheet.getRange(2, machineCodeIndex + 1, mergedMachineValues.length, 1).setValues(mergedMachineValues);
+        }
+        sheet.deleteColumn(legacyMachineIndex + 1);
+        currentHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+      }
       var valueIndex = inventoryColumnIndex(currentHeaders, ['Giá trị xuất/nhập kho']);
       var quantityIndex = inventoryColumnIndex(currentHeaders, ['Số lượng']);
       var priceIndex = inventoryColumnIndex(currentHeaders, ['Đơn giá']);
-      if (legacyMachineIndex !== -1 && machineCodeIndex !== -1 && legacyMachineIndex !== machineCodeIndex && sheet.getLastRow() > 1) {
-        sheet.getRange(2, machineCodeIndex + 1, sheet.getLastRow() - 1, 1)
-          .setValues(sheet.getRange(2, legacyMachineIndex + 1, sheet.getLastRow() - 1, 1).getValues());
-      }
       if (valueIndex !== -1 && quantityIndex !== -1 && priceIndex !== -1 && sheet.getLastRow() > 1) {
         var values = sheet.getRange(2, 1, sheet.getLastRow() - 1, sheet.getLastColumn()).getValues();
         values.forEach(function(row) {

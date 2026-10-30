@@ -2748,7 +2748,6 @@
     var endDate = document.getElementById('stockReportEndDate').value;
     body.innerHTML = '';
     if (!startDate || !endDate || endDate < startDate) {
-      document.getElementById('stockReportSummary').textContent = 'Chọn khoảng ngày hợp lệ.';
       document.getElementById('pageInfoBaoCaoTon').textContent = '0 trong 0';
       renderPaginationControls('paginationBaoCaoTon', 1, 1, function() {});
       return;
@@ -2785,7 +2784,6 @@
       });
       body.appendChild(row);
     });
-    document.getElementById('stockReportSummary').textContent = items.length + ' vật tư · ' + startDate + ' đến ' + endDate;
     document.getElementById('pageInfoBaoCaoTon').textContent = items.length ? (startIndex + 1) + ' - ' + Math.min(startIndex + pageItems.length, items.length) + ' trong ' + items.length : '0 trong 0';
     renderPaginationControls('paginationBaoCaoTon', currentPageStockReport, totalPages, function(page) {
       currentPageStockReport = page;

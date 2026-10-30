@@ -485,18 +485,50 @@
       USER: 'Người dùng',
       MACHINE_REPLACEMENT: 'Vật tư thay thế theo máy'
     };
-    var fields = Object.keys(item).filter(function(key) {
+    var fields = {};
+    Object.keys(item).filter(function(key) {
       return type !== 'USER' || !/mật khẩu|password/i.test(key);
-    }).map(function(key) {
-      return '<tr><th class="text-start pe-3">' + escapeHtml(key) + '</th><td class="text-start">' +
-        escapeHtml(item[key] == null ? '' : item[key]) + '</td></tr>';
-    }).join('');
-    Swal.fire({
-      title: titles[type] || 'Thông tin chi tiết',
-      html: '<div class="table-responsive"><table class="table table-sm table-bordered mb-0"><tbody>' + fields + '</tbody></table></div>',
-      width: 640,
-      confirmButtonText: 'Đóng'
+    }).forEach(function(key) {
+      fields[key] = item[key];
     });
+    showEntityDetailModal(titles[type] || 'Thông tin chi tiết', fields);
+  }
+
+  function showEntityDetailModal(title, fields, actions) {
+    var modal = document.getElementById('modalEntityDetail');
+    var body = document.getElementById('modalEntityDetailFields');
+    var editButton = document.getElementById('modalEntityDetailEdit');
+    var deleteButton = document.getElementById('modalEntityDetailDelete');
+    document.getElementById('modalEntityDetailTitle').textContent = title;
+    body.replaceChildren();
+    Object.keys(fields).forEach(function(label) {
+      var row = document.createElement('tr');
+      var heading = document.createElement('th');
+      heading.className = 'text-start text-nowrap';
+      heading.scope = 'row';
+      heading.textContent = label;
+      var value = document.createElement('td');
+      value.className = 'text-start';
+      value.textContent = fields[label] == null ? '' : String(fields[label]);
+      row.append(heading, value);
+      body.appendChild(row);
+    });
+
+    editButton.classList.toggle('d-none', !actions || typeof actions.edit !== 'function');
+    deleteButton.classList.toggle('d-none', !actions || typeof actions.delete !== 'function');
+    editButton.onclick = actions && actions.edit ? function() {
+      closeEntityDetailThen(actions.edit);
+    } : null;
+    deleteButton.onclick = actions && actions.delete ? function() {
+      closeEntityDetailThen(actions.delete);
+    } : null;
+    bootstrap.Modal.getOrCreateInstance(modal).show();
+  }
+
+  function closeEntityDetailThen(callback) {
+    var modal = document.getElementById('modalEntityDetail');
+    modal.addEventListener('hidden.bs.modal', callback, { once: true });
+    bootstrap.Modal.getOrCreateInstance(modal).hide();
   }
 
   // ----------------------------------------------------
@@ -3864,32 +3896,7 @@
           return;
         }
         var id = props['ID'];
-        var actionButtons = '<button class="btn btn-sm btn-outline-info" onclick="Swal.close(); openModalYC(\'VIEW\', \'' + id + '\')"><i class="fa-solid fa-eye me-1"></i>Xem chi tiết</button>';
-        if (can('YEU_CAU_COPY')) actionButtons += '<button class="btn btn-sm btn-outline-secondary ms-1" onclick="Swal.close(); openModalYC(\'COPY\', \'' + id + '\')"><i class="fa-solid fa-copy me-1"></i>Sao chép</button>';
-        if (can('YEU_CAU_EDIT', props)) actionButtons += '<button class="btn btn-sm btn-outline-primary ms-1" onclick="Swal.close(); openModalYC(\'EDIT\', \'' + id + '\')"><i class="fa-solid fa-pen me-1"></i>Sửa</button>';
-        if (props['Trạng thái'] === 'Chờ tiếp nhận') {
-          if (can('YEU_CAU_TIEP_NHAN', props)) actionButtons += '<button class="btn btn-sm btn-warning ms-1" onclick="Swal.close(); openUpdateStatusModal(\'' + id + '\', \'TIEP_NHAN\')"><i class="fa-solid fa-hand me-1"></i>Tiếp nhận</button>';
-          if (can('YEU_CAU_HUY', props)) actionButtons += '<button class="btn btn-sm btn-outline-dark ms-1" onclick="Swal.close(); handleHuyYeuCau(\'' + id + '\')"><i class="fa-solid fa-ban me-1"></i>Hủy</button>';
-          if (can('YEU_CAU_DELETE', props)) actionButtons += '<button class="btn btn-sm btn-outline-danger ms-1" onclick="Swal.close(); handleDeleteYeuCau(\'' + id + '\')"><i class="fa-solid fa-trash me-1"></i>Xóa</button>';
-        } else if ((props['Trạng thái'] === 'Đã tiếp nhận' || props['Trạng thái'] === 'Đang thực hiện') && can('REPAIR_LOG_MANAGE')) {
-          actionButtons += '<button class="btn btn-sm btn-primary ms-1" onclick="Swal.close(); openRepairLogModal(\'ADD\', \'\', \'' + id + '\')"><i class="fa-solid fa-screwdriver-wrench me-1"></i>Tạo nhật ký</button>';
-        } else if (props['Trạng thái'] === 'Đã thực hiện' && can('YEU_CAU_MARK_DONE', props)) {
-          actionButtons += '<button class="btn btn-sm btn-success ms-1" onclick="Swal.close(); markYeuCauWorkDone(\'' + id + '\')"><i class="fa-solid fa-check me-1"></i>Đã thực hiện</button>';
-        } else if (props['Trạng thái'] === 'Chờ xác nhận' && can('YEU_CAU_CONFIRM', props)) {
-          actionButtons += '<button class="btn btn-sm btn-success ms-1" onclick="Swal.close(); confirmYeuCauCompletion(\'' + id + '\')"><i class="fa-solid fa-check me-1"></i>Xác nhận hoàn thành</button>';
-        }
-        var htmlContent = '<div class="text-start fs-6">' +
-          '<p class="mb-2"><strong>Loại YC:</strong> ' + formatLoaiYCDisplay(props['Loại yêu cầu']) + '</p>' +
-          '<p class="mb-2"><strong>Máy móc:</strong> ' + (props['Máy móc/thiết bị'] || '') + ' (' + (props['Khu vực'] || '') + ')</p>' +
-          '<p class="mb-2"><strong>Mô tả:</strong> ' + (props['Mô tả yêu cầu'] || '') + '</p>' +
-          '<p class="mb-2"><strong>Người YC:</strong> ' + formatUserDisplay(props['Người yêu cầu']) + '</p>' +
-          '<p class="mb-2"><strong>Người tiếp nhận:</strong> ' + formatUserDisplay(props['Người tiếp nhận']) + '</p>' +
-          '<p class="mb-2"><strong>Ngày tạo:</strong> ' + (props['Ngày yêu cầu'] || '') + '</p>' +
-          '<p class="mb-3"><strong>Trạng thái:</strong> <span class="badge bg-primary">' + props['Trạng thái'] + '</span></p>' +
-          '</div>' +
-          '<div class="text-end mt-3 pt-2 border-top">' + actionButtons + '</div>';
-
-        Swal.fire({ title: 'Yêu cầu #' + id, html: htmlContent, showConfirmButton: false, showCloseButton: true, width: '520px' });
+        openModalYC('VIEW', id);
       }
     });
 
@@ -5089,26 +5096,10 @@
     }
 
     var canManage = can(config.permission);
-    var fields = config.fields(item);
-    var rowsHtml = Object.keys(fields).map(function(field) {
-      var value = fields[field];
-      return '<tr><th class="text-start text-nowrap">' + escapeHtml(field) + '</th><td class="text-start">' +
-        escapeHtml(value == null ? '' : value) + '</td></tr>';
-    }).join('');
-    Swal.fire({
-      title: 'Thông tin ' + config.label,
-      html: '<div class="table-responsive"><table class="table table-sm table-bordered mb-0"><tbody>' + rowsHtml + '</tbody></table></div>',
-      width: 560,
-      showConfirmButton: true,
-      confirmButtonText: canManage ? 'Sửa' : 'Đóng',
-      showDenyButton: canManage,
-      denyButtonText: 'Xóa',
-      showCancelButton: canManage,
-      cancelButtonText: 'Đóng'
-    }).then(function(result) {
-      if (result.isConfirmed && canManage) config.edit('EDIT', id);
-      else if (result.isDenied && canManage) confirmAdminDelete(config.kind, id, 'Xóa ' + config.label + ' ' + id + '?');
-    });
+    showEntityDetailModal('Thông tin ' + config.label, config.fields(item), canManage ? {
+      edit: function() { config.edit('EDIT', id); },
+      delete: function() { confirmAdminDelete(config.kind, id, 'Xóa ' + config.label + ' ' + id + '?'); }
+    } : null);
   }
 
   function closeKhuVucDetailThen(callback) {

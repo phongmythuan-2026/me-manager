@@ -890,6 +890,29 @@
     </div>
   </div>
 
+  <div class="modal fade" id="modalEntityDetail" tabindex="-1" aria-labelledby="modalEntityDetailTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0 shadow">
+        <div class="modal-header bg-primary text-white">
+          <h5 class="modal-title fw-bold" id="modalEntityDetailTitle">Thông tin chi tiết</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Đóng"></button>
+        </div>
+        <div class="modal-body">
+          <div class="table-responsive">
+            <table class="table table-sm table-bordered align-middle mb-0">
+              <tbody id="modalEntityDetailFields"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="modal-footer bg-light">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Đóng</button>
+          <button type="button" class="btn btn-outline-danger btn-sm d-none" id="modalEntityDetailDelete"><i class="fa-solid fa-trash me-1"></i>Xóa</button>
+          <button type="button" class="btn btn-primary btn-sm d-none" id="modalEntityDetailEdit"><i class="fa-solid fa-pen me-1"></i>Sửa</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="modal fade" id="modalKhuVucEditor" tabindex="-1" aria-labelledby="modalKhuVucEditorTitle" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content border-0 shadow">

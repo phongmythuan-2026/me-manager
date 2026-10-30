@@ -12,6 +12,45 @@
   var pendingDataSync = false;
   var dataSyncIntervalMs = 15000;
   var pendingReferenceCreate = null;
+  var appDeleteConfirmationResolver = null;
+
+  function showAppDeleteConfirmation(options) {
+    var modal = document.getElementById('appDeleteConfirmModal');
+    var title = document.getElementById('appDeleteConfirmTitle');
+    var message = document.getElementById('appDeleteConfirmMessage');
+    var acceptButton = document.getElementById('appDeleteConfirmAccept');
+    var cancelButton = document.getElementById('appDeleteConfirmCancel');
+    title.textContent = options.title || 'Xác nhận xóa';
+    message.textContent = options.text || '';
+    acceptButton.textContent = options.confirmButtonText || 'Xóa';
+    cancelButton.textContent = options.cancelButtonText || 'Hủy';
+    modal.dataset.confirmed = 'false';
+
+    return new Promise(function(resolve) {
+      appDeleteConfirmationResolver = resolve;
+      bootstrap.Modal.getOrCreateInstance(modal).show();
+    });
+  }
+
+  function installAppAlertBehavior() {
+    var originalFire = Swal.fire;
+    Swal.fire = function() {
+      var args = Array.prototype.slice.call(arguments);
+      var options = args[0] && typeof args[0] === 'object' ? args[0] : null;
+      var title = options ? String(options.title || '') : String(args[0] || '');
+      var text = options ? String(options.text || '') : String(args[1] || '');
+      var icon = options ? options.icon : args[2];
+      var isLoading = options && typeof options.didOpen === 'function' && /showLoading/.test(String(options.didOpen));
+      var isDeleteConfirmation = options && options.showCancelButton &&
+        /x[oó]a|xoá|delete/i.test(title + ' ' + text);
+
+      if (icon === 'success' || isLoading) return Promise.resolve({ isDismissed: true });
+      if (isDeleteConfirmation) return showAppDeleteConfirmation(options);
+      return originalFire.apply(this, args);
+    };
+  }
+
+  installAppAlertBehavior();
 
   var pinnedCols = {
     'tblYeuCau': -1, 'tblMMTB': -1, 'tblBaoCaoSX': -1, 'tblDMVT': -1, 'tblKHO': -1, 'tblBaoCaoTon': -1,
@@ -139,6 +178,17 @@
     bsModalMMTB = new bootstrap.Modal(document.getElementById('modalMMTB'));
     bsModalChangePassword = new bootstrap.Modal(document.getElementById('modalChangePassword'));
     bsModalKhuVucDetail = new bootstrap.Modal(document.getElementById('modalKhuVucDetail'));
+    var deleteConfirmModal = document.getElementById('appDeleteConfirmModal');
+    deleteConfirmModal.addEventListener('hidden.bs.modal', function() {
+      if (!appDeleteConfirmationResolver) return;
+      var resolve = appDeleteConfirmationResolver;
+      appDeleteConfirmationResolver = null;
+      resolve({ isConfirmed: deleteConfirmModal.dataset.confirmed === 'true' });
+    });
+    document.getElementById('appDeleteConfirmAccept').addEventListener('click', function() {
+      deleteConfirmModal.dataset.confirmed = 'true';
+      bootstrap.Modal.getOrCreateInstance(deleteConfirmModal).hide();
+    });
 
     var savedUser = localStorage.getItem('mmtb_user');
     if (savedUser) {

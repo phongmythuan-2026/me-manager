@@ -1153,6 +1153,22 @@
     </div>
   </div>
 
+  <div class="modal fade" id="appDeleteConfirmModal" tabindex="-1" aria-labelledby="appDeleteConfirmTitle" aria-describedby="appDeleteConfirmMessage" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+      <div class="modal-content border-0 shadow app-delete-confirm">
+        <div class="modal-body text-center px-4 pt-4 pb-3">
+          <div class="app-delete-confirm-icon mb-3"><i class="fa-solid fa-triangle-exclamation"></i></div>
+          <h5 class="modal-title fw-semibold mb-2" id="appDeleteConfirmTitle">Xác nhận xóa</h5>
+          <p class="text-secondary small mb-0" id="appDeleteConfirmMessage"></p>
+        </div>
+        <div class="modal-footer border-0 justify-content-center gap-2 pt-0 pb-4">
+          <button type="button" class="btn btn-light border btn-sm px-4" data-bs-dismiss="modal" id="appDeleteConfirmCancel">Hủy</button>
+          <button type="button" class="btn btn-danger btn-sm px-4" id="appDeleteConfirmAccept">Xóa</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Bootstrap JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <!-- FullCalendar JS -->

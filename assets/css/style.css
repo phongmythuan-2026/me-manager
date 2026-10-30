@@ -13,7 +13,11 @@
 }
 
 .modal .modal-content {
+  display: flex;
+  max-height: calc(100vh - 1rem);
+  max-height: calc(100dvh - 1rem);
   overflow: hidden;
+  flex-direction: column;
   border: 1px solid #cbd5e1 !important;
   border-radius: 0.4rem;
   box-shadow: 0 0.75rem 2rem rgba(15, 23, 42, 0.18) !important;
@@ -42,10 +46,21 @@
 .modal .modal-content > form {
   display: flex;
   min-height: 0;
+  max-height: 100%;
+  overflow: hidden;
+  flex: 1 1 auto;
   flex-direction: column;
 }
 .modal .modal-body {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  flex: 1 1 auto;
   padding: 1rem 1.25rem;
+}
+.modal .modal-header,
+.modal .modal-footer {
+  flex: 0 0 auto;
 }
 .modal .modal-body .row.g-3 {
   --bs-gutter-x: 1rem;

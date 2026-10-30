@@ -491,44 +491,7 @@
     }).forEach(function(key) {
       fields[key] = item[key];
     });
-    showEntityDetailModal(titles[type] || 'Thông tin chi tiết', fields);
-  }
-
-  function showEntityDetailModal(title, fields, actions) {
-    var modal = document.getElementById('modalEntityDetail');
-    var body = document.getElementById('modalEntityDetailFields');
-    var editButton = document.getElementById('modalEntityDetailEdit');
-    var deleteButton = document.getElementById('modalEntityDetailDelete');
-    document.getElementById('modalEntityDetailTitle').textContent = title;
-    body.replaceChildren();
-    Object.keys(fields).forEach(function(label) {
-      var row = document.createElement('tr');
-      var heading = document.createElement('th');
-      heading.className = 'text-start text-nowrap';
-      heading.scope = 'row';
-      heading.textContent = label;
-      var value = document.createElement('td');
-      value.className = 'text-start';
-      value.textContent = fields[label] == null ? '' : String(fields[label]);
-      row.append(heading, value);
-      body.appendChild(row);
-    });
-
-    editButton.classList.toggle('d-none', !actions || typeof actions.edit !== 'function');
-    deleteButton.classList.toggle('d-none', !actions || typeof actions.delete !== 'function');
-    editButton.onclick = actions && actions.edit ? function() {
-      closeEntityDetailThen(actions.edit);
-    } : null;
-    deleteButton.onclick = actions && actions.delete ? function() {
-      closeEntityDetailThen(actions.delete);
-    } : null;
-    bootstrap.Modal.getOrCreateInstance(modal).show();
-  }
-
-  function closeEntityDetailThen(callback) {
-    var modal = document.getElementById('modalEntityDetail');
-    modal.addEventListener('hidden.bs.modal', callback, { once: true });
-    bootstrap.Modal.getOrCreateInstance(modal).hide();
+    showBootstrapRecordDetail(titles[type] || 'Thông tin chi tiết', fields);
   }
 
   // ----------------------------------------------------
@@ -3894,7 +3857,34 @@
           return;
         }
         var id = props['ID'];
-        openModalYC('VIEW', id);
+        var actions = [
+          { label: 'Xem chi tiết', className: 'btn-outline-info', run: function() { openModalYC('VIEW', id); } }
+        ];
+        if (can('YEU_CAU_COPY')) actions.push({ label: 'Sao chép', className: 'btn-outline-secondary', run: function() { openModalYC('COPY', id); } });
+        if (can('YEU_CAU_EDIT', props)) actions.push({ label: 'Sửa', className: 'btn-outline-primary', run: function() { openModalYC('EDIT', id); } });
+        if (props['Trạng thái'] === 'Chờ tiếp nhận') {
+          if (can('YEU_CAU_TIEP_NHAN', props)) actions.push({ label: 'Tiếp nhận', className: 'btn-warning', run: function() { openUpdateStatusModal(id, 'TIEP_NHAN'); } });
+          if (can('YEU_CAU_HUY', props)) actions.push({ label: 'Hủy', className: 'btn-outline-dark', run: function() { handleHuyYeuCau(id); } });
+          if (can('YEU_CAU_DELETE', props)) actions.push({ label: 'Xóa', className: 'btn-outline-danger', run: function() { handleDeleteYeuCau(id); } });
+        } else if ((props['Trạng thái'] === 'Đã tiếp nhận' || props['Trạng thái'] === 'Đang thực hiện') && can('REPAIR_LOG_MANAGE')) {
+          actions.push({ label: 'Tạo nhật ký', className: 'btn-primary', run: function() { openRepairLogModal('ADD', '', id); } });
+        } else if (props['Trạng thái'] === 'Đã thực hiện' && can('YEU_CAU_MARK_DONE', props)) {
+          actions.push({ label: 'Đã thực hiện', className: 'btn-success', run: function() { markYeuCauWorkDone(id); } });
+        } else if (props['Trạng thái'] === 'Chờ xác nhận' && can('YEU_CAU_CONFIRM', props)) {
+          actions.push({ label: 'Xác nhận hoàn thành', className: 'btn-success', run: function() { confirmYeuCauCompletion(id); } });
+        }
+        var detailModal = showBootstrapRecordDetail('Yêu cầu #' + id, {
+          'Loại YC': formatLoaiYCDisplay(props['Loại yêu cầu']),
+          'Máy móc': String(props['Máy móc/thiết bị'] || '') + (props['Khu vực'] ? ' (' + props['Khu vực'] + ')' : ''),
+          'Mô tả': props['Mô tả yêu cầu'],
+          'Người YC': formatUserDisplay(props['Người yêu cầu']),
+          'Người tiếp nhận': formatUserDisplay(props['Người tiếp nhận']),
+          'Ngày tạo': props['Ngày yêu cầu'],
+          'Trạng thái': props['Trạng thái']
+        });
+        actions.forEach(function(action) {
+          addBootstrapDetailAction(detailModal, action.label, action.className, action.run);
+        });
       }
     });
 
@@ -5065,6 +5055,45 @@
     bsModalKhuVucDetail.show();
   }
 
+  function showBootstrapRecordDetail(titleText, fields) {
+    var modal = document.getElementById('modalAdminCategoryDetail');
+    var title = document.getElementById('modalAdminCategoryDetailTitle');
+    var fieldsBody = document.getElementById('modalAdminCategoryDetailFields');
+    var actions = document.getElementById('modalAdminCategoryDetailActions');
+    title.textContent = titleText;
+    fieldsBody.replaceChildren();
+    actions.replaceChildren();
+    Object.keys(fields).forEach(function(field) {
+      var row = document.createElement('tr');
+      var labelCell = document.createElement('th');
+      labelCell.className = 'text-start text-nowrap';
+      labelCell.scope = 'row';
+      labelCell.textContent = field;
+      var valueCell = document.createElement('td');
+      valueCell.className = 'text-start';
+      valueCell.textContent = fields[field] == null ? '' : String(fields[field]);
+      row.append(labelCell, valueCell);
+      fieldsBody.appendChild(row);
+    });
+    document.getElementById('modalAdminCategoryDetailEdit').classList.add('d-none');
+    document.getElementById('modalAdminCategoryDetailDelete').classList.add('d-none');
+    bootstrap.Modal.getOrCreateInstance(modal).show();
+    return modal;
+  }
+
+  function addBootstrapDetailAction(modal, label, className, callback) {
+    var actions = document.getElementById('modalAdminCategoryDetailActions');
+    var button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'btn ' + className + ' btn-sm';
+    button.textContent = label;
+    button.addEventListener('click', function() {
+      modal.addEventListener('hidden.bs.modal', callback, { once: true });
+      bootstrap.Modal.getOrCreateInstance(modal).hide();
+    });
+    actions.appendChild(button);
+  }
+
   function openAdminCategoryDetail(type, id) {
     var config = {
       LOAI_YC: {
@@ -5094,10 +5123,23 @@
     }
 
     var canManage = can(config.permission);
-    showEntityDetailModal('Thông tin ' + config.label, config.fields(item), canManage ? {
-      edit: function() { config.edit('EDIT', id); },
-      delete: function() { confirmAdminDelete(config.kind, id, 'Xóa ' + config.label + ' ' + id + '?'); }
-    } : null);
+    var fields = config.fields(item);
+    var modal = document.getElementById('modalAdminCategoryDetail');
+    var editButton = document.getElementById('modalAdminCategoryDetailEdit');
+    var deleteButton = document.getElementById('modalAdminCategoryDetailDelete');
+    showBootstrapRecordDetail('Thông tin ' + config.label, fields);
+    editButton.classList.toggle('d-none', !canManage);
+    deleteButton.classList.toggle('d-none', !canManage);
+    editButton.onclick = function() {
+      modal.addEventListener('hidden.bs.modal', function() { config.edit('EDIT', id); }, { once: true });
+      bootstrap.Modal.getOrCreateInstance(modal).hide();
+    };
+    deleteButton.onclick = function() {
+      modal.addEventListener('hidden.bs.modal', function() {
+        confirmAdminDelete(config.kind, id, 'Xóa ' + config.label + ' ' + id + '?');
+      }, { once: true });
+      bootstrap.Modal.getOrCreateInstance(modal).hide();
+    };
   }
 
   function closeKhuVucDetailThen(callback) {

@@ -17,7 +17,7 @@
   <?!= include('Style'); ?>
   <script>
     if (window.location.hostname === 'phongmythuan-2026.github.io') {
-      document.write('<link href="./assets/css/style.css?v=20261030-2" rel="stylesheet">');
+      document.write('<link href="./assets/css/style.css?v=20261029" rel="stylesheet">');
     }
   </script>
 </head>
@@ -606,7 +606,6 @@
             <input type="hidden" id="ycId">
             <input type="hidden" id="ycCurrentFileUrl">
             <div id="ycInputFields">
-              <h6 class="erp-form-section-title">Thông tin yêu cầu</h6>
               <div class="row g-3 mb-3">
                 <div class="col-12 col-md-4">
                   <label class="form-label fw-bold small" for="ycLoai">Loại yêu cầu</label>
@@ -786,7 +785,6 @@
               <li class="nav-item"><button type="button" class="nav-link" onclick="showMachineDetailTab('replacement', this)">Vật tư thay thế</button></li>
             </ul>
             <div id="mmtbInfoPane">
-            <h6 class="erp-form-section-title mb-3">Thông tin thiết bị</h6>
             <div class="row g-3">
               <div class="col-12 col-sm-6 col-lg-3">
                 <label class="form-label fw-bold small">Mã thiết bị</label>
@@ -891,29 +889,6 @@
     </div>
   </div>
 
-  <div class="modal fade" id="modalEntityDetail" tabindex="-1" aria-labelledby="modalEntityDetailTitle" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content border-0 shadow">
-        <div class="modal-header bg-primary text-white">
-          <h5 class="modal-title fw-bold" id="modalEntityDetailTitle">Thông tin chi tiết</h5>
-          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Đóng"></button>
-        </div>
-        <div class="modal-body">
-          <div class="table-responsive">
-            <table class="table table-sm table-bordered align-middle mb-0">
-              <tbody id="modalEntityDetailFields"></tbody>
-            </table>
-          </div>
-        </div>
-        <div class="modal-footer bg-light">
-          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Đóng</button>
-          <button type="button" class="btn btn-outline-danger btn-sm d-none" id="modalEntityDetailDelete"><i class="fa-solid fa-trash me-1"></i>Xóa</button>
-          <button type="button" class="btn btn-primary btn-sm d-none" id="modalEntityDetailEdit"><i class="fa-solid fa-pen me-1"></i>Sửa</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
   <div class="modal fade" id="modalKhuVucEditor" tabindex="-1" aria-labelledby="modalKhuVucEditorTitle" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content border-0 shadow">
@@ -923,7 +898,6 @@
         </div>
         <form id="khuVucEditorForm" onsubmit="handleSaveKhuVuc(event)">
           <div class="modal-body">
-            <h6 class="erp-form-section-title mb-3">Thông tin khu vực</h6>
             <div class="mb-3">
               <label class="form-label fw-bold small" for="khuVucEditorCode">Mã khu vực</label>
               <input id="khuVucEditorCode" class="form-control" required>
@@ -951,7 +925,6 @@
         </div>
         <form id="loaiYCEditorForm" onsubmit="handleSaveLoaiYC(event)">
           <div class="modal-body">
-            <h6 class="erp-form-section-title mb-3">Thông tin loại yêu cầu</h6>
             <div class="mb-3">
               <label class="form-label fw-bold small" for="loaiYCEditorCode">Mã yêu cầu</label>
               <input id="loaiYCEditorCode" class="form-control" required>
@@ -979,7 +952,6 @@
         </div>
         <form id="userEditorForm" onsubmit="handleSaveUser(event)">
           <div class="modal-body">
-            <h6 class="erp-form-section-title mb-3">Thông tin nhân viên</h6>
             <div class="mb-3">
               <label class="form-label fw-bold small" for="userEditorCode">Mã nhân viên</label>
               <input id="userEditorCode" class="form-control" autocomplete="username" required>
@@ -1011,6 +983,30 @@
     </div>
   </div>
 
+  <div class="modal fade" id="modalAdminCategoryDetail" tabindex="-1" aria-labelledby="modalAdminCategoryDetailTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0 shadow">
+        <div class="modal-header bg-primary text-white">
+          <h5 class="modal-title fw-bold" id="modalAdminCategoryDetailTitle">Thông tin chi tiết</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Đóng"></button>
+        </div>
+        <div class="modal-body p-3">
+          <div class="table-responsive">
+            <table class="table table-sm table-bordered align-middle mb-0">
+              <tbody id="modalAdminCategoryDetailFields"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="modal-footer bg-light justify-content-end gap-2">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Đóng</button>
+          <div class="d-flex flex-wrap justify-content-end gap-2" id="modalAdminCategoryDetailActions"></div>
+          <button type="button" class="btn btn-outline-danger btn-sm d-none" id="modalAdminCategoryDetailDelete"><i class="fa-solid fa-trash me-1"></i>Xóa</button>
+          <button type="button" class="btn btn-primary btn-sm d-none" id="modalAdminCategoryDetailEdit"><i class="fa-solid fa-pen me-1"></i>Sửa</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="modal fade" id="modalMachineReplacement" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content border-0 shadow">
@@ -1021,7 +1017,6 @@
         <form id="machineReplacementForm" onsubmit="handleSaveMachineReplacement(event)">
           <div class="modal-body">
             <input type="hidden" id="machineReplacementId">
-            <h6 class="erp-form-section-title mb-3">Thông tin khai báo</h6>
             <div class="mb-3">
               <label class="form-label fw-bold small" for="machineReplacementMachine">Mã máy</label>
               <select id="machineReplacementMachine" class="form-select" required></select>
@@ -1062,7 +1057,6 @@
         <div class="modal-header bg-success text-white"><h5 class="modal-title fw-bold" id="materialCatalogEditorTitle">Thêm vật tư</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
         <form id="materialCatalogForm" onsubmit="handleSaveMaterialCatalog(event)">
           <div class="modal-body">
-            <h6 class="erp-form-section-title mb-3">Thông tin vật tư</h6>
             <div class="mb-3"><label class="form-label fw-bold small" for="materialCode">Mã vật tư (tự động)</label><input id="materialCode" class="form-control" readonly placeholder="Tự tăng khi lưu"></div>
             <div class="mb-3"><label class="form-label fw-bold small" for="materialName">Tên vật tư</label><input id="materialName" class="form-control" required></div>
             <div class="mb-3"><label class="form-label fw-bold small" for="materialUnit">Đvt</label><input id="materialUnit" class="form-control" list="inventoryUnitSuggestions" autocomplete="on"></div>
@@ -1088,11 +1082,9 @@
         <div class="modal-header bg-success text-white"><h5 class="modal-title fw-bold" id="stockReceiptTitle">Ghi nhận nhập / xuất kho</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
         <form id="stockReceiptForm" onsubmit="handleSaveStockReceipt(event)">
           <div class="modal-body row g-3">
-            <div class="col-12"><h6 class="erp-form-section-title">Thông tin giao dịch</h6></div>
             <div class="col-12 col-md-4"><label class="form-label fw-bold small" for="stockReceiptDate">Ngày nhập xuất</label><input id="stockReceiptDate" type="date" class="form-control" required></div>
             <div class="col-12 col-md-4"><label class="form-label fw-bold small" for="stockReceiptMaterialSearch">Mã vật tư (DMVT)</label><div id="stockReceiptMaterialPicker"></div><div class="form-text">Nhập mã hoặc tên để tìm, sau đó chọn vật tư trong danh sách.</div></div>
             <div class="col-12 col-md-4"><label class="form-label fw-bold small" for="stockReceiptRepairLog">Mã yêu cầu (ID TH, không bắt buộc)</label><select id="stockReceiptRepairLog" class="form-select" onchange="applyStockReceiptInheritedMachine()"><option value="">-- Không liên kết nhật ký --</option></select></div>
-            <div class="col-12"><h6 class="erp-form-section-title">Số lượng và giá trị</h6></div>
             <div class="col-12 col-md-4"><label class="form-label fw-bold small" for="stockReceiptQuantity">Số lượng</label><input id="stockReceiptQuantity" type="number" step="any" class="form-control" required oninput="updateStockReceiptValue()"><div class="form-text">Nhập kho: số lượng &gt; 0; Xuất kho: số lượng &lt; 0.</div></div>
             <div class="col-12 col-md-4"><label class="form-label fw-bold small" for="stockReceiptPrice">Đơn giá</label><input id="stockReceiptPrice" type="number" min="0" step="any" class="form-control" oninput="updateStockReceiptValue()"></div>
             <div class="col-12 col-md-4"><label class="form-label fw-bold small" for="stockReceiptValue">Giá trị (SL × đơn giá)</label><input id="stockReceiptValue" class="form-control" readonly></div>
@@ -1115,7 +1107,6 @@
             <input type="hidden" id="repairLogId">
             <input type="hidden" id="repairLogFileUrl">
             <div class="row g-3">
-              <div class="col-12"><h6 class="erp-form-section-title">Thời gian và phân loại công việc</h6></div>
               <div class="col-12 col-md-4"><label class="form-label fw-bold small" for="repairFrom">Từ giờ</label><input id="repairFrom" type="datetime-local" class="form-control" required></div>
               <div class="col-12 col-md-4"><label class="form-label fw-bold small" for="repairTo">Đến giờ</label><input id="repairTo" type="datetime-local" class="form-control" required></div>
               <div class="col-12 col-md-4"><label class="form-label fw-bold small" for="repairType">Loại công việc</label><select id="repairType" class="form-select" required></select><div id="repairTypeInheritedHint" class="form-text d-none">Tự động lấy từ phiếu yêu cầu.</div></div>
@@ -1126,7 +1117,6 @@
                 <textarea id="repairWork" class="form-control" rows="3" required></textarea>
               </div>
               <div class="col-12">
-                <h6 class="erp-form-section-title">Vật tư sử dụng</h6>
                 <div class="d-flex justify-content-between align-items-center mb-2">
                   <label class="form-label fw-bold small mb-0">Vật tư sử dụng (ghi xuất vào sổ kho)</label>
                   <button type="button" id="btnRepairMaterialActions" class="btn btn-sm btn-outline-primary" onclick="addRepairMaterialRow()"><i class="fa-solid fa-plus me-1"></i>Thêm vật tư</button>
@@ -1134,7 +1124,6 @@
                 <div id="repairMaterialsList"></div>
               </div>
               <div class="col-12">
-                <h6 class="erp-form-section-title">Tài liệu đính kèm</h6>
                 <label class="form-label fw-bold small" for="repairFileInput">Hình ảnh thực hiện</label>
                 <input id="repairFileInput" type="file" class="form-control" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx" onchange="previewSelectedFiles(this, 'repairFilePreview', 'repairFileInfo')">
                 <div id="repairFilePreview" class="upload-preview mt-2 d-none"><div id="repairExistingFiles"></div><div id="repairFileInfo"></div></div>
@@ -1165,7 +1154,6 @@
         </div>
         <form onsubmit="handleChangePassword(event)">
           <div class="modal-body">
-            <h6 class="erp-form-section-title mb-3">Thông tin xác thực</h6>
             <div class="mb-3">
               <label class="form-label fw-bold small">Mật khẩu hiện tại</label>
               <input type="password" id="pwdOld" class="form-control" required>

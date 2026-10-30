@@ -1875,19 +1875,23 @@
       var row = document.createElement('tr');
       row.style.cursor = 'context-menu';
       row.addEventListener('contextmenu', function(event) { showContextMenu(event, 'DMVT', code); });
+      var actionsCell = document.createElement('td');
+      actionsCell.className = 'text-center text-nowrap operation-col';
+      var menuButton = document.createElement('button');
+      menuButton.type = 'button';
+      menuButton.className = 'btn btn-sm btn-light border';
+      menuButton.title = 'Chức năng vật tư';
+      menuButton.setAttribute('aria-label', 'Chức năng vật tư ' + code);
+      menuButton.innerHTML = '<i class="fa-solid fa-ellipsis-vertical"></i>';
+      menuButton.addEventListener('click', function(event) { toggleRowDropdown(menuButton, event, 'DMVT', code); });
+      actionsCell.appendChild(menuButton);
+      row.appendChild(actionsCell);
+
       var codeCell = document.createElement('td');
       codeCell.className = 'text-nowrap';
       var codeLabel = document.createElement('span');
       codeLabel.textContent = String(code == null ? '' : code);
       codeCell.appendChild(codeLabel);
-      var menuButton = document.createElement('button');
-      menuButton.type = 'button';
-      menuButton.className = 'btn btn-sm btn-light border ms-2';
-      menuButton.title = 'Chức năng vật tư';
-      menuButton.setAttribute('aria-label', 'Chức năng vật tư ' + code);
-      menuButton.innerHTML = '<i class="fa-solid fa-ellipsis-vertical"></i>';
-      menuButton.addEventListener('click', function(event) { toggleRowDropdown(menuButton, event, 'DMVT', code); });
-      codeCell.appendChild(menuButton);
       row.appendChild(codeCell);
       [getInventoryValue(item, ['Tên vật tư', 'Tên hàng', 'Tên']), getInventoryValue(item, ['Đvt', 'ĐVT', 'Đơn vị tính', 'ĐVT chính', 'Đơn vị']), formatUserDisplay(item['Người tạo']), item['Ngày tạo']].forEach(function(value) {
         var cell = document.createElement('td');
@@ -5540,7 +5544,7 @@
     initSortableTable('tblUsers', 'USER', [null, 'Mã NV', 'Họ tên', 'Vai trò'], true);
     initSortableTable('tblKhuVuc', 'KHU_VUC', [null, 'Mã khu vực', 'Tên khu vực'], true);
     initSortableTable('tblLoaiYC', 'LOAI_YC', [null, 'Mã yêu cầu', 'Tên yêu cầu'], true);
-    initSortableTable('tblDMVT', 'DMVT', ['Mã vật tư', 'Tên vật tư', 'Đvt', 'Người tạo', 'Ngày tạo']);
+    initSortableTable('tblDMVT', 'DMVT', [null, 'Mã vật tư', 'Tên vật tư', 'Đvt', 'Người tạo', 'Ngày tạo']);
     initSortableTable('tblKHO', 'KHO', [null, 'ID KHO', 'Ngày nhập xuất', 'Mã vật tư', 'Số lượng', 'Đơn giá', 'Giá trị xuất/nhập kho', 'Mã máy móc/thiết bị', 'Ghi chú', 'Người thực hiện', 'Ngày thực hiện', 'Mã yêu cầu']);
     initSortableTable('tblBaoCaoTon', 'KHO_REPORT', [null, 'Mã vật tư', 'Tên vật tư', 'ĐVT', 'Tồn đầu kỳ', 'Nhập trong kỳ', 'Xuất trong kỳ', 'Tồn cuối kỳ']);
     initSortableTable('tblYeuCauTH', 'YEU_CAU_TH', [null, 'ID TH', 'Từ giờ', 'Đến giờ', 'Loại công việc', 'Công việc thực hiện', 'Máy móc/thiết bị', 'Mã yêu cầu', 'Hình ảnh thực hiện', 'Người thực hiện', 'Trạng thái']);

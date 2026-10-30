@@ -925,6 +925,8 @@
 
     var headers = Array.from(table.tHead.rows[0].cells);
     var rows = Array.from(table.rows);
+    var isMachineTable = tableId === 'tblMMTB';
+    var isProductionReport = tableId === 'tblBaoCaoSX';
     var storageKey = 'meManagerColumnWidths:' + tableId;
     var savedWidths = [];
     try {
@@ -985,23 +987,23 @@
         var cell = row.cells[index];
         if (cell && !cell.hasAttribute('colspan')) contentWidth = Math.max(contentWidth, cell.getBoundingClientRect().width);
       });
-      var isMachineTable = tableId === 'tblMMTB';
-      var measureHeader = isMachineTable || tableId === 'tblYeuCauTH';
+      var measureHeader = isMachineTable || tableId === 'tblYeuCauTH' || isProductionReport;
       if (measureHeader) {
         var headerContent = header.cloneNode(true);
-        headerContent.querySelectorAll('.resizer, .pin-btn, .sort-indicator').forEach(function(element) { element.remove(); });
+        headerContent.querySelectorAll('.resizer, .pin-btn, .sort-indicator, .fa-sort, .fa-sort-up, .fa-sort-down').forEach(function(element) { element.remove(); });
         var headerLabel = (headerContent.innerText || headerContent.textContent || '').replace(/\s+/g, ' ').trim();
         var headerStyle = window.getComputedStyle(header);
         var canvas = document.createElement('canvas');
         var context = canvas.getContext('2d');
         if (context && headerLabel) {
           context.font = headerStyle.font;
-          var headerExtras = 20 + (header.querySelector('.sort-indicator') ? 18 : 0) + (header.querySelector('.pin-btn') ? 20 : 0);
+          var hasSortIcon = header.querySelector('.sort-indicator, .fa-sort, .fa-sort-up, .fa-sort-down');
+          var headerExtras = 20 + (hasSortIcon ? 18 : 0) + (header.querySelector('.pin-btn') ? 20 : 0);
           contentWidth = Math.max(contentWidth, context.measureText(headerLabel).width + headerExtras);
         }
       }
-      var minimumWidth = tableId === 'tblMMTB' && index > 0 ? 76 : 64;
-      var maximumWidth = isMachineTable ? 320 : (tableId === 'tblYeuCauTH' ? 360 : 280);
+      var minimumWidth = isMachineTable && index > 0 ? 76 : (isProductionReport ? 100 : 64);
+      var maximumWidth = isMachineTable ? 320 : (tableId === 'tblYeuCauTH' ? 360 : (isProductionReport ? 420 : 280));
       return Math.min(maximumWidth, Math.max(minimumWidth, Math.ceil(contentWidth + 2)));
     });
     measuringTable.remove();
@@ -1011,7 +1013,9 @@
       var savedWidth = Number(savedWidths[index]) || 0;
       var width = tableId === 'tblMMTB'
         ? Math.max(measuredWidths[index], savedWidth)
-        : Math.max(56, savedWidth || measuredWidths[index]);
+        : (isProductionReport
+          ? Math.max(measuredWidths[index], savedWidth)
+          : Math.max(56, savedWidth || measuredWidths[index]));
       if (tableId === 'tblYeuCauTH') {
         width = Math.min(360, Math.max(measuredWidths[index], savedWidth || measuredWidths[index]));
       }
@@ -2815,6 +2819,7 @@
 
   function getFilteredBaoCaoRows() {
     var rows = sharePointRows.filter(function(row) {
+      if (!isValidBaoCaoDisplayRow(row)) return false;
       if (!sharePointSearch) return true;
       return sharePointKeys.some(function(key) {
         var value = getSharePointRowValue(row, key);
@@ -2826,6 +2831,31 @@
       rows.sort(function(a, b) { return compareDynamicValues(a, b, sharePointSortKey, sharePointSortDir); });
     }
     return rows;
+  }
+
+  function isValidBaoCaoDisplayRow(row) {
+    var productNameKey = '';
+    var hasDisplayValue = false;
+    var errorValuePattern = /^#(?:N\/A|REF!|VALUE!|DIV\/0!|NAME\?|NUM!|NULL!)/i;
+
+    for (var index = 0; index < sharePointKeys.length; index++) {
+      var key = sharePointKeys[index];
+      var label = sharePointColumnLabels[key] || decodeSharePointColumnLabel(key);
+      var normalizedLabel = label.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
+      if (/^(?:ten )?(?:san pham|sp|hang|thanh pham)$/.test(normalizedLabel)) productNameKey = key;
+
+      var value = getSharePointRowValue(row, key);
+      var text = value && typeof value === 'object' ? JSON.stringify(value).trim() : String(value == null ? '' : value).trim();
+      if (text && !errorValuePattern.test(text)) hasDisplayValue = true;
+      if (errorValuePattern.test(text)) return false;
+    }
+
+    if (!hasDisplayValue) return false;
+    if (productNameKey) {
+      var productName = getSharePointRowValue(row, productNameKey);
+      return String(productName == null ? '' : productName).trim() !== '';
+    }
+    return true;
   }
 
   function decodeSharePointColumnLabel(key) {

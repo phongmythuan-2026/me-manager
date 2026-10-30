@@ -4,9 +4,15 @@
 var PRODUCTION_REPORT_SPREADSHEET_ID = '1zBsXA36h8tFpvRwg-xZt5dfrzDMHnxR4TnhYs054rI4';
 var PRODUCTION_REPORT_SHEET_NAME = 'BCSX';
 var PRODUCTION_REPORT_NAME = 'Báo cáo sản xuất';
+var PRODUCTION_REPORT_CACHE_KEY = 'production-report-v1';
+var PRODUCTION_REPORT_CACHE_TTL_SECONDS = 60;
+var PRODUCTION_REPORT_CACHE_CHUNK_SIZE = 80000;
 
 function getBaoCaoSanXuatFromGoogleSheets() {
   try {
+    var cachedReport = getCachedProductionReport();
+    if (cachedReport) return cachedReport;
+
     var spreadsheet = SpreadsheetApp.openById(PRODUCTION_REPORT_SPREADSHEET_ID);
     var sheet = spreadsheet.getSheetByName(PRODUCTION_REPORT_SHEET_NAME);
     if (!sheet) {
@@ -18,11 +24,15 @@ function getBaoCaoSanXuatFromGoogleSheets() {
       };
     }
 
-    var values = sheet.getDataRange().getValues();
-    if (!values.length) {
-      return { success: true, data: [], columns: [], tableName: PRODUCTION_REPORT_NAME, source: 'Google Sheets' };
+    var lastRow = sheet.getLastRow();
+    var lastColumn = sheet.getLastColumn();
+    if (!lastRow || !lastColumn) {
+      var emptyReport = { success: true, data: [], columns: [], tableName: PRODUCTION_REPORT_NAME, source: 'Google Sheets' };
+      cacheProductionReport(emptyReport);
+      return emptyReport;
     }
 
+    var values = sheet.getRange(1, 1, lastRow, lastColumn).getValues();
     var columns = values[0].map(function(header) {
       return String(header == null ? '' : header).trim();
     });
@@ -43,13 +53,15 @@ function getBaoCaoSanXuatFromGoogleSheets() {
       if (hasValue) data.push(row);
     }
 
-    return {
+    var report = {
       success: true,
       data: data,
       columns: columns.filter(function(column) { return Boolean(column); }),
       tableName: PRODUCTION_REPORT_NAME,
       source: 'Google Sheets'
     };
+    cacheProductionReport(report);
+    return report;
   } catch (error) {
     return {
       success: false,
@@ -57,6 +69,55 @@ function getBaoCaoSanXuatFromGoogleSheets() {
       columns: [],
       message: 'Không đọc được file Google Sheets báo cáo sản xuất: ' + error.toString()
     };
+  }
+}
+
+function getCachedProductionReport() {
+  try {
+    var cache = CacheService.getScriptCache();
+    var manifestValue = cache.get(PRODUCTION_REPORT_CACHE_KEY);
+    if (!manifestValue) return null;
+
+    var manifest = JSON.parse(manifestValue);
+    if (!manifest.generation || !manifest.chunkCount || manifest.chunkCount < 1) return null;
+    var keys = [];
+    for (var index = 0; index < manifest.chunkCount; index++) {
+      keys.push(PRODUCTION_REPORT_CACHE_KEY + ':' + manifest.generation + ':' + index);
+    }
+
+    var chunks = cache.getAll(keys);
+    var encoded = keys.map(function(key) { return chunks[key] || ''; }).join('');
+    if (keys.some(function(key) { return !chunks[key]; })) return null;
+    var compressed = Utilities.base64Decode(encoded);
+    var json = Utilities.ungzip(Utilities.newBlob(compressed)).getDataAsString('UTF-8');
+    var report = JSON.parse(json);
+    return report && report.success && Array.isArray(report.data) ? report : null;
+  } catch (error) {
+    Logger.log('Không đọc được cache báo cáo sản xuất: ' + error.toString());
+    return null;
+  }
+}
+
+function cacheProductionReport(report) {
+  try {
+    var cache = CacheService.getScriptCache();
+    var compressed = Utilities.gzip(Utilities.newBlob(JSON.stringify(report), 'application/json'));
+    var encoded = Utilities.base64Encode(compressed.getBytes());
+    var generation = Utilities.getUuid().replace(/-/g, '');
+    var chunkCount = Math.ceil(encoded.length / PRODUCTION_REPORT_CACHE_CHUNK_SIZE);
+    var chunks = {};
+    for (var index = 0; index < chunkCount; index++) {
+      var key = PRODUCTION_REPORT_CACHE_KEY + ':' + generation + ':' + index;
+      chunks[key] = encoded.substring(index * PRODUCTION_REPORT_CACHE_CHUNK_SIZE, (index + 1) * PRODUCTION_REPORT_CACHE_CHUNK_SIZE);
+    }
+
+    cache.putAll(chunks, PRODUCTION_REPORT_CACHE_TTL_SECONDS);
+    cache.put(PRODUCTION_REPORT_CACHE_KEY, JSON.stringify({
+      generation: generation,
+      chunkCount: chunkCount
+    }), PRODUCTION_REPORT_CACHE_TTL_SECONDS);
+  } catch (error) {
+    Logger.log('Không thể lưu cache báo cáo sản xuất: ' + error.toString());
   }
 }
 

@@ -12,6 +12,9 @@
   margin-bottom: 0.25rem !important;
 }
 
+.view-tab-navigation .card-body {
+  padding-bottom: 0 !important;
+}
 .modal .modal-content {
   display: flex;
   max-height: calc(100vh - 1rem);

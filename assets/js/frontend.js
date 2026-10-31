@@ -16,27 +16,28 @@
   var formLayoutRegistry = [];
   var formLayoutLoaded = false;
   var pendingFormLayoutConfig = null;
+  var formLayoutResizeObserver = null;
   var formLayoutTypes = [
-    { id: 'text', label: 'Văn bản', width: 25, inputType: 'auto' },
-    { id: 'date', label: 'Ngày', width: 20, inputType: 'date' },
-    { id: 'datetime', label: 'Ngày giờ', width: 20, inputType: 'datetime-local' },
-    { id: 'number', label: 'Số', width: 15, inputType: 'number' },
-    { id: 'textarea', label: 'Ghi chú dài', width: 100, inputType: 'textarea' },
-    { id: 'select', label: 'Danh sách chọn', width: 25, inputType: 'auto' },
-    { id: 'file', label: 'Tệp đính kèm', width: 100, inputType: 'auto' },
-    { id: 'full', label: 'Toàn dòng', width: 100, inputType: 'auto' },
-    { id: 'work-type', label: 'Loại công việc', width: 20, inputType: 'auto' },
-    { id: 'request-type', label: 'Loại yêu cầu', width: 25, inputType: 'auto' },
-    { id: 'area', label: 'Khu vực', width: 25, inputType: 'auto' },
-    { id: 'machine', label: 'Máy móc', width: 25, inputType: 'auto' },
-    { id: 'reference', label: 'Mã tham chiếu', width: 25, inputType: 'auto' },
-    { id: 'material', label: 'Vật tư', width: 30, inputType: 'auto' },
-    { id: 'unit', label: 'Đơn vị tính', width: 10, inputType: 'auto' },
-    { id: 'frequency', label: 'Tần suất', width: 20, inputType: 'number' },
-    { id: 'quantity', label: 'Số lượng', width: 15, inputType: 'number' },
-    { id: 'unit-price', label: 'Đơn giá', width: 15, inputType: 'number' },
-    { id: 'amount', label: 'Thành tiền', width: 15, inputType: 'auto' },
-    { id: 'action', label: 'Thao tác', width: 10, inputType: 'auto' }
+    { id: 'text', label: 'Văn bản', width: 25, widthUnit: 'percent', inputType: 'auto' },
+    { id: 'date', label: 'Ngày', width: 20, widthUnit: 'percent', inputType: 'date' },
+    { id: 'datetime', label: 'Ngày giờ', width: 20, widthUnit: 'percent', inputType: 'datetime-local' },
+    { id: 'number', label: 'Số', width: 15, widthUnit: 'percent', inputType: 'number' },
+    { id: 'textarea', label: 'Ghi chú dài', width: 100, widthUnit: 'percent', inputType: 'textarea' },
+    { id: 'select', label: 'Danh sách chọn', width: 25, widthUnit: 'percent', inputType: 'auto' },
+    { id: 'file', label: 'Tệp đính kèm', width: 100, widthUnit: 'percent', inputType: 'auto' },
+    { id: 'full', label: 'Toàn dòng', width: 100, widthUnit: 'percent', inputType: 'auto' },
+    { id: 'work-type', label: 'Loại công việc', width: 20, widthUnit: 'percent', inputType: 'auto' },
+    { id: 'request-type', label: 'Loại yêu cầu', width: 25, widthUnit: 'percent', inputType: 'auto' },
+    { id: 'area', label: 'Khu vực', width: 25, widthUnit: 'percent', inputType: 'auto' },
+    { id: 'machine', label: 'Máy móc', width: 25, widthUnit: 'percent', inputType: 'auto' },
+    { id: 'reference', label: 'Mã tham chiếu', width: 25, widthUnit: 'percent', inputType: 'auto' },
+    { id: 'material', label: 'Vật tư', width: 30, widthUnit: 'percent', inputType: 'auto' },
+    { id: 'unit', label: 'Đơn vị tính', width: 10, widthUnit: 'percent', inputType: 'auto' },
+    { id: 'frequency', label: 'Tần suất', width: 20, widthUnit: 'percent', inputType: 'number' },
+    { id: 'quantity', label: 'Số lượng', width: 15, widthUnit: 'percent', inputType: 'number' },
+    { id: 'unit-price', label: 'Đơn giá', width: 15, widthUnit: 'percent', inputType: 'number' },
+    { id: 'amount', label: 'Thành tiền', width: 15, widthUnit: 'percent', inputType: 'auto' },
+    { id: 'action', label: 'Thao tác', width: 10, widthUnit: 'percent', inputType: 'auto' }
   ];
 
   function showAppDeleteConfirmation(options) {
@@ -326,6 +327,7 @@
     document.getElementById('nav-system-layout').classList.toggle('d-none', !canManageFormLayout);
     document.getElementById('mobile-nav-system-layout').classList.toggle('d-none', !canManageFormLayout);
     if (!formLayoutRegistry.length) registerFormLayoutFields();
+    observeFormLayoutGrids();
     formLayoutLoaded = false;
     formLayoutConfig = { sharedTypes: {}, forms: {} };
     applyFormLayoutConfig();
@@ -340,7 +342,11 @@
 
   function getFormLayoutPreset(typeId) {
     var type = getFormLayoutType(typeId);
-    return formLayoutConfig.sharedTypes[typeId] || { width: type.width, inputType: type.inputType };
+    return formLayoutConfig.sharedTypes[typeId] || {
+      width: type.width,
+      widthUnit: type.widthUnit || 'percent',
+      inputType: type.inputType
+    };
   }
 
   function getFormLayoutControls(field) {
@@ -405,11 +411,20 @@
             : control.tagName.toLowerCase() === 'input' ? control.type : '';
         }
         field.dataset.layoutBaseType = type;
-        field.dataset.layoutBasePercent = String(Math.max(1, Math.min(100, span / defaultColumns * 100)));
+        var defaultWidth = Math.max(0.5, Math.min(100, Math.round(span / defaultColumns * 10000) / 100));
+        field.dataset.layoutBasePercent = String(defaultWidth);
         if (field.dataset.layoutBaseRow === undefined && getComputedStyle(field).gridRowStart !== 'auto') {
           field.dataset.layoutBaseRow = getComputedStyle(field).gridRowStart;
         }
-        fields.push({ id: fieldId, element: field, label: label, defaultLabel: field.dataset.layoutDefaultLabel, type: type });
+        fields.push({
+          id: fieldId,
+          element: field,
+          label: label,
+          defaultLabel: field.dataset.layoutDefaultLabel,
+          type: type,
+          defaultWidth: defaultWidth,
+          defaultRow: Number(field.dataset.layoutBaseRow) || null
+        });
       });
 
       formLayoutRegistry.push({
@@ -419,6 +434,36 @@
         defaultColumns: defaultColumns,
         fields: fields
       });
+    });
+  }
+
+  function observeFormLayoutGrids() {
+    if (!window.ResizeObserver) return;
+    if (!formLayoutResizeObserver) {
+      formLayoutResizeObserver = new ResizeObserver(function(entries) {
+        entries.forEach(function(entry) {
+          updateFormLayoutPixelFieldSpans(entry.target);
+        });
+      });
+    }
+    formLayoutRegistry.forEach(function(form) { formLayoutResizeObserver.observe(form.grid); });
+  }
+
+  function updateFormLayoutPixelFieldSpans(grid) {
+    var columns = getComputedStyle(grid).gridTemplateColumns.split(/\s+/).filter(Boolean).length;
+    var gridWidth = grid.clientWidth;
+    if (!columns || !gridWidth) return;
+    var gap = parseFloat(getComputedStyle(grid).columnGap) || 0;
+    var trackWidth = Math.max(1, (gridWidth - gap * (columns - 1)) / columns);
+    grid.querySelectorAll(':scope > [data-layout-position][data-layout-width-unit="px"]').forEach(function(field) {
+      var pixelWidth = Number(field.dataset.layoutPixelWidth);
+      if (!pixelWidth) return;
+      var baseSpan = Number(field.dataset.layoutPixelBaseSpan) || 1;
+      var span = Math.max(baseSpan, Math.ceil((pixelWidth + gap) / (trackWidth + gap)));
+      var column = Number(field.dataset.layoutGridColumnStart);
+      if (column > 0) span = Math.min(span, columns - column + 1);
+      span = Math.max(1, Math.min(columns, span));
+      field.style.setProperty('--layout-grid-column', (column > 0 ? column : 'auto') + ' / span ' + span);
     });
   }
 
@@ -489,7 +534,19 @@
         if (typeWarning) inputTypeWarnings.push(fieldInfo.defaultLabel + ': ' + typeWarning);
 
         var width = settings.width === null || settings.width === undefined ? null : Number(settings.width);
+        var widthUnit = settings.widthUnit || (shared && shared.widthUnit) || 'percent';
         if (width === null && shared) width = Number(shared.width);
+        if (width !== null && widthUnit === 'px') {
+          field.dataset.layoutWidthUnit = 'px';
+          field.dataset.layoutPixelWidth = String(width);
+          field.style.setProperty('--layout-field-width', width + 'px');
+        } else {
+          delete field.dataset.layoutWidthUnit;
+          delete field.dataset.layoutPixelWidth;
+          delete field.dataset.layoutPixelBaseSpan;
+          delete field.dataset.layoutGridColumnStart;
+          field.style.removeProperty('--layout-field-width');
+        }
         var hasPlacement = width !== null || settings.row !== null && settings.row !== undefined ||
           settings.column !== null && settings.column !== undefined || settings.span !== null && settings.span !== undefined ||
           !!formSettings.columns || type !== field.dataset.layoutBaseType;
@@ -501,10 +558,15 @@
           var defaultPercent = ['file', 'full', 'textarea'].includes(type)
             ? 100
             : Number(field.dataset.layoutBasePercent);
-          var span = Number(settings.span) || Math.round(columns * (width === null ? defaultPercent : width) / 100);
+          var layoutPercent = width !== null && widthUnit === 'percent' ? width : defaultPercent;
+          var span = Number(settings.span) || Math.round(columns * layoutPercent / 100);
           span = Math.max(1, Math.min(columns, span));
           var column = Number(settings.column);
           field.style.setProperty('--layout-grid-column', (column > 0 ? column : 'auto') + ' / span ' + span);
+          if (width !== null && widthUnit === 'px') {
+            field.dataset.layoutPixelBaseSpan = String(span);
+            field.dataset.layoutGridColumnStart = column > 0 ? String(column) : '';
+          }
           var row = Number(settings.row) || Number(field.dataset.layoutBaseRow) || 0;
           if (row > 0) field.style.setProperty('--layout-grid-row', String(row));
           else field.style.removeProperty('--layout-grid-row');
@@ -515,6 +577,7 @@
         if (order === null) field.style.removeProperty('order');
         else field.style.order = String(order);
       });
+      updateFormLayoutPixelFieldSpans(form.grid);
     });
     return inputTypeWarnings;
   }
@@ -546,11 +609,19 @@
     var warnings = applyFormLayoutConfig();
     if (can('FORM_LAYOUT_MANAGE')) renderFormLayoutManager();
     if (warnings.length) {
-      var status = document.getElementById('formLayoutStatus');
-      status.className = 'small mt-2 text-warning';
-      status.textContent = 'Chưa áp dụng một số loại input: ' + warnings.join(' ');
+      setFormLayoutStatus('Chưa áp dụng một số loại input: ' + warnings.join(' '), 'warning');
       console.warn('Một số kiểu input không tương thích với dữ liệu:', warnings);
     }
+  }
+
+  function setFormLayoutStatus(message, tone) {
+    ['formLayoutStatus', 'formLayoutSharedStatus'].forEach(function(id) {
+      var status = document.getElementById(id);
+      if (!status) return;
+      status.className = 'small' + (id === 'formLayoutStatus' ? ' mt-2' : '') +
+        (tone ? ' text-' + tone : '');
+      status.textContent = message;
+    });
   }
 
   function createFormLayoutOption(select, value, label) {
@@ -583,8 +654,23 @@
       row.appendChild(nameCell);
 
       var widthCell = document.createElement('td');
-      var widthInput = createFormLayoutInput('number', preset.width, { min: '1', max: '100', 'data-layout-shared-width': type.id, 'aria-label': 'Độ rộng ' + type.label });
+      widthCell.className = 'form-layout-width-cell';
+      var widthInput = createFormLayoutInput('number', preset.width, {
+        min: preset.widthUnit === 'px' ? '1' : '0.5',
+        max: preset.widthUnit === 'px' ? '2000' : '100',
+        step: preset.widthUnit === 'px' ? '1' : '0.5',
+        'data-layout-shared-width': type.id,
+        'aria-label': 'Độ rộng ' + type.label
+      });
       widthCell.appendChild(widthInput);
+      var widthUnit = document.createElement('select');
+      widthUnit.className = 'form-select form-select-sm form-layout-width-unit';
+      widthUnit.dataset.layoutSharedWidthUnit = type.id;
+      createFormLayoutOption(widthUnit, 'percent', '%');
+      createFormLayoutOption(widthUnit, 'px', 'px');
+      widthUnit.value = preset.widthUnit || 'percent';
+      widthUnit.addEventListener('change', function() { updateFormLayoutWidthInputLimit(widthInput, widthUnit); });
+      widthCell.appendChild(widthUnit);
       row.appendChild(widthCell);
 
       var inputCell = document.createElement('td');
@@ -633,6 +719,7 @@
       var saved = savedFields[fieldInfo.id] || {};
       var row = document.createElement('tr');
       row.dataset.layoutEditorField = fieldInfo.id;
+      row.dataset.layoutDefaultWidth = String(fieldInfo.defaultWidth);
       var name = document.createElement('td');
       name.textContent = fieldInfo.defaultLabel;
       name.className = 'small fw-semibold';
@@ -655,12 +742,37 @@
       sharedInput.checked = saved.useShared === true;
       sharedInput.dataset.layoutFieldProperty = 'useShared';
       sharedInput.setAttribute('aria-label', 'Dùng kiểu chung cho ' + fieldInfo.defaultLabel);
+      sharedInput.addEventListener('change', function() { updateFormLayoutFieldWidthInputs(row); });
       sharedCell.appendChild(sharedInput);
       row.appendChild(sharedCell);
 
+      var widthCell = document.createElement('td');
+      widthCell.className = 'form-layout-width-cell';
+      var widthValue = saved.width === null || saved.width === undefined
+        ? (saved.useShared ? '' : fieldInfo.defaultWidth)
+        : saved.width;
+      var widthUnitValue = saved.widthUnit || 'percent';
+      var widthInput = createFormLayoutInput('number', widthValue, {
+        min: widthUnitValue === 'px' ? '1' : '0.5',
+        max: widthUnitValue === 'px' ? '2000' : '100',
+        step: widthUnitValue === 'px' ? '1' : '0.5',
+        placeholder: saved.useShared ? 'Chung' : '',
+        'data-layout-field-property': 'width',
+        'aria-label': 'Độ rộng của ' + fieldInfo.defaultLabel
+      });
+      widthCell.appendChild(widthInput);
+      var widthUnitSelect = document.createElement('select');
+      widthUnitSelect.className = 'form-select form-select-sm form-layout-width-unit';
+      widthUnitSelect.dataset.layoutFieldProperty = 'widthUnit';
+      createFormLayoutOption(widthUnitSelect, 'percent', '%');
+      createFormLayoutOption(widthUnitSelect, 'px', 'px');
+      widthUnitSelect.value = widthUnitValue;
+      widthUnitSelect.addEventListener('change', function() { updateFormLayoutWidthInputLimit(widthInput, widthUnitSelect); });
+      widthCell.appendChild(widthUnitSelect);
+      row.appendChild(widthCell);
+
       [
-        ['width', saved.width, '1', '100', 'Độ rộng phần trăm'],
-        ['row', saved.row, '1', '100', 'Dòng grid'],
+        ['row', saved.row === null || saved.row === undefined ? fieldInfo.defaultRow : saved.row, '1', '100', 'Dòng grid'],
         ['column', saved.column, '1', '200', 'Cột bắt đầu'],
         ['span', saved.span, '1', '200', 'Số cột span'],
         ['order', saved.order, '0', '100', 'Thứ tự trường']
@@ -716,8 +828,29 @@
       row.appendChild(inputTypeCell);
 
       body.appendChild(row);
+      updateFormLayoutFieldWidthInputs(row);
     });
     updateFormLayoutGridColumnLimits();
+  }
+
+  function updateFormLayoutWidthInputLimit(input, unitSelect) {
+    var isPixel = unitSelect.value === 'px';
+    input.min = isPixel ? '1' : '0.5';
+    input.max = isPixel ? '2000' : '100';
+    input.step = isPixel ? '1' : '0.5';
+  }
+
+  function updateFormLayoutFieldWidthInputs(row) {
+    var useShared = row.querySelector('[data-layout-field-property="useShared"]').checked;
+    var widthInput = row.querySelector('[data-layout-field-property="width"]');
+    var widthUnit = row.querySelector('[data-layout-field-property="widthUnit"]');
+    if (!useShared && !widthInput.value) {
+      widthInput.value = row.dataset.layoutDefaultWidth || '';
+      widthUnit.value = 'percent';
+      updateFormLayoutWidthInputLimit(widthInput, widthUnit);
+    }
+    widthInput.disabled = useShared;
+    widthUnit.disabled = useShared;
   }
 
   function updateFormLayoutGridColumnLimits() {
@@ -740,6 +873,19 @@
     return value;
   }
 
+  function readOptionalFormLayoutWidth(row, widthUnit) {
+    var input = row.querySelector('[data-layout-field-property="width"]');
+    if (!input || input.value.trim() === '') return null;
+    var value = Number(input.value);
+    var isPixel = widthUnit === 'px';
+    if (!Number.isFinite(value) || value < (isPixel ? 1 : 0.5) || value > (isPixel ? 2000 : 100) ||
+        (isPixel && !Number.isInteger(value)) ||
+        (!isPixel && Math.abs(value * 100 - Math.round(value * 100)) > 1e-8)) {
+      throw new Error('Độ rộng của trường "' + row.dataset.layoutEditorField + '" không hợp lệ.');
+    }
+    return value;
+  }
+
   function collectFormLayoutConfigFromUI() {
     var nextConfig = JSON.parse(JSON.stringify(formLayoutConfig));
     nextConfig.sharedTypes = nextConfig.sharedTypes || {};
@@ -747,11 +893,15 @@
     document.querySelectorAll('[data-layout-shared-width]').forEach(function(input) {
       var type = input.dataset.layoutSharedWidth;
       var width = Number(input.value);
-      if (!Number.isInteger(width) || width < 1 || width > 100) {
-        throw new Error('Độ rộng kiểu dùng chung "' + getFormLayoutType(type).label + '" phải từ 1 đến 100%.');
+      var widthUnit = document.querySelector('[data-layout-shared-width-unit="' + type + '"]').value;
+      var maxWidth = widthUnit === 'px' ? 2000 : 100;
+      if (!Number.isFinite(width) || width < (widthUnit === 'px' ? 1 : 0.5) || width > maxWidth ||
+          (widthUnit === 'px' && !Number.isInteger(width)) ||
+          (widthUnit === 'percent' && Math.abs(width * 100 - Math.round(width * 100)) > 1e-8)) {
+        throw new Error('Độ rộng kiểu dùng chung "' + getFormLayoutType(type).label + '" không hợp lệ.');
       }
       var inputType = document.querySelector('[data-layout-shared-input="' + type + '"]').value;
-      nextConfig.sharedTypes[type] = { width: width, inputType: inputType };
+      nextConfig.sharedTypes[type] = { width: width, widthUnit: widthUnit, inputType: inputType };
     });
 
     var formId = document.getElementById('formLayoutFormSelect').value;
@@ -771,21 +921,25 @@
       };
       var requiredValue = valueFor('required');
       var inputTypeValue = valueFor('inputType');
-      var width = readOptionalFormLayoutNumber(row, 'width', 1, 100);
+      var useShared = row.querySelector('[data-layout-field-property="useShared"]').checked;
+      var widthUnit = valueFor('widthUnit');
+      var width = useShared ? null : readOptionalFormLayoutWidth(row, widthUnit);
       var gridRow = readOptionalFormLayoutNumber(row, 'row', 1, 100);
       var column = readOptionalFormLayoutNumber(row, 'column', 1, effectiveColumns);
       var span = readOptionalFormLayoutNumber(row, 'span', 1, effectiveColumns);
       var order = readOptionalFormLayoutNumber(row, 'order', 0, 100);
       var type = valueFor('type');
-      var useShared = row.querySelector('[data-layout-field-property="useShared"]').checked;
       var sharedPreset = nextConfig.sharedTypes[type] || getFormLayoutType(type);
       var configuredWidth = width === null && useShared ? Number(sharedPreset.width) : width;
+      var configuredWidthUnit = useShared ? (sharedPreset.widthUnit || 'percent') : widthUnit;
       var fieldInfo = form.fields.find(function(item) { return item.id === fieldId; });
       var defaultPercent = ['file', 'full', 'textarea'].includes(type)
         ? 100
         : Number(fieldInfo.element.dataset.layoutBasePercent);
       var effectiveSpan = span === null
-        ? Math.max(1, Math.round(effectiveColumns * (configuredWidth === null ? defaultPercent : configuredWidth) / 100))
+        ? Math.max(1, Math.round(effectiveColumns * (
+          configuredWidth === null || configuredWidthUnit === 'px' ? defaultPercent : configuredWidth
+        ) / 100))
         : span;
       if (column !== null && column + effectiveSpan - 1 > effectiveColumns) {
         throw new Error('Cột và Span của trường "' + fieldId + '" vượt quá số cột của modal.');
@@ -794,6 +948,7 @@
         type: type,
         useShared: useShared,
         width: width,
+        widthUnit: width === null ? null : widthUnit,
         row: gridRow,
         column: column,
         span: span,
@@ -808,27 +963,23 @@
   }
 
   function saveFormLayoutConfigObject(nextConfig) {
-    var status = document.getElementById('formLayoutStatus');
-    status.className = 'small mt-2 text-muted';
-    status.textContent = 'Đang lưu cấu hình...';
+    setFormLayoutStatus('Đang lưu cấu hình...', 'muted');
     google.script.run
       .withSuccessHandler(function(result) {
         if (!result || !result.success) {
-          status.className = 'small mt-2 text-danger';
-          status.textContent = result && result.message ? result.message : 'Không thể lưu cấu hình.';
+          setFormLayoutStatus(result && result.message ? result.message : 'Không thể lưu cấu hình.', 'danger');
           return;
         }
         formLayoutConfig = nextConfig;
         var warnings = applyFormLayoutConfig();
         renderFormLayoutManager();
-        status.className = warnings.length ? 'small mt-2 text-warning' : 'small mt-2 text-success';
-        status.textContent = warnings.length
+        var message = warnings.length
           ? 'Đã lưu. Một số loại input chưa áp dụng được: ' + warnings.join(' ')
           : result.message || 'Đã lưu cấu hình.';
+        setFormLayoutStatus(message, warnings.length ? 'warning' : 'success');
       })
       .withFailureHandler(function(error) {
-        status.className = 'small mt-2 text-danger';
-        status.textContent = error && error.message ? error.message : 'Lỗi khi lưu cấu hình lên GAS.';
+        setFormLayoutStatus(error && error.message ? error.message : 'Lỗi khi lưu cấu hình lên GAS.', 'danger');
       })
       .saveFormLayoutConfig(nextConfig, currentUser);
   }
@@ -839,20 +990,17 @@
       return;
     }
     if (!currentUser.formLayoutSessionToken) {
-      document.getElementById('formLayoutStatus').className = 'small mt-2 text-warning';
-      document.getElementById('formLayoutStatus').textContent = 'Phiên đăng nhập cũ chưa có mã xác thực. Vui lòng đăng xuất rồi đăng nhập lại.';
+      setFormLayoutStatus('Phiên đăng nhập cũ chưa có mã xác thực. Vui lòng đăng xuất rồi đăng nhập lại.', 'warning');
       return;
     }
     if (!formLayoutLoaded) {
-      document.getElementById('formLayoutStatus').className = 'small mt-2 text-warning';
-      document.getElementById('formLayoutStatus').textContent = 'Cấu hình giao diện chưa tải xong từ GAS.';
+      setFormLayoutStatus('Cấu hình giao diện chưa tải xong từ GAS.', 'warning');
       return;
     }
     try {
       saveFormLayoutConfigObject(collectFormLayoutConfigFromUI());
     } catch (error) {
-      document.getElementById('formLayoutStatus').className = 'small mt-2 text-danger';
-      document.getElementById('formLayoutStatus').textContent = error.message;
+      setFormLayoutStatus(error.message, 'danger');
     }
   }
 

@@ -322,11 +322,17 @@ function saveFormLayoutConfig(config, currentUser) {
         throw new Error('Kiểu dữ liệu dùng chung không hợp lệ.');
       }
       var width = Number(preset.width);
+      var widthUnit = String(preset.widthUnit || 'percent');
       var inputType = String(preset.inputType || 'auto');
-      if (!Number.isInteger(width) || width < 1 || width > 100 || allowedInputs.indexOf(inputType) === -1) {
+      if (!['percent', 'px'].includes(widthUnit) ||
+          !Number.isFinite(width) || width < (widthUnit === 'px' ? 1 : 0.5) ||
+          width > (widthUnit === 'px' ? 2000 : 100) ||
+          (widthUnit === 'px' && !Number.isInteger(width)) ||
+          (widthUnit === 'percent' && Math.abs(width * 100 - Math.round(width * 100)) > 1e-8) ||
+          allowedInputs.indexOf(inputType) === -1) {
         throw new Error('Độ rộng hoặc loại input của kiểu ' + type + ' không hợp lệ.');
       }
-      normalized.sharedTypes[type] = { width: width, inputType: inputType };
+      normalized.sharedTypes[type] = { width: width, widthUnit: widthUnit, inputType: inputType };
     });
 
     var forms = config.forms || {};
@@ -367,6 +373,9 @@ function saveFormLayoutConfig(config, currentUser) {
         }
         var type = String(field.type || 'text');
         var width = field.width === null || field.width === '' || field.width === undefined ? null : Number(field.width);
+        var widthUnit = field.widthUnit === null || field.widthUnit === undefined || field.widthUnit === ''
+          ? (width === null ? null : 'percent')
+          : String(field.widthUnit);
         var row = field.row === null || field.row === '' || field.row === undefined ? null : Number(field.row);
         var column = field.column === null || field.column === '' || field.column === undefined ? null : Number(field.column);
         var span = field.span === null || field.span === '' || field.span === undefined ? null : Number(field.span);
@@ -375,7 +384,12 @@ function saveFormLayoutConfig(config, currentUser) {
         var inputType = field.inputType === null || field.inputType === undefined || field.inputType === '' ? null : String(field.inputType);
         var label = field.label === null || field.label === undefined ? '' : String(field.label).trim();
         if (allowedTypes.indexOf(type) === -1 ||
-            (width !== null && (!Number.isInteger(width) || width < 1 || width > 100)) ||
+            (widthUnit !== null && !['percent', 'px'].includes(widthUnit)) ||
+            (width !== null && (!['percent', 'px'].includes(widthUnit) ||
+              !Number.isFinite(width) || width < (widthUnit === 'px' ? 1 : 0.5) ||
+              width > (widthUnit === 'px' ? 2000 : 100) ||
+              (widthUnit === 'px' && !Number.isInteger(width)) ||
+              (widthUnit === 'percent' && Math.abs(width * 100 - Math.round(width * 100)) > 1e-8))) ||
             (row !== null && (!Number.isInteger(row) || row < 1 || row > 100)) ||
             (column !== null && (!Number.isInteger(column) || column < 1 || column > maxGridColumns)) ||
             (span !== null && (!Number.isInteger(span) || span < 1 || span > maxGridColumns)) ||
@@ -390,6 +404,7 @@ function saveFormLayoutConfig(config, currentUser) {
           type: type,
           useShared: field.useShared === true,
           width: width,
+          widthUnit: widthUnit,
           row: row,
           column: column,
           span: span,

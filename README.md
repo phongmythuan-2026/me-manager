@@ -6,7 +6,7 @@
 - Google Apps Script chỉ giữ backend dữ liệu/quyền và một bridge RPC tối giản để frontend GitHub gọi các hàm backend.
 - `clasp push` chỉ đồng bộ `Code.js`, `SharePoint.js`, `Backend.html` và `appsscript.json`; các file frontend được loại trừ bằng `.claspignore`.
 - Form dùng lưới `.erp-form-grid` và `data-field-type` để thống nhất kích thước trường theo loại dữ liệu; có thể ghi đè các biến `--erp-span-*` ở cấp form khi cần bố cục riêng.
-- Admin có thể dùng mục **Quản lý hệ thống** để cấu hình kiểu dữ liệu dùng chung và từng modal: số cột grid, độ rộng, hàng/cột/span, thứ tự, nhãn, trạng thái bắt buộc và loại input. Cấu hình dùng chung được lưu trong Script Properties của GAS; quyền lưu được xác thực bằng phiên đăng nhập GAS, nên cần đăng nhập lại nếu phiên hết hạn.
+- Admin có thể dùng mục **Quản lý hệ thống** với hai tab: **Chọn modal** và **Khai báo kiểu dữ liệu dùng chung**. Giá trị độ rộng ban đầu được lấy từ lưới ERP hiện tại; độ rộng có thể khai báo theo phần trăm hoặc pixel. Cấu hình modal gồm số cột grid, hàng/cột/span, thứ tự, nhãn, trạng thái bắt buộc và loại input. Cấu hình dùng chung được lưu trong Script Properties của GAS; quyền lưu được xác thực bằng phiên đăng nhập GAS, nên cần đăng nhập lại nếu phiên hết hạn.
 - Đăng ký modal để quản lý bố cục bằng `data-layout-form` và `data-layout-title` trên grid; khai báo từng trường bằng `data-field-type` hoặc `.mmtb-form-field`. `data-layout-type` chọn preset dùng chung. Thay đổi backend cần `clasp push` và cập nhật deployment Web App GAS.
 
 ## Quy trình yêu cầu và sửa chữa

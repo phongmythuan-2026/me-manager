@@ -1350,11 +1350,13 @@
   .mmtb-form-grid {
     display: grid;
     grid-template-columns: repeat(var(--layout-grid-columns, 200), minmax(0, 1fr));
-    gap: 1rem;
+    row-gap: 1rem;
+    column-gap: 0;
   }
   .mmtb-form-field {
     grid-column: span var(--mmtb-field-span, 200);
     min-width: 0;
+    padding-right: 1rem;
   }
   .mmtb-form-field > .form-label {
     display: block;
@@ -1392,12 +1394,14 @@
     --erp-span-action: 10;
     display: grid;
     grid-template-columns: repeat(var(--layout-grid-columns, 100), minmax(0, 1fr));
-    gap: 0.85rem 1rem;
+    row-gap: 0.85rem;
+    column-gap: 0;
   }
 
   .erp-form-grid > [data-field-type] {
     min-width: 0;
     grid-column: span 100;
+    padding-right: 1rem;
   }
 
   .erp-form-grid > [data-field-type="date"] { grid-column: span var(--erp-span-date); }
@@ -1553,7 +1557,37 @@
 }
 
 .form-layout-fields-table {
-  min-width: 1180px;
+  min-width: 1240px;
+}
+
+.form-layout-shared-table {
+  min-width: 600px;
+}
+
+.form-layout-tabs .nav-link {
+  font-weight: 600;
+}
+
+.form-layout-width-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 125px;
+}
+
+.form-layout-width-cell input {
+  min-width: 64px;
+}
+
+.form-layout-width-unit {
+  flex: 0 0 58px;
+  width: 58px;
+}
+
+[data-layout-position][data-layout-width-unit="px"] {
+  width: var(--layout-field-width);
+  max-width: 100%;
+  justify-self: start;
 }
 
 .swal2-container {
@@ -1935,11 +1969,13 @@ body {
 .mmtb-form-grid {
   display: grid;
   grid-template-columns: repeat(var(--layout-grid-columns, 200), minmax(0, 1fr));
-  gap: 1rem;
+  row-gap: 1rem;
+  column-gap: 0;
 }
 .mmtb-form-field {
   grid-column: span var(--mmtb-field-span, 200);
   min-width: 0;
+  padding-right: 1rem;
 }
 .mmtb-form-field > .form-label {
   display: block;

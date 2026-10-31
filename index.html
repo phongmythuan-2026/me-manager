@@ -14,7 +14,7 @@
   <!-- SweetAlert2 -->
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-  <link href="./assets/css/style.css?v=20261031-system-form-layout-v5" rel="stylesheet">
+  <link href="./assets/css/style.css?v=20261031-system-form-layout-v6" rel="stylesheet">
 </head>
 <body onclick="hideContextMenu()">
 
@@ -575,42 +575,62 @@
           <div class="card border-0 shadow-sm mb-3">
             <div class="card-body">
               <h5 class="fw-bold text-secondary mb-2"><i class="fa-solid fa-sliders me-2"></i>Cấu hình giao diện biểu mẫu</h5>
-              <p class="small text-muted mb-0">Cấu hình được lưu trên GAS và dùng chung toàn hệ thống. Có thể đặt kiểu/độ rộng dùng chung, hoặc ghi đè từng trường theo modal.</p>
+              <p class="small text-muted mb-0">Thông số mặc định lấy từ bố cục ERP đang dùng. Cấu hình lưu trên GAS và dùng chung; chia thành hai tab để chọn modal hoặc khai báo kiểu dữ liệu dùng chung.</p>
             </div>
           </div>
-          <div class="card border-0 shadow-sm mb-3">
-            <div class="card-header bg-white"><h6 class="fw-bold mb-0">Kiểu dữ liệu dùng chung</h6></div>
-            <div class="table-responsive">
-              <table class="table table-sm table-hover align-middle mb-0">
-                <thead class="table-light"><tr><th>Kiểu trường</th><th style="width: 130px;">Độ rộng (%)</th><th style="width: 190px;">Loại input mặc định</th></tr></thead>
-                <tbody id="formLayoutSharedTypesBody"></tbody>
-              </table>
+          <ul class="nav nav-tabs form-layout-tabs" role="tablist">
+            <li class="nav-item" role="presentation">
+              <button class="nav-link active" id="formLayoutModalTab" data-bs-toggle="tab" data-bs-target="#formLayoutModalPane" type="button" role="tab" aria-controls="formLayoutModalPane" aria-selected="true">Chọn modal</button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="formLayoutSharedTab" data-bs-toggle="tab" data-bs-target="#formLayoutSharedPane" type="button" role="tab" aria-controls="formLayoutSharedPane" aria-selected="false">Khai báo kiểu dữ liệu dùng chung</button>
+            </li>
+          </ul>
+          <div class="tab-content pt-3">
+            <div class="tab-pane fade show active" id="formLayoutModalPane" role="tabpanel" aria-labelledby="formLayoutModalTab">
+              <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                  <div class="row g-2 align-items-end mb-3">
+                    <div class="col-12 col-md-4">
+                      <label class="form-label fw-bold small" for="formLayoutFormSelect">Chọn modal</label>
+                      <select id="formLayoutFormSelect" class="form-select form-select-sm" onchange="renderFormLayoutFields()"></select>
+                    </div>
+                    <div class="col-6 col-md-2">
+                      <label class="form-label fw-bold small" for="formLayoutGridColumns">Số cột grid</label>
+                      <input id="formLayoutGridColumns" type="number" class="form-control form-control-sm" min="1" max="24" placeholder="Mặc định" oninput="updateFormLayoutGridColumnLimits()">
+                    </div>
+                    <div class="col-6 col-md-6 d-flex justify-content-md-end gap-2">
+                      <button type="button" class="btn btn-outline-secondary btn-sm" onclick="resetFormLayoutConfig()"><i class="fa-solid fa-rotate-left me-1"></i>Khôi phục mặc định</button>
+                      <button type="button" class="btn btn-primary btn-sm" onclick="saveFormLayoutConfigFromUI()"><i class="fa-solid fa-floppy-disk me-1"></i>Lưu cấu hình</button>
+                    </div>
+                  </div>
+                  <p class="small text-muted">Thông số mặc định lấy từ bố cục ERP hiện tại. Độ rộng chọn theo % hoặc px; Span ghi đè độ rộng %, còn khi dùng px thì Span chỉ giữ vị trí lưới. Hàng/Cột để trống thì lưới tự sắp xếp.</p>
+                  <div class="table-responsive">
+                    <table class="table table-sm table-hover align-middle mb-0 form-layout-fields-table">
+                      <thead class="table-light"><tr><th>Trường</th><th>Kiểu dùng chung</th><th class="text-center">Dùng chung</th><th>Độ rộng</th><th>Hàng</th><th>Cột</th><th>Span</th><th>Thứ tự</th><th>Nhãn tùy chỉnh</th><th>Bắt buộc</th><th>Input</th></tr></thead>
+                      <tbody id="formLayoutFieldsBody"></tbody>
+                    </table>
+                  </div>
+                  <div id="formLayoutStatus" class="small mt-2" role="status" aria-live="polite"></div>
+                </div>
+              </div>
             </div>
-          </div>
-          <div class="card border-0 shadow-sm">
-            <div class="card-body">
-              <div class="row g-2 align-items-end mb-3">
-                <div class="col-12 col-md-4">
-                  <label class="form-label fw-bold small" for="formLayoutFormSelect">Chọn modal</label>
-                  <select id="formLayoutFormSelect" class="form-select form-select-sm" onchange="renderFormLayoutFields()"></select>
-                </div>
-                <div class="col-6 col-md-2">
-                  <label class="form-label fw-bold small" for="formLayoutGridColumns">Số cột grid</label>
-                  <input id="formLayoutGridColumns" type="number" class="form-control form-control-sm" min="1" max="24" placeholder="Mặc định" oninput="updateFormLayoutGridColumnLimits()">
-                </div>
-                <div class="col-6 col-md-6 d-flex justify-content-md-end gap-2">
-                  <button type="button" class="btn btn-outline-secondary btn-sm" onclick="resetFormLayoutConfig()"><i class="fa-solid fa-rotate-left me-1"></i>Khôi phục mặc định</button>
+            <div class="tab-pane fade" id="formLayoutSharedPane" role="tabpanel" aria-labelledby="formLayoutSharedTab">
+              <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                  <h6 class="fw-bold mb-0">Khai báo kiểu dữ liệu dùng chung</h6>
                   <button type="button" class="btn btn-primary btn-sm" onclick="saveFormLayoutConfigFromUI()"><i class="fa-solid fa-floppy-disk me-1"></i>Lưu cấu hình</button>
                 </div>
+                <div class="table-responsive">
+                  <table class="table table-sm table-hover align-middle mb-0 form-layout-shared-table">
+                    <thead class="table-light"><tr><th>Kiểu trường</th><th>Độ rộng mặc định</th><th>Loại input mặc định</th></tr></thead>
+                    <tbody id="formLayoutSharedTypesBody"></tbody>
+                  </table>
+                </div>
+                <div class="card-body pt-2">
+                  <div id="formLayoutSharedStatus" class="small" role="status" aria-live="polite"></div>
+                </div>
               </div>
-              <p class="small text-muted">Số cột đặt cho modal; để trống để giữ lưới mặc định. Rộng % và Span điều chỉnh kích thước (Span được ưu tiên nếu nhập cả hai); Hàng/Cột đặt vị trí cố định, để trống thì lưới tự sắp xếp. Trên màn hình nhỏ các trường tự chuyển về một hoặc hai cột.</p>
-              <div class="table-responsive">
-                <table class="table table-sm table-hover align-middle mb-0 form-layout-fields-table">
-                  <thead class="table-light"><tr><th>Trường</th><th>Kiểu dùng chung</th><th class="text-center">Dùng chung</th><th>Rộng %</th><th>Hàng</th><th>Cột</th><th>Span</th><th>Thứ tự</th><th>Nhãn tùy chỉnh</th><th>Bắt buộc</th><th>Input</th></tr></thead>
-                  <tbody id="formLayoutFieldsBody"></tbody>
-                </table>
-              </div>
-              <div id="formLayoutStatus" class="small mt-2" role="status" aria-live="polite"></div>
             </div>
           </div>
         </div>
@@ -1243,6 +1263,6 @@
 
   <script src="./assets/js/api.js?v=fdb2455"></script>
   <script src="./assets/js/app.js?v=fdb2455"></script>
-  <script src="./assets/js/frontend.js?v=20261031-system-form-layout-v5"></script>
+  <script src="./assets/js/frontend.js?v=20261031-system-form-layout-v6"></script>
 </body>
 </html>

@@ -909,6 +909,7 @@ function saveRepairLog(data, currentUser) {
         if (!existing) throw new Error('Không tìm thấy nhật ký sửa chữa #' + logId + '.');
       }
       var requestId = String(data.maYeuCau || '').trim();
+      var shouldAutoAcceptRequest = false;
       var fromTime = String(data.tuGio || '').trim().replace('T', ' ');
       var toTime = String(data.denGio || '').trim().replace('T', ' ');
       if (!/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}/.test(fromTime) ||
@@ -928,7 +929,13 @@ function saveRepairLog(data, currentUser) {
         if (!requestEntry) throw new Error('Mã yêu cầu không tồn tại.');
         var requestStatusIndex = inventoryColumnIndex(requestEntry.headers, ['Trạng thái']);
         var requestStatus = requestStatusIndex === -1 ? '' : String(requestEntry.values[requestStatusIndex]).trim();
-        if (!existing && requestStatus !== 'Đã tiếp nhận' && requestStatus !== 'Đang thực hiện' && requestStatus !== 'Chờ thực hiện') {
+        var requestMachineIndex = inventoryColumnIndex(requestEntry.headers, ['Máy móc/thiết bị']);
+        if (requestMachineIndex !== -1 &&
+            String(requestEntry.values[requestMachineIndex]).trim() !== String(data.mmtb).trim()) {
+          throw new Error('Máy móc/thiết bị trong nhật ký phải khớp với phiếu yêu cầu.');
+        }
+        shouldAutoAcceptRequest = !existing && (requestStatus === 'Chờ tiếp nhận' || requestStatus === 'Chờ thực hiện');
+        if (!existing && !shouldAutoAcceptRequest && requestStatus !== 'Đã tiếp nhận' && requestStatus !== 'Đang thực hiện') {
           throw new Error('Chỉ tạo nhật ký cho yêu cầu đã tiếp nhận.');
         }
         if (existing && String(existing.values[requestIndex]).trim() !== requestId) {
@@ -1030,11 +1037,15 @@ function saveRepairLog(data, currentUser) {
         stockSheet.deleteRow(item.row);
       });
       if (requestId) {
-        var linkedLogs = logRows.filter(function(log) { return String(log[requestIndex]).trim() === requestId; });
-        var requestStatus = linkedLogs.length && linkedLogs.every(function(log) {
-          return String(log[statusIndex]).trim() === 'Đã thực hiện';
-        }) ? 'Đã thực hiện' : 'Đang thực hiện';
-        setYeuCauStatus(requestId, requestStatus);
+        if (shouldAutoAcceptRequest) {
+          setYeuCauStatus(requestId, 'Đã tiếp nhận');
+        } else {
+          var linkedLogs = logRows.filter(function(log) { return String(log[requestIndex]).trim() === requestId; });
+          var nextRequestStatus = linkedLogs.length && linkedLogs.every(function(log) {
+            return String(log[statusIndex]).trim() === 'Đã thực hiện';
+          }) ? 'Đã thực hiện' : 'Đang thực hiện';
+          setYeuCauStatus(requestId, nextRequestStatus);
+        }
       }
       return { success: true, message: (existing ? 'Đã cập nhật' : 'Đã tạo') + ' nhật ký sửa chữa #' + logId + '.', id: logId };
     } catch (error) {

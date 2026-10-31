@@ -1274,6 +1274,10 @@
     background: #f1f5f9;
     outline: 0;
   }
+  .searchable-select-option:disabled {
+    color: #94a3b8;
+    cursor: not-allowed;
+  }
   .searchable-select-empty {
     padding: 0.65rem 0.75rem;
     color: #64748b;

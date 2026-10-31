@@ -1282,13 +1282,27 @@
   var maximumUploadFileSize = 25 * 1024 * 1024;
 
   function getFileCountElement(inputId) {
-    return document.getElementById(inputId === 'statusFileInput' ? 'selectedFileCountStatus' : 'selectedFileCountYC');
+    var countIds = {
+      statusFileInput: 'selectedFileCountStatus',
+      repairFileInput: 'selectedFileCountRepair',
+      mmtbFileInput: 'selectedFileCountMMTB'
+    };
+    return document.getElementById(countIds[inputId] || 'selectedFileCountYC');
+  }
+
+  function getExistingFilesElement(inputId) {
+    var existingIds = {
+      statusFileInput: 'existingFilesStatus',
+      repairFileInput: 'repairExistingFiles',
+      mmtbFileInput: 'existingFilesMMTB'
+    };
+    return document.getElementById(existingIds[inputId] || 'existingFilesYC');
   }
 
   function renderSelectedFilePreview(input, areaId, textId) {
     var area = document.getElementById(areaId);
     var text = document.getElementById(textId);
-    var existing = document.getElementById(input.id === 'statusFileInput' ? 'existingFilesStatus' : 'existingFilesYC');
+    var existing = getExistingFilesElement(input.id);
     var files = selectedFilesByInput[input.id] || [];
     var count = getFileCountElement(input.id);
 
@@ -1394,7 +1408,7 @@
     var input = document.getElementById(inputId);
     if (input) input.value = '';
     selectedFilesByInput[inputId] = [];
-    var existing = document.getElementById(inputId === 'statusFileInput' ? 'existingFilesStatus' : 'existingFilesYC');
+    var existing = getExistingFilesElement(inputId);
     if (existing) existing.innerHTML = '';
     renderSelectedFilePreview(input, areaId, textId);
   }
@@ -2066,17 +2080,7 @@
       });
       if (Array.from(repairMachine.options).some(function(option) { return option.value === previousRepairMachine; })) repairMachine.value = previousRepairMachine;
     }
-    var repairRequest = document.getElementById('repairRequest');
-    if (repairRequest) {
-      var previousRepairRequest = repairRequest.value;
-      repairRequest.innerHTML = '<option value="">-- Thực hiện không qua yêu cầu --</option>';
-      appData.yeuCau.filter(function(request) {
-        return ['Đã tiếp nhận', 'Đang thực hiện'].indexOf(String(request['Trạng thái']).trim()) !== -1;
-      }).forEach(function(request) {
-        repairRequest.appendChild(new Option('#' + request['ID'] + ' · ' + (request['Mô tả yêu cầu'] || ''), request['ID']));
-      });
-      if (Array.from(repairRequest.options).some(function(option) { return option.value === previousRepairRequest; })) repairRequest.value = previousRepairRequest;
-    }
+    populateRepairRequestOptions();
     var stockMachine = document.getElementById('stockReceiptMachine');
     if (stockMachine) {
       var previousStockMachine = stockMachine.value;
@@ -2123,6 +2127,61 @@
     ].forEach(function(id) {
       enhanceSearchableSelect(document.getElementById(id));
     });
+    syncAllSearchableSelects();
+  }
+
+  function findRepairRequest(id) {
+    return (appData.yeuCau || []).find(function(request) {
+      return normalizeRecordId(request['ID']) === normalizeRecordId(id);
+    }) || null;
+  }
+
+  function populateRepairRequestOptions(selectedRequestId) {
+    var repairMachine = document.getElementById('repairMachine');
+    var repairRequest = document.getElementById('repairRequest');
+    if (!repairMachine || !repairRequest) return;
+
+    var machineId = String(repairMachine.value || '').trim();
+    var requestId = selectedRequestId || repairRequest.value;
+    var selectedRequest = findRepairRequest(requestId);
+    repairRequest.innerHTML = '<option value="">-- Thực hiện không qua yêu cầu --</option>';
+    (appData.yeuCau || []).forEach(function(request) {
+      var requestMachine = String(request['Máy móc/thiết bị'] || '').trim();
+      if (machineId && requestMachine !== machineId) return;
+
+      var status = String(request['Trạng thái'] || '').trim();
+      var canCreateRepairLog = ['Chờ tiếp nhận', 'Chờ thực hiện', 'Đã tiếp nhận', 'Đang thực hiện'].indexOf(status) !== -1;
+      var description = String(request['Mô tả yêu cầu'] || '').trim();
+      var label = '#' + request['ID'] + (description ? ' · ' + description : '');
+      label += ' · ' + (status || 'Chưa rõ trạng thái');
+      var option = new Option(label, request['ID']);
+      option.disabled = !canCreateRepairLog;
+      repairRequest.appendChild(option);
+    });
+
+    if (selectedRequest && (!machineId || String(selectedRequest['Máy móc/thiết bị'] || '').trim() === machineId)) {
+      repairRequest.value = selectedRequest['ID'];
+    }
+    if (repairRequest.syncSearchableValue) repairRequest.syncSearchableValue();
+  }
+
+  function handleRepairMachineChange() {
+    var repairMachine = document.getElementById('repairMachine');
+    var repairRequest = document.getElementById('repairRequest');
+    var selectedRequest = findRepairRequest(repairRequest.value);
+    var selectedRequestId = selectedRequest &&
+      String(selectedRequest['Máy móc/thiết bị'] || '').trim() === String(repairMachine.value || '').trim()
+      ? selectedRequest['ID'] : '';
+    populateRepairRequestOptions(selectedRequestId);
+  }
+
+  function handleRepairRequestChange() {
+    var repairRequest = document.getElementById('repairRequest');
+    var selectedRequest = findRepairRequest(repairRequest.value);
+    if (selectedRequest) {
+      document.getElementById('repairMachine').value = selectedRequest['Máy móc/thiết bị'] || '';
+    }
+    populateRepairRequestOptions(selectedRequest ? selectedRequest['ID'] : '');
     syncAllSearchableSelects();
   }
 
@@ -2276,11 +2335,13 @@
           var button = document.createElement('button');
           button.type = 'button';
           button.className = 'searchable-select-option';
+          button.disabled = option.disabled;
           button.setAttribute('role', 'option');
           button.setAttribute('aria-selected', option.value === select.value ? 'true' : 'false');
           button.textContent = option.textContent;
           button.addEventListener('mousedown', function(event) { event.preventDefault(); });
           button.addEventListener('click', function() {
+            if (option.disabled) return;
             select.value = option.value;
             syncValue();
             closeOptions();
@@ -3229,6 +3290,7 @@
         document.getElementById('repairMachine').value = requestItem['Máy móc/thiết bị'] || '';
       }
     }
+    populateRepairRequestOptions(requestItem ? requestItem['ID'] : document.getElementById('repairRequest').value);
     document.getElementById('repairLogTitle').textContent = mode === 'ADD' ? 'Tạo nhật ký sửa chữa'
       : mode === 'COPY' ? 'Sao chép nhật ký #' + id
         : mode === 'EDIT' ? 'Sửa nhật ký #' + id : 'Nhật ký sửa chữa #' + id;
@@ -4745,6 +4807,7 @@
     hideContextMenu();
     var form = document.querySelector('#modalYC form');
     form.reset();
+    filterMMTBByKhuVucModal();
     document.getElementById('ycId').value = (mode === 'EDIT' || mode === 'VIEW') ? id : '';
     resetFileSelection('ycFileInput', 'filePreviewAreaYC', 'fileInfoTextYC');
     document.getElementById('ycCurrentFileUrl').value = '';
@@ -4964,6 +5027,7 @@
   function filterMMTBByKhuVucModal() {
     var selectedKV = document.getElementById('ycKhuVuc').value;
     var mmtbSelect = document.getElementById('ycMMTB');
+    var previousMachine = mmtbSelect.value;
     mmtbSelect.innerHTML = '<option value="">-- Chọn Máy móc/Thiết bị --</option>';
 
     var filtered = appData.mmtb.filter(function(m) {
@@ -4976,7 +5040,23 @@
     filtered.forEach(function(m) {
       mmtbSelect.innerHTML += '<option value="' + m['Mã'] + '">' + m['Mã'] + ' - ' + m['Tên'] + '</option>';
     });
+    if (filtered.some(function(machine) { return String(machine['Mã']) === String(previousMachine); })) {
+      mmtbSelect.value = previousMachine;
+    }
     syncAllSearchableSelects();
+  }
+
+  function handleYeuCauMachineChange() {
+    var machineId = document.getElementById('ycMMTB').value;
+    var machine = appData.mmtb.find(function(item) {
+      return String(item['Mã']) === String(machineId);
+    });
+    var areaSelect = document.getElementById('ycKhuVuc');
+    var machineArea = String(machine && machine['Khu vực'] || '').trim();
+    var hasMachineArea = machineArea && machineArea !== 'Tất cả' &&
+      Array.from(areaSelect.options).some(function(option) { return option.value === machineArea; });
+    areaSelect.value = hasMachineArea ? machineArea : '';
+    filterMMTBByKhuVucModal();
   }
 
   function handleSaveYeuCau(e) {
@@ -5603,9 +5683,14 @@
     document.getElementById('mmtbCurrentFileUrl').value = machine ? (machine['Hình ảnh'] || '') : '';
     document.getElementById('filePreviewAreaMMTB').classList.add('d-none');
     document.getElementById('fileInfoTextMMTB').textContent = '';
-    document.getElementById('existingFilesMMTB').textContent = machine && machine['Hình ảnh']
-      ? 'Đang có ' + String(machine['Hình ảnh']).split(' | ').filter(Boolean).length + ' tệp ảnh; tệp hiện có sẽ được giữ khi lưu.'
+    document.getElementById('existingFilesMMTB').innerHTML = machine && machine['Hình ảnh']
+      ? '<strong>File đã lưu:</strong> ' + formatMultiLinks(machine['Hình ảnh'], 'Tệp')
       : '';
+    renderSelectedFilePreview(
+      document.getElementById('mmtbFileInput'),
+      'filePreviewAreaMMTB',
+      'fileInfoTextMMTB'
+    );
 
     if (machine) {
       var fieldValues = {

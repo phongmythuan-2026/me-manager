@@ -678,7 +678,7 @@
                 </div>
                 <div data-field-type="machine">
                   <label class="form-label fw-bold small" for="ycMMTB">Máy móc / Thiết bị</label>
-                  <select id="ycMMTB" class="form-select" required></select>
+                  <select id="ycMMTB" class="form-select" onchange="handleYeuCauMachineChange()" required></select>
                 </div>
                 <div data-field-type="textarea">
                   <label class="form-label fw-bold small" for="ycMoTa">Mô tả sự cố / yêu cầu</label>
@@ -701,7 +701,7 @@
                       <input type="file" id="ycFileInput" class="visually-hidden" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx" onchange="previewSelectedFiles(this, 'filePreviewAreaYC', 'fileInfoTextYC')">
                     </label>
                     <div id="filePreviewAreaYC" class="upload-preview mt-2 d-none">
-                      <div id="existingFilesYC"></div>
+                      <div id="existingFilesYC" class="upload-existing-files"></div>
                       <div id="fileInfoTextYC"></div>
                     </div>
                   </div>
@@ -896,12 +896,20 @@
                 <textarea id="mmtbThongSoKT" class="form-control" rows="3"></textarea>
               </div>
               <div class="mmtb-form-field mmtb-form-field-full" data-layout-type="file">
-                <label class="form-label fw-bold small">Hình ảnh MMTB (Nhiều file)</label>
-                <input type="file" id="mmtbFileInput" class="form-control" multiple accept="image/*" onchange="previewSelectedFiles(this, 'filePreviewAreaMMTB', 'fileInfoTextMMTB')">
-                <div id="filePreviewAreaMMTB" class="mt-2 d-none p-2 bg-light border rounded small">
-                  <span id="fileInfoTextMMTB"></span>
+                <div class="upload-heading">
+                  <label class="form-label fw-bold small mb-0" for="mmtbFileInput">Hình ảnh / File MMTB</label>
+                  <span id="selectedFileCountMMTB" class="small text-muted">0 tệp đã chọn</span>
                 </div>
-                <div id="existingFilesMMTB" class="form-text"></div>
+                <label id="mmtbFileDropzone" class="upload-dropzone" for="mmtbFileInput" ondragover="handleFileDragOver(event)" ondragleave="handleFileDragLeave(event)" ondrop="handleFileDrop(event, 'mmtbFileInput', 'filePreviewAreaMMTB', 'fileInfoTextMMTB')">
+                  <span class="upload-icon"><i class="fa-solid fa-cloud-arrow-up"></i></span>
+                  <span><strong>Nhấn để chọn tệp</strong> hoặc kéo thả vào đây</span>
+                  <small>Ảnh, PDF, Word, Excel; tối đa 25 MB mỗi tệp</small>
+                  <input type="file" id="mmtbFileInput" class="visually-hidden" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx" onchange="previewSelectedFiles(this, 'filePreviewAreaMMTB', 'fileInfoTextMMTB')">
+                </label>
+                <div id="filePreviewAreaMMTB" class="upload-preview mt-2 d-none">
+                  <div id="existingFilesMMTB" class="upload-existing-files"></div>
+                  <div id="fileInfoTextMMTB"></div>
+                </div>
               </div>
             </div>
             </div>
@@ -1170,8 +1178,8 @@
               <div data-field-type="datetime"><label class="form-label fw-bold small" for="repairFrom">Từ giờ</label><input id="repairFrom" type="datetime-local" class="form-control" required></div>
               <div data-field-type="datetime"><label class="form-label fw-bold small" for="repairTo">Đến giờ</label><input id="repairTo" type="datetime-local" class="form-control" required></div>
               <div data-field-type="work-type"><label class="form-label fw-bold small" for="repairType">Loại công việc</label><select id="repairType" class="form-select" required></select><div id="repairTypeInheritedHint" class="form-text d-none">Tự động lấy từ phiếu yêu cầu.</div></div>
-              <div data-field-type="machine" data-layout-base-row="2"><label class="form-label fw-bold small" for="repairMachine">Máy móc/thiết bị</label><select id="repairMachine" class="form-select" required></select><div id="repairMachineInheritedHint" class="form-text d-none">Tự động lấy từ phiếu yêu cầu.</div></div>
-              <div data-field-type="reference" data-layout-base-row="2"><label class="form-label fw-bold small" for="repairRequest">Mã yêu cầu (không bắt buộc)</label><select id="repairRequest" class="form-select"><option value="">-- Thực hiện không qua yêu cầu --</option></select></div>
+              <div data-field-type="machine" data-layout-base-row="2"><label class="form-label fw-bold small" for="repairMachine">Máy móc/thiết bị</label><select id="repairMachine" class="form-select" onchange="handleRepairMachineChange()" required></select><div id="repairMachineInheritedHint" class="form-text d-none">Tự động lấy từ phiếu yêu cầu.</div></div>
+              <div data-field-type="reference" data-layout-base-row="2"><label class="form-label fw-bold small" for="repairRequest">Mã yêu cầu (không bắt buộc)</label><select id="repairRequest" class="form-select" onchange="handleRepairRequestChange()"><option value="">-- Thực hiện không qua yêu cầu --</option></select><div class="form-text">Chọn yêu cầu để tự điền máy; yêu cầu chưa tiếp nhận sẽ được tiếp nhận khi lưu nhật ký.</div></div>
               <div data-field-type="textarea">
                 <label class="form-label fw-bold small" for="repairWork">Công việc thực hiện</label>
                 <textarea id="repairWork" class="form-control" rows="3" required></textarea>
@@ -1184,9 +1192,17 @@
                 <div id="repairMaterialsList"></div>
               </div>
               <div data-field-type="file">
-                <label class="form-label fw-bold small" for="repairFileInput">Hình ảnh thực hiện</label>
-                <input id="repairFileInput" type="file" class="form-control" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx" onchange="previewSelectedFiles(this, 'repairFilePreview', 'repairFileInfo')">
-                <div id="repairFilePreview" class="upload-preview mt-2 d-none"><div id="repairExistingFiles"></div><div id="repairFileInfo"></div></div>
+                <div class="upload-heading">
+                  <label class="form-label fw-bold small mb-0" for="repairFileInput">Hình ảnh / File thực hiện</label>
+                  <span id="selectedFileCountRepair" class="small text-muted">0 tệp đã chọn</span>
+                </div>
+                <label id="repairFileDropzone" class="upload-dropzone" for="repairFileInput" ondragover="handleFileDragOver(event)" ondragleave="handleFileDragLeave(event)" ondrop="handleFileDrop(event, 'repairFileInput', 'repairFilePreview', 'repairFileInfo')">
+                  <span class="upload-icon"><i class="fa-solid fa-cloud-arrow-up"></i></span>
+                  <span><strong>Nhấn để chọn tệp</strong> hoặc kéo thả vào đây</span>
+                  <small>Ảnh, PDF, Word, Excel; tối đa 25 MB mỗi tệp</small>
+                  <input id="repairFileInput" type="file" class="visually-hidden" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx" onchange="previewSelectedFiles(this, 'repairFilePreview', 'repairFileInfo')">
+                </label>
+                <div id="repairFilePreview" class="upload-preview mt-2 d-none"><div id="repairExistingFiles" class="upload-existing-files"></div><div id="repairFileInfo"></div></div>
               </div>
             </div>
           </div>

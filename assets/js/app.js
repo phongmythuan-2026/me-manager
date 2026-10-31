@@ -4,9 +4,24 @@
   var nonce = '';
   var backendWindow = null;
   var backendOrigin = '';
+  var backendFrame = null;
+  var backendReadyTimeout = null;
+  var backendConnectionAttempts = 0;
+  var maxBackendConnectionAttempts = 3;
   var requestSequence = 0;
   var pendingRequests = Object.create(null);
   var requestQueue = [];
+
+  function loadBackendBridge() {
+    if (backendWindow || backendConnectionAttempts >= maxBackendConnectionAttempts) return;
+    backendConnectionAttempts++;
+    if (backendReadyTimeout) window.clearTimeout(backendReadyTimeout);
+    backendFrame.src = API_CONFIG.GAS_API_URL + '?bridge=1&nonce=' + encodeURIComponent(nonce) +
+      '&attempt=' + backendConnectionAttempts;
+    backendReadyTimeout = window.setTimeout(function() {
+      if (!backendWindow && backendConnectionAttempts < maxBackendConnectionAttempts) loadBackendBridge();
+    }, 8000);
+  }
 
   function finishRequest(id, success, value, userObject, handlers) {
     var pending = pendingRequests[id];
@@ -75,6 +90,10 @@
       if (!/^(script\.google\.com|script\.googleusercontent\.com|[a-z0-9-]+-script\.googleusercontent\.com)$/.test(new URL(event.origin).hostname)) return;
       backendWindow = event.source;
       backendOrigin = event.origin;
+      if (backendReadyTimeout) {
+        window.clearTimeout(backendReadyTimeout);
+        backendReadyTimeout = null;
+      }
       requestQueue.splice(0).forEach(function(request) {
         backendWindow.postMessage(request.message, backendOrigin);
       });
@@ -90,11 +109,11 @@
   else for (var i = 0; i < randomBytes.length; i++) randomBytes[i] = Math.floor(Math.random() * 256);
   nonce = Array.from(randomBytes).map(function(byte) { return byte.toString(16).padStart(2, '0'); }).join('');
 
-  var backendFrame = document.createElement('iframe');
+  backendFrame = document.createElement('iframe');
   backendFrame.title = 'ME Manager backend connection';
   backendFrame.setAttribute('aria-hidden', 'true');
   backendFrame.tabIndex = -1;
-  backendFrame.style.cssText = 'position:fixed;width:1px;height:1px;left:-10px;bottom:-10px;border:0;visibility:hidden;';
-  backendFrame.src = API_CONFIG.GAS_API_URL + '?bridge=1&nonce=' + encodeURIComponent(nonce);
+  backendFrame.style.cssText = 'position:fixed;width:2px;height:2px;left:0;top:0;border:0;opacity:0;pointer-events:none;z-index:-1;';
   document.body.appendChild(backendFrame);
+  loadBackendBridge();
 })();

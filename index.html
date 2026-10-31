@@ -694,9 +694,8 @@
                       <label class="form-label fw-bold small mb-0" for="ycFileInput">Đính kèm Ảnh / File</label>
                       <span id="selectedFileCountYC" class="small text-muted">0 tệp đã chọn</span>
                     </div>
-                    <label id="ycFileDropzone" class="upload-dropzone" for="ycFileInput" ondragover="handleFileDragOver(event)" ondragleave="handleFileDragLeave(event)" ondrop="handleFileDrop(event, 'ycFileInput', 'filePreviewAreaYC', 'fileInfoTextYC')">
-                      <span class="upload-icon"><i class="fa-solid fa-cloud-arrow-up"></i></span>
-                      <span><strong>Nhấn để chọn tệp</strong> hoặc kéo thả vào đây</span>
+                    <label id="ycFileDropzone" class="upload-icon-button" for="ycFileInput" title="Chọn ảnh hoặc tệp đính kèm" aria-label="Chọn ảnh hoặc tệp đính kèm">
+                      <i class="fa-solid fa-paperclip" aria-hidden="true"></i>
                       <input type="file" id="ycFileInput" class="visually-hidden" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx" onchange="previewSelectedFiles(this, 'filePreviewAreaYC', 'fileInfoTextYC')">
                     </label>
                     <div id="filePreviewAreaYC" class="upload-preview mt-2 d-none">
@@ -899,9 +898,8 @@
                   <label class="form-label fw-bold small mb-0" for="mmtbFileInput">Hình ảnh / File MMTB</label>
                   <span id="selectedFileCountMMTB" class="small text-muted">0 tệp đã chọn</span>
                 </div>
-                <label id="mmtbFileDropzone" class="upload-dropzone" for="mmtbFileInput" ondragover="handleFileDragOver(event)" ondragleave="handleFileDragLeave(event)" ondrop="handleFileDrop(event, 'mmtbFileInput', 'filePreviewAreaMMTB', 'fileInfoTextMMTB')">
-                  <span class="upload-icon"><i class="fa-solid fa-cloud-arrow-up"></i></span>
-                  <span><strong>Nhấn để chọn tệp</strong> hoặc kéo thả vào đây</span>
+                <label id="mmtbFileDropzone" class="upload-icon-button" for="mmtbFileInput" title="Chọn ảnh hoặc tệp đính kèm" aria-label="Chọn ảnh hoặc tệp đính kèm">
+                  <i class="fa-solid fa-paperclip" aria-hidden="true"></i>
                   <input type="file" id="mmtbFileInput" class="visually-hidden" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx" onchange="previewSelectedFiles(this, 'filePreviewAreaMMTB', 'fileInfoTextMMTB')">
                 </label>
                 <div id="filePreviewAreaMMTB" class="upload-preview mt-2 d-none">
@@ -1193,9 +1191,8 @@
                   <label class="form-label fw-bold small mb-0" for="repairFileInput">Hình ảnh / File thực hiện</label>
                   <span id="selectedFileCountRepair" class="small text-muted">0 tệp đã chọn</span>
                 </div>
-                <label id="repairFileDropzone" class="upload-dropzone" for="repairFileInput" ondragover="handleFileDragOver(event)" ondragleave="handleFileDragLeave(event)" ondrop="handleFileDrop(event, 'repairFileInput', 'repairFilePreview', 'repairFileInfo')">
-                  <span class="upload-icon"><i class="fa-solid fa-cloud-arrow-up"></i></span>
-                  <span><strong>Nhấn để chọn tệp</strong> hoặc kéo thả vào đây</span>
+                <label id="repairFileDropzone" class="upload-icon-button" for="repairFileInput" title="Chọn ảnh hoặc tệp đính kèm" aria-label="Chọn ảnh hoặc tệp đính kèm">
+                  <i class="fa-solid fa-paperclip" aria-hidden="true"></i>
                   <input id="repairFileInput" type="file" class="visually-hidden" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx" onchange="previewSelectedFiles(this, 'repairFilePreview', 'repairFileInfo')">
                 </label>
                 <div id="repairFilePreview" class="upload-preview mt-2 d-none"><div id="repairExistingFiles" class="upload-existing-files"></div><div id="repairFileInfo"></div></div>

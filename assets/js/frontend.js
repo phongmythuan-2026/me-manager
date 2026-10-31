@@ -1279,6 +1279,7 @@
   // MULTI FILE UPLOAD PREVIEW
   // ----------------------------------------------------
   var selectedFilesByInput = {};
+  var selectedFilePreviewUrls = {};
   var maximumUploadFileSize = 25 * 1024 * 1024;
 
   function getFileCountElement(inputId) {
@@ -1306,27 +1307,41 @@
     var files = selectedFilesByInput[input.id] || [];
     var count = getFileCountElement(input.id);
 
+    (selectedFilePreviewUrls[input.id] || []).forEach(function(url) { URL.revokeObjectURL(url); });
+    selectedFilePreviewUrls[input.id] = [];
     text.innerHTML = '';
     if (files.length) {
-      var heading = document.createElement('strong');
-      heading.textContent = 'File mới';
-      text.appendChild(heading);
       var list = document.createElement('div');
       list.className = 'upload-preview-list';
       files.forEach(function(file, index) {
         var row = document.createElement('div');
         row.className = 'upload-file-item';
+        var thumb = document.createElement('span');
+        thumb.className = 'upload-file-thumb';
+        if (file.type && file.type.indexOf('image/') === 0) {
+          var image = document.createElement('img');
+          var previewUrl = URL.createObjectURL(file);
+          selectedFilePreviewUrls[input.id].push(previewUrl);
+          image.src = previewUrl;
+          image.alt = '';
+          thumb.appendChild(image);
+        } else {
+          var icon = document.createElement('i');
+          icon.className = 'fa-solid ' + getAttachmentIconClass(file.name, file.type);
+          thumb.appendChild(icon);
+        }
         var name = document.createElement('span');
         name.className = 'upload-file-name';
-        name.textContent = (index + 1) + '. ' + file.name + ' (' + (file.size / 1024 / 1024).toFixed(2) + ' MB)';
+        name.textContent = file.name;
+        name.title = file.name + ' (' + (file.size / 1024 / 1024).toFixed(2) + ' MB)';
         var remove = document.createElement('button');
         remove.type = 'button';
-        remove.className = 'btn btn-sm btn-outline-secondary flex-shrink-0';
+        remove.className = 'upload-file-remove';
         remove.title = 'Bỏ tệp này';
         remove.setAttribute('aria-label', 'Bỏ ' + file.name);
-        remove.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+        remove.innerHTML = '<i class="fa-solid fa-xmark" aria-hidden="true"></i>';
         remove.addEventListener('click', function() { removeSelectedFile(input.id, index, areaId, textId); });
-        row.append(name, remove);
+        row.append(thumb, name, remove);
         list.appendChild(row);
       });
       text.appendChild(list);
@@ -1335,6 +1350,70 @@
     if (count) count.textContent = files.length + ' tệp đã chọn';
     var hasExistingFiles = existing && existing.textContent.trim();
     area.classList.toggle('d-none', !files.length && !hasExistingFiles);
+  }
+
+  function getAttachmentIconClass(fileName, mimeType) {
+    if (mimeType && mimeType.indexOf('image/') === 0) return 'fa-file-image';
+    var extension = String(fileName || '').split('.').pop().toLowerCase();
+    if (extension === 'pdf') return 'fa-file-pdf';
+    if (['doc', 'docx'].indexOf(extension) !== -1) return 'fa-file-word';
+    if (['xls', 'xlsx'].indexOf(extension) !== -1) return 'fa-file-excel';
+    return 'fa-file';
+  }
+
+  function renderAttachmentGallery(container, urlRaw, labelPrefix) {
+    if (!container) return;
+    container.innerHTML = '';
+    var urls = String(urlRaw || '').split(' | ').map(function(url) { return url.trim(); }).filter(Boolean);
+    if (!urls.length) return;
+
+    var gallery = document.createElement('div');
+    gallery.className = 'attachment-gallery';
+    urls.forEach(function(url, index) {
+      if (!/^https?:\/\//i.test(url)) return;
+      var link = document.createElement('a');
+      link.className = 'attachment-tile';
+      link.href = url;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      link.title = (labelPrefix || 'Tệp') + (urls.length > 1 ? ' ' + (index + 1) : '');
+
+      var thumb = document.createElement('span');
+      thumb.className = 'upload-file-thumb';
+      var driveId = getDriveFileId(url);
+      var isImageUrl = /\.(?:png|jpe?g|gif|webp|bmp)(?:[?#]|$)/i.test(url);
+      if (driveId || isImageUrl) {
+        var image = document.createElement('img');
+        image.src = driveId
+          ? 'https://drive.google.com/thumbnail?id=' + encodeURIComponent(driveId) + '&sz=w160'
+          : url;
+        image.alt = '';
+        image.loading = 'lazy';
+        image.onerror = function() {
+          var icon = document.createElement('i');
+          icon.className = 'fa-solid ' + getAttachmentIconClass(url);
+          thumb.replaceChildren(icon);
+        };
+        thumb.appendChild(image);
+      } else {
+        var icon = document.createElement('i');
+        icon.className = 'fa-solid ' + getAttachmentIconClass(url);
+        thumb.appendChild(icon);
+      }
+
+      var name = document.createElement('span');
+      name.className = 'upload-file-name';
+      name.textContent = (labelPrefix || 'Tệp') + (urls.length > 1 ? ' ' + (index + 1) : '');
+      link.append(thumb, name);
+      gallery.appendChild(link);
+    });
+    container.appendChild(gallery);
+  }
+
+  function getDriveFileId(url) {
+    var match = String(url || '').match(/\/file\/d\/([^/?#]+)/i) ||
+      String(url || '').match(/[?&]id=([^&#]+)/i);
+    return match ? match[1] : '';
   }
 
   function addFilesToInput(input, filesToAdd, areaId, textId) {
@@ -1371,24 +1450,6 @@
 
   function previewSelectedFiles(input, areaId, textId) {
     addFilesToInput(input, Array.from(input.files || []), areaId, textId);
-  }
-
-  function handleFileDragOver(event) {
-    event.preventDefault();
-    event.currentTarget.classList.add('is-dragover');
-  }
-
-  function handleFileDragLeave(event) {
-    event.currentTarget.classList.remove('is-dragover');
-  }
-
-  function handleFileDrop(event, inputId, areaId, textId) {
-    event.preventDefault();
-    event.currentTarget.classList.remove('is-dragover');
-    var input = document.getElementById(inputId);
-    if (input && event.dataTransfer && event.dataTransfer.files.length) {
-      addFilesToInput(input, Array.from(event.dataTransfer.files), areaId, textId);
-    }
   }
 
   function removeSelectedFile(inputId, index, areaId, textId) {
@@ -3234,6 +3295,11 @@
     document.getElementById('repairExistingFiles').innerHTML = '';
     document.getElementById('repairFileInput').value = '';
     selectedFilesByInput.repairFileInput = [];
+    renderSelectedFilePreview(
+      document.getElementById('repairFileInput'),
+      'repairFilePreview',
+      'repairFileInfo'
+    );
     var requestItem = requestId ? appData.yeuCau.find(function(request) {
       return normalizeRecordId(request['ID']) === normalizeRecordId(requestId);
     }) : null;
@@ -3253,7 +3319,7 @@
       document.getElementById('repairWork').value = item['Công việc thực hiện'] || '';
       document.getElementById('repairLogFileUrl').value = item['Hình ảnh thực hiện'] || '';
       if (item['Hình ảnh thực hiện']) {
-        document.getElementById('repairExistingFiles').innerHTML = '<strong>File đã lưu:</strong> ' + formatMultiLinks(item['Hình ảnh thực hiện'], 'Tệp');
+        renderAttachmentGallery(document.getElementById('repairExistingFiles'), item['Hình ảnh thực hiện'], 'Tệp');
         document.getElementById('repairFilePreview').classList.remove('d-none');
       } else {
         document.getElementById('repairFilePreview').classList.add('d-none');
@@ -4861,14 +4927,15 @@
           document.getElementById('ycViewAccepted').textContent = item['Ngày tiếp nhận'] || '-';
           document.getElementById('ycViewDescription').textContent = item['Mô tả yêu cầu'] || '-';
           document.getElementById('ycViewFiles').innerHTML = fileUrl
-            ? formatMultiLinks(fileUrl, 'Tệp đính kèm')
+            ? ''
             : '<span class="text-muted">Không có tệp đính kèm.</span>';
+          if (fileUrl) renderAttachmentGallery(document.getElementById('ycViewFiles'), fileUrl, 'Tệp');
           renderYeuCauDetailActions(item);
           renderRequestHistory(id);
           bootstrap.Tab.getOrCreateInstance(document.getElementById('ycRepairHistoryTab')).show();
         }
         if (fileUrl) {
-          document.getElementById('existingFilesYC').innerHTML = '<strong>File / Ảnh đã lưu:</strong><br>' + formatMultiLinks(fileUrl, 'Ảnh YC');
+          renderAttachmentGallery(document.getElementById('existingFilesYC'), fileUrl, 'Tệp');
           document.getElementById('filePreviewAreaYC').classList.remove('d-none');
         } else if (isViewOnly) {
           document.getElementById('existingFilesYC').textContent = 'Không có tệp đính kèm.';
@@ -5675,9 +5742,11 @@
     document.getElementById('mmtbCurrentFileUrl').value = machine ? (machine['Hình ảnh'] || '') : '';
     document.getElementById('filePreviewAreaMMTB').classList.add('d-none');
     document.getElementById('fileInfoTextMMTB').textContent = '';
-    document.getElementById('existingFilesMMTB').innerHTML = machine && machine['Hình ảnh']
-      ? '<strong>File đã lưu:</strong> ' + formatMultiLinks(machine['Hình ảnh'], 'Tệp')
-      : '';
+    renderAttachmentGallery(
+      document.getElementById('existingFilesMMTB'),
+      machine && machine['Hình ảnh'],
+      'Tệp'
+    );
     renderSelectedFilePreview(
       document.getElementById('mmtbFileInput'),
       'filePreviewAreaMMTB',

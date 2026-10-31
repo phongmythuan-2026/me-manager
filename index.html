@@ -1078,14 +1078,14 @@
         <form id="stockReceiptForm" onsubmit="handleSaveStockReceipt(event)">
           <div class="modal-body row g-3">
             <div class="col-12 col-md-2"><label class="form-label fw-bold small" for="stockReceiptDate">Ngày nhập xuất</label><input id="stockReceiptDate" type="date" class="form-control" required></div>
-            <div class="col-12 col-md-3"><label class="form-label fw-bold small" for="stockReceiptMaterialSearch">Mã vật tư (DMVT)</label><div id="stockReceiptMaterialPicker"></div></div>
+            <div class="col-12 col-md-3"><label class="form-label fw-bold small" for="stockReceiptMaterialSearch">Mã vật tư</label><div id="stockReceiptMaterialPicker"></div></div>
             <div class="col-12 col-md-1"><label class="form-label fw-bold small" for="stockReceiptUnit">Đvt</label><input id="stockReceiptUnit" class="form-control" readonly></div>
             <div class="col-12 col-md-2"><label class="form-label fw-bold small" for="stockReceiptQuantity">Số lượng (Nhập &gt; 0, Xuất &lt; 0)</label><input id="stockReceiptQuantity" type="number" step="any" class="form-control" required oninput="updateStockReceiptValue()"></div>
             <div class="col-12 col-md-2"><label class="form-label fw-bold small" for="stockReceiptPrice">Đơn giá</label><input id="stockReceiptPrice" type="number" min="0" step="any" class="form-control" oninput="updateStockReceiptValue()"></div>
-            <div class="col-12 col-md-2"><label class="form-label fw-bold small" for="stockReceiptValue">Giá trị (SL × đơn giá)</label><input id="stockReceiptValue" class="form-control" readonly></div>
-            <div class="col-12 col-md-4"><label class="form-label fw-bold small" for="stockReceiptRepairLog">Mã yêu cầu (ID TH, không bắt buộc)</label><select id="stockReceiptRepairLog" class="form-select" onchange="applyStockReceiptInheritedMachine()"><option value="">-- Không liên kết nhật ký --</option></select></div>
+            <div class="col-12 col-md-2"><label class="form-label fw-bold small" for="stockReceiptValue">Giá trị</label><input id="stockReceiptValue" class="form-control" readonly></div>
+            <div class="col-12 col-md-4"><label class="form-label fw-bold small" for="stockReceiptRepairLog">Mã yêu cầu</label><select id="stockReceiptRepairLog" class="form-select" onchange="applyStockReceiptInheritedMachine()"><option value="">-- Không liên kết nhật ký --</option></select></div>
             <div class="col-12 col-md-4"><label class="form-label fw-bold small" for="stockReceiptMachine">Máy móc/TB</label><select id="stockReceiptMachine" class="form-select"><option value="">-- Không liên kết máy --</option></select></div>
-            <div class="col-12"><label class="form-label fw-bold small" for="stockReceiptNote">Ghi chú</label><textarea id="stockReceiptNote" class="form-control" rows="3" placeholder="Nhập ghi chú..."></textarea></div>
+            <div class="col-12"><label class="form-label fw-bold small" for="stockReceiptNote">Ghi chú</label><textarea id="stockReceiptNote" class="form-control" rows="3"></textarea></div>
           </div>
 
           <div class="modal-footer bg-light"><button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Hủy</button><button type="submit" id="stockReceiptSaveButton" class="btn btn-success btn-sm fw-bold px-4">Ghi nhận nhập / xuất</button></div>

@@ -1788,7 +1788,6 @@
     input.type = 'text';
     input.id = inputId || '';
     input.className = 'form-control form-control-sm searchable-material-input';
-    input.placeholder = 'Gõ mã hoặc tên vật tư để tìm...';
     input.autocomplete = 'off';
     input.disabled = !!disabled;
     input.setAttribute('role', 'combobox');

@@ -4,14 +4,23 @@
  */
 
 function doGet(e) {
-  return HtmlService.createTemplateFromFile('index')
-    .evaluate()
-    .setTitle('ME Manager - Bảo Trì & Sự Cố Máy Móc')
-    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
-}
-
-function include(filename) {
-  return HtmlService.createHtmlOutputFromFile(filename).getContent();
+  var parameters = e && e.parameter ? e.parameter : {};
+  if (parameters.bridge === '1') {
+    var nonce = String(parameters.nonce || '');
+    if (!/^[a-zA-Z0-9_-]{20,80}$/.test(nonce)) {
+      return HtmlService.createHtmlOutput('Invalid bridge request.');
+    }
+    var template = HtmlService.createTemplateFromFile('Backend');
+    template.bridgeNonce = nonce;
+    return template.evaluate()
+      .setTitle('ME Manager backend')
+      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+  }
+  return HtmlService.createHtmlOutput(
+    '<!doctype html><html lang="vi"><meta charset="utf-8"><title>ME Manager</title>' +
+    '<body>Giao diện ME Manager được phục vụ tại ' +
+    '<a href="https://phongmythuan-2026.github.io/me-manager/">GitHub Pages</a>.</body></html>'
+  ).setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
 function getDb() {

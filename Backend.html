@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>ME Manager backend</title>
+  </head>
+  <body>
+    <script>
+      (function() {
+        var parentOrigin = 'https://phongmythuan-2026.github.io';
+        var nonce = '<?= bridgeNonce ?>';
+        var methods = {
+          loginUser: true,
+          changePassword: true,
+          getAppData: true,
+          getDataRevision: true,
+          getAppDataSnapshot: true,
+          saveMachineReplacementItem: true,
+          deleteMachineReplacementItem: true,
+          saveMaterialCatalogItem: true,
+          deleteMaterialCatalogItem: true,
+          saveStockReceipt: true,
+          deleteStockReceipt: true,
+          saveRepairLog: true,
+          deleteRepairLog: true,
+          uploadFileToDrive: true,
+          saveYeuCau: true,
+          updateYeuCauStatus: true,
+          deleteYeuCau: true,
+          saveMMTB: true,
+          deleteMMTB: true,
+          saveKhuVuc: true,
+          deleteKhuVuc: true,
+          saveLoaiYC: true,
+          deleteLoaiYC: true,
+          saveUser: true,
+          deleteUser: true,
+          savePushSubscription: true,
+          createMMTBPrintFile: true,
+          getBaoCaoSanXuatFromGoogleSheets: true
+        };
+
+        function respond(id, success, value) {
+          var response = { channel: 'me-manager-backend', type: 'response', nonce: nonce, id: id, success: success };
+          if (success) response.result = value;
+          else response.error = { message: value && value.message ? value.message : String(value || 'Backend request failed.') };
+          window.top.postMessage(response, parentOrigin);
+        }
+
+        window.addEventListener('message', function(event) {
+          if (event.source !== window.top || event.origin !== parentOrigin) return;
+          var request = event.data;
+          if (!request || request.channel !== 'me-manager-backend' || request.type !== 'request' || request.nonce !== nonce) return;
+          if (!methods[request.method] || !Array.isArray(request.args)) {
+            respond(request.id, false, 'Unsupported backend method.');
+            return;
+          }
+
+          var runner = google.script.run
+            .withSuccessHandler(function(result) { respond(request.id, true, result); })
+            .withFailureHandler(function(error) { respond(request.id, false, error); });
+          runner[request.method].apply(runner, request.args);
+        });
+
+        window.top.postMessage({ channel: 'me-manager-backend', type: 'ready', nonce: nonce }, parentOrigin);
+      })();
+    </script>
+  </body>
+</html>

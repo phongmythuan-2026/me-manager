@@ -1,5 +1,11 @@
 # me-manager
 
+## Kiến trúc triển khai
+
+- Frontend được phát triển trong repository và triển khai trên GitHub Pages; trang không nhúng giao diện từ Apps Script.
+- Google Apps Script chỉ giữ backend dữ liệu/quyền và một bridge RPC tối giản để frontend GitHub gọi các hàm backend.
+- `clasp push` chỉ đồng bộ `Code.js`, `SharePoint.js`, `Backend.html` và `appsscript.json`; các file frontend được loại trừ bằng `.claspignore`.
+
 ## Quy trình yêu cầu và sửa chữa
 
 - Yêu cầu mới bắt đầu ở trạng thái `Chờ tiếp nhận`; Admin/Kỹ thuật tiếp nhận để chuyển sang `Đã tiếp nhận`.

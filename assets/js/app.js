@@ -1,122 +1,100 @@
-var currentUser = null;
-var appData = { mmtb: [], yeuCau: [], user: [], khuVuc: [], loaiYC: [] };
-var fullCalendarObj = null;
+(function() {
+  var channel = 'me-manager-backend';
+  var parentOrigin = 'https://phongmythuan-2026.github.io';
+  var nonce = '';
+  var backendWindow = null;
+  var backendOrigin = '';
+  var requestSequence = 0;
+  var pendingRequests = Object.create(null);
+  var requestQueue = [];
 
-if (typeof document !== 'undefined') {
-  document.addEventListener("DOMContentLoaded", function() {
-    if (window.location.hostname === 'phongmythuan-2026.github.io') {
-      var appFrame = document.createElement('iframe');
-      appFrame.src = API_CONFIG.GAS_API_URL;
-      appFrame.title = 'ME Manager';
-      appFrame.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;border:0;background:#fff;';
-      var loadingState = document.createElement('div');
-      loadingState.style.cssText = 'position:fixed;inset:0;z-index:2;display:flex;align-items:center;justify-content:center;padding:20px;background:#f1f5f9;color:#1e293b;text-align:center;font-family:system-ui,sans-serif;';
-      var loginCard = document.createElement('main');
-      loginCard.style.cssText = 'width:100%;max-width:480px;padding:32px 24px;border:1px solid #dbe3ec;border-radius:12px;background:#fff;box-shadow:0 12px 32px rgba(15,23,42,.12);';
-      var brand = document.createElement('h1');
-      brand.textContent = 'ME MANAGER';
-      brand.style.cssText = 'margin:0 0 10px;font-size:24px;line-height:1.25;font-weight:700;';
-      var status = document.createElement('p');
-      status.textContent = 'Đang kết nối đến màn hình đăng nhập...';
-      status.style.cssText = 'margin:0;color:#475569;font-size:16px;line-height:1.5;';
-      loginCard.append(brand, status);
-      loadingState.appendChild(loginCard);
-
-      var fallbackTimer = window.setTimeout(function() {
-        status.textContent = 'Không tải được giao diện nhúng. Mở màn hình đăng nhập trực tiếp:';
-        var directLink = document.createElement('a');
-        directLink.href = API_CONFIG.GAS_API_URL;
-        directLink.textContent = 'Mở màn hình đăng nhập';
-        directLink.style.cssText = 'display:flex;align-items:center;justify-content:center;width:100%;min-height:54px;margin-top:20px;padding:12px 18px;border-radius:8px;background:#0d6efd;color:#fff;text-decoration:none;font-size:17px;font-weight:700;';
-        loginCard.appendChild(directLink);
-      }, 8000);
-
-      appFrame.addEventListener('load', function() {
-        window.clearTimeout(fallbackTimer);
-        loadingState.remove();
-      }, { once: true });
-
-      document.body.replaceChildren(appFrame, loadingState);
-      return;
+  function finishRequest(id, success, value, userObject, handlers) {
+    var pending = pendingRequests[id];
+    if (!pending) return;
+    window.clearTimeout(pending.timeout);
+    delete pendingRequests[id];
+    if (success) {
+      if (handlers.success) handlers.success(value, userObject);
+    } else if (handlers.failure) {
+      var error = new Error(value && value.message ? value.message : 'Backend request failed.');
+      handlers.failure(error, userObject);
+    } else {
+      console.error('ME Manager backend request failed:', value);
     }
-
-    var savedUser = localStorage.getItem('mmtb_user');
-    if (savedUser) {
-      currentUser = JSON.parse(savedUser);
-      initApp();
-    }
-  });
-}
-
-function handleLogin(e) {
-  e.preventDefault();
-  var maNV = document.getElementById('loginMaNV').value;
-  var pwd = document.getElementById('loginPassword').value;
-
-  // Gọi trực tiếp hàm backend GAS hiện tại hoặc qua fetch API tùy thuộc vào cách deploy GAS
-  Swal.fire({ title: 'Đang đăng nhập...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-  
-  // (Giả lập hoặc gọi Google Script nếu chạy nhúng, nếu chạy GitHub Pages thuần, 
-  // anh chuyển đổi backend Google Apps Script thành dạng nhận JSON doPost() thuần túy)
-}
-
-function initApp() {
-  document.getElementById('login-view').style.display = 'none';
-  document.getElementById('app-layout').style.display = 'block';
-  document.getElementById('current-user-name').innerText = currentUser.hoTen || 'Admin';
-  document.getElementById('current-user-id').innerText = currentUser.maNV || '00528';
-  
-  // Tải dữ liệu ban đầu
-  loadModuleSharePointData('BAO_CAO_SX');
-}
-
-function switchTab(tabName, element) {
-  document.querySelectorAll('.sidebar .nav-link').forEach(el => el.classList.remove('active'));
-  if (element) element.classList.add('active');
-
-  document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.add('d-none'));
-  document.getElementById('tab-' + tabName).classList.remove('d-none');
-
-  if (tabName === 'baocaosx') {
-    loadModuleSharePointData('BAO_CAO_SX');
   }
-}
 
-// Hàm tải dữ liệu SharePoint theo Module linh hoạt
-async function loadModuleSharePointData(tableKey) {
-  var tbody = document.getElementById('tblSPBody');
-  var thead = document.getElementById('tblSPHead');
-  tbody.innerHTML = '<tr><td colspan="10" class="text-center text-primary py-4"><i class="fa-solid fa-spinner fa-spin me-2"></i> Đang tải dữ liệu module SharePoint...</td></tr>';
-
-  try {
-    var rows = await fetchSharePointModuleData(tableKey);
-    if (!rows || rows.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="10" class="text-center text-muted py-3">Không có dữ liệu từ SharePoint.</td></tr>';
-      return;
+  function sendRequest(method, args, handlers, userObject) {
+    var id = String(++requestSequence);
+    var message = { channel: channel, type: 'request', nonce: nonce, id: id, method: method, args: args };
+    var timeout = window.setTimeout(function() {
+      finishRequest(id, false, { message: 'Không thể kết nối đến backend ME Manager.' }, userObject, handlers);
+    }, 30000);
+    pendingRequests[id] = { timeout: timeout, handlers: handlers, userObject: userObject };
+    var request = { id: id, message: message };
+    if (backendWindow) {
+      backendWindow.postMessage(message, backendOrigin);
+    } else {
+      requestQueue.push(request);
     }
+  }
 
-    var keys = Object.keys(rows[0]).filter(k => k !== '@odata.etag' && k !== 'ItemInternalId' && k !== 'ID');
-    
-    var headHtml = '<tr><th class="text-center" style="width:50px;">#</th>';
-    keys.forEach(k => headHtml += `<th>${k}</th>`);
-    headHtml += '</tr>';
-    thead.innerHTML = headHtml;
-
-    tbody.innerHTML = '';
-    rows.forEach((row, idx) => {
-      var tr = `<tr><td class="text-center text-muted small">${idx + 1}</td>`;
-      keys.forEach(k => {
-        tr += `<td>${row[k] !== undefined && row[k] !== null ? row[k] : ''}</td>`;
-      });
-      tr += '</tr>';
-      tbody.innerHTML += tr;
+  function createRunner(handlers, userObject) {
+    return new Proxy({}, {
+      get: function(_, property) {
+        if (property === 'withSuccessHandler') {
+          return function(handler) {
+            return createRunner({ success: handler, failure: handlers.failure }, userObject);
+          };
+        }
+        if (property === 'withFailureHandler') {
+          return function(handler) {
+            return createRunner({ success: handlers.success, failure: handler }, userObject);
+          };
+        }
+        if (property === 'withUserObject') {
+          return function(value) {
+            return createRunner(handlers, value);
+          };
+        }
+        if (typeof property !== 'string' || property.charAt(0) === '_') return undefined;
+        return function() {
+          sendRequest(property, Array.prototype.slice.call(arguments), handlers, userObject);
+        };
+      }
     });
-  } catch (err) {
-    tbody.innerHTML = `<tr><td colspan="10" class="text-center text-danger py-3">Lỗi kết nối SharePoint: ${err.message}</td></tr>`;
   }
-}
 
-function hideContextMenu() {
-  var menu = document.getElementById('custom-context-menu');
-  if (menu) menu.style.display = 'none';
-}
+  window.google = window.google || {};
+  window.google.script = window.google.script || {};
+  window.google.script.run = createRunner({}, undefined);
+
+  window.addEventListener('message', function(event) {
+    var message = event.data;
+    if (!message || message.channel !== channel || message.nonce !== nonce) return;
+    if (message.type === 'ready') {
+      if (!/^(script\.google\.com|script\.googleusercontent\.com|[a-z0-9-]+-script\.googleusercontent\.com)$/.test(new URL(event.origin).hostname)) return;
+      backendWindow = event.source;
+      backendOrigin = event.origin;
+      requestQueue.splice(0).forEach(function(request) {
+        backendWindow.postMessage(request.message, backendOrigin);
+      });
+      return;
+    }
+    if (message.type !== 'response') return;
+    var pending = pendingRequests[message.id];
+    if (pending) finishRequest(message.id, message.success, message.success ? message.result : message.error, pending.userObject, pending.handlers);
+  });
+
+  var randomBytes = new Uint8Array(16);
+  if (window.crypto && window.crypto.getRandomValues) window.crypto.getRandomValues(randomBytes);
+  else for (var i = 0; i < randomBytes.length; i++) randomBytes[i] = Math.floor(Math.random() * 256);
+  nonce = Array.from(randomBytes).map(function(byte) { return byte.toString(16).padStart(2, '0'); }).join('');
+
+  var backendFrame = document.createElement('iframe');
+  backendFrame.title = 'ME Manager backend connection';
+  backendFrame.setAttribute('aria-hidden', 'true');
+  backendFrame.tabIndex = -1;
+  backendFrame.style.cssText = 'position:fixed;width:1px;height:1px;left:-10px;bottom:-10px;border:0;visibility:hidden;';
+  backendFrame.src = API_CONFIG.GAS_API_URL + '?bridge=1&nonce=' + encodeURIComponent(nonce);
+  document.body.appendChild(backendFrame);
+})();

@@ -1,4 +1,3 @@
-<script>
   var currentUser = null;
   var appData = { mmtb: [], yeuCau: [], yeuCauTH: [], dmvt: [], thayThe: [], kho: [], user: [], khuVuc: [], loaiYC: [], pushSubs: [] };
   var fullCalendarObj = null;
@@ -5657,4 +5656,3 @@
     initSortableTable('tblBaoCaoTon', 'KHO_REPORT', [null, 'Mã vật tư', 'Tên vật tư', 'ĐVT', 'Tồn đầu kỳ', 'Nhập trong kỳ', 'Xuất trong kỳ', 'Tồn cuối kỳ']);
     initSortableTable('tblYeuCauTH', 'YEU_CAU_TH', [null, 'ID TH', 'Từ giờ', 'Đến giờ', 'Loại công việc', 'Công việc thực hiện', 'Máy móc/thiết bị', 'Mã yêu cầu', 'Hình ảnh thực hiện', 'Người thực hiện', 'Trạng thái']);
   }
-</script>

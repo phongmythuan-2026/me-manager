@@ -95,10 +95,9 @@
     background-color: #f2f4f5;
     color: #52616d;
   }
-  .modal .form-text {
-    margin-top: 0.25rem;
-    color: #64748b;
-    font-size: 0.72rem;
+  .modal .form-text,
+  .modal .upload-dropzone small {
+    display: none !important;
   }
   .modal .modal-footer,
   .modal .modal-footer.bg-light {
@@ -947,7 +946,6 @@
   .upload-preview-list:empty {
     display: none;
   }
-
   .report-column-picker {
     position: relative;
   }

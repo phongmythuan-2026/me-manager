@@ -3297,8 +3297,6 @@
     renderRepairMaterialRows();
     var readOnly = mode === 'VIEW';
     var inheritedFromRequest = mode === 'ADD' && !!requestItem;
-    document.getElementById('repairTypeInheritedHint').classList.toggle('d-none', !inheritedFromRequest);
-    document.getElementById('repairMachineInheritedHint').classList.toggle('d-none', !inheritedFromRequest);
     ['repairFrom', 'repairTo', 'repairType', 'repairMachine', 'repairRequest', 'repairWork', 'repairFileInput'].forEach(function(fieldId) {
       var inheritedField = inheritedFromRequest && ['repairType', 'repairMachine', 'repairRequest'].indexOf(fieldId) !== -1;
       document.getElementById(fieldId).disabled = readOnly || inheritedField;
@@ -3370,12 +3368,6 @@
           : '');
       });
       quantityWrap.append(quantityLabel, quantity);
-      if (!readOnly) {
-        var quantityHint = document.createElement('div');
-        quantityHint.className = 'form-text';
-        quantityHint.textContent = 'Nhập số dương; hệ thống tự ghi số âm vào kho.';
-        quantityWrap.appendChild(quantityHint);
-      }
 
       var priceWrap = document.createElement('div');
       priceWrap.dataset.fieldType = 'unit-price';
@@ -6059,8 +6051,7 @@
     document.getElementById('userEditorName').value = item ? item['Họ tên'] : '';
     var passwordField = document.getElementById('userEditorPassword');
     passwordField.required = mode !== 'EDIT';
-    passwordField.placeholder = mode === 'EDIT' ? 'Để trống nếu không đổi mật khẩu' : '';
-    document.getElementById('userEditorPasswordHelp').classList.toggle('d-none', mode !== 'EDIT');
+    passwordField.placeholder = '';
     document.getElementById('userEditorRole').value = item ? (item['Vai trò'] || 'Sản xuất') : 'Sản xuất';
     return showAdminEditorModal('modalUserEditor', 'modalUserEditorTitle', mode === 'EDIT' ? 'Sửa nhân viên' : 'Thêm nhân viên');
   }

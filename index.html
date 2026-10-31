@@ -697,7 +697,6 @@
                     <label id="ycFileDropzone" class="upload-dropzone" for="ycFileInput" ondragover="handleFileDragOver(event)" ondragleave="handleFileDragLeave(event)" ondrop="handleFileDrop(event, 'ycFileInput', 'filePreviewAreaYC', 'fileInfoTextYC')">
                       <span class="upload-icon"><i class="fa-solid fa-cloud-arrow-up"></i></span>
                       <span><strong>Nhấn để chọn tệp</strong> hoặc kéo thả vào đây</span>
-                      <small>Ảnh, PDF, Word, Excel; tối đa 25 MB mỗi tệp</small>
                       <input type="file" id="ycFileInput" class="visually-hidden" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx" onchange="previewSelectedFiles(this, 'filePreviewAreaYC', 'fileInfoTextYC')">
                     </label>
                     <div id="filePreviewAreaYC" class="upload-preview mt-2 d-none">
@@ -903,7 +902,6 @@
                 <label id="mmtbFileDropzone" class="upload-dropzone" for="mmtbFileInput" ondragover="handleFileDragOver(event)" ondragleave="handleFileDragLeave(event)" ondrop="handleFileDrop(event, 'mmtbFileInput', 'filePreviewAreaMMTB', 'fileInfoTextMMTB')">
                   <span class="upload-icon"><i class="fa-solid fa-cloud-arrow-up"></i></span>
                   <span><strong>Nhấn để chọn tệp</strong> hoặc kéo thả vào đây</span>
-                  <small>Ảnh, PDF, Word, Excel; tối đa 25 MB mỗi tệp</small>
                   <input type="file" id="mmtbFileInput" class="visually-hidden" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx" onchange="previewSelectedFiles(this, 'filePreviewAreaMMTB', 'fileInfoTextMMTB')">
                 </label>
                 <div id="filePreviewAreaMMTB" class="upload-preview mt-2 d-none">
@@ -1032,7 +1030,6 @@
             <div class="mb-3" data-field-type="full" data-layout-type="text">
               <label class="form-label fw-bold small" for="userEditorPassword">Mật khẩu</label>
               <input id="userEditorPassword" type="password" class="form-control" autocomplete="new-password">
-              <div id="userEditorPasswordHelp" class="form-text d-none">Để trống nếu không đổi mật khẩu.</div>
             </div>
             <div class="mb-3" data-field-type="full" data-layout-type="select">
               <label class="form-label fw-bold small" for="userEditorRole">Vai trò</label>
@@ -1177,9 +1174,9 @@
             <div class="erp-form-grid" data-layout-form="repairLogForm" data-layout-title="Nhật ký sửa chữa">
               <div data-field-type="datetime"><label class="form-label fw-bold small" for="repairFrom">Từ giờ</label><input id="repairFrom" type="datetime-local" class="form-control" required></div>
               <div data-field-type="datetime"><label class="form-label fw-bold small" for="repairTo">Đến giờ</label><input id="repairTo" type="datetime-local" class="form-control" required></div>
-              <div data-field-type="work-type"><label class="form-label fw-bold small" for="repairType">Loại công việc</label><select id="repairType" class="form-select" required></select><div id="repairTypeInheritedHint" class="form-text d-none">Tự động lấy từ phiếu yêu cầu.</div></div>
-              <div data-field-type="machine" data-layout-base-row="2"><label class="form-label fw-bold small" for="repairMachine">Máy móc/thiết bị</label><select id="repairMachine" class="form-select" onchange="handleRepairMachineChange()" required></select><div id="repairMachineInheritedHint" class="form-text d-none">Tự động lấy từ phiếu yêu cầu.</div></div>
-              <div data-field-type="reference" data-layout-base-row="2"><label class="form-label fw-bold small" for="repairRequest">Mã yêu cầu (không bắt buộc)</label><select id="repairRequest" class="form-select" onchange="handleRepairRequestChange()"><option value="">-- Thực hiện không qua yêu cầu --</option></select><div class="form-text">Chọn yêu cầu để tự điền máy; yêu cầu chưa tiếp nhận sẽ được tiếp nhận khi lưu nhật ký.</div></div>
+              <div data-field-type="work-type"><label class="form-label fw-bold small" for="repairType">Loại công việc</label><select id="repairType" class="form-select" required></select></div>
+              <div data-field-type="machine" data-layout-base-row="2"><label class="form-label fw-bold small" for="repairMachine">Máy móc/thiết bị</label><select id="repairMachine" class="form-select" onchange="handleRepairMachineChange()" required></select></div>
+              <div data-field-type="reference" data-layout-base-row="2"><label class="form-label fw-bold small" for="repairRequest">Mã yêu cầu (không bắt buộc)</label><select id="repairRequest" class="form-select" onchange="handleRepairRequestChange()"><option value="">-- Thực hiện không qua yêu cầu --</option></select></div>
               <div data-field-type="textarea">
                 <label class="form-label fw-bold small" for="repairWork">Công việc thực hiện</label>
                 <textarea id="repairWork" class="form-control" rows="3" required></textarea>
@@ -1199,7 +1196,6 @@
                 <label id="repairFileDropzone" class="upload-dropzone" for="repairFileInput" ondragover="handleFileDragOver(event)" ondragleave="handleFileDragLeave(event)" ondrop="handleFileDrop(event, 'repairFileInput', 'repairFilePreview', 'repairFileInfo')">
                   <span class="upload-icon"><i class="fa-solid fa-cloud-arrow-up"></i></span>
                   <span><strong>Nhấn để chọn tệp</strong> hoặc kéo thả vào đây</span>
-                  <small>Ảnh, PDF, Word, Excel; tối đa 25 MB mỗi tệp</small>
                   <input id="repairFileInput" type="file" class="visually-hidden" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx" onchange="previewSelectedFiles(this, 'repairFilePreview', 'repairFileInfo')">
                 </label>
                 <div id="repairFilePreview" class="upload-preview mt-2 d-none"><div id="repairExistingFiles" class="upload-existing-files"></div><div id="repairFileInfo"></div></div>

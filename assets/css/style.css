@@ -1449,8 +1449,8 @@
     --erp-span-reference: 25;
   }
 
-  #repairLogForm .erp-form-grid > [data-field-type="machine"],
-  #repairLogForm .erp-form-grid > [data-field-type="reference"] {
+  #repairLogForm .erp-form-grid > [data-field-type="machine"]:not([data-layout-position]),
+  #repairLogForm .erp-form-grid > [data-field-type="reference"]:not([data-layout-position]) {
     grid-row: 2;
   }
 

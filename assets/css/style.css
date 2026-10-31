@@ -1350,17 +1350,17 @@
   .mmtb-form-grid {
     display: grid;
     grid-template-columns: repeat(var(--layout-grid-columns, 200), minmax(0, 1fr));
-    row-gap: 1rem;
+    row-gap: 0.75rem;
     column-gap: 0;
   }
   .mmtb-form-field {
     grid-column: span var(--mmtb-field-span, 200);
     min-width: 0;
-    padding-right: 1rem;
+    padding-right: 0.5rem;
   }
   .mmtb-form-field > .form-label {
     display: block;
-    min-height: 2.5rem;
+    min-height: 2rem;
   }
   .mmtb-form-field-full {
     grid-column: 1 / -1;
@@ -1969,17 +1969,17 @@ body {
 .mmtb-form-grid {
   display: grid;
   grid-template-columns: repeat(var(--layout-grid-columns, 200), minmax(0, 1fr));
-  row-gap: 1rem;
+  row-gap: 0.75rem;
   column-gap: 0;
 }
 .mmtb-form-field {
   grid-column: span var(--mmtb-field-span, 200);
   min-width: 0;
-  padding-right: 1rem;
+  padding-right: 0.5rem;
 }
 .mmtb-form-field > .form-label {
   display: block;
-  min-height: 2.5rem;
+  min-height: 2rem;
 }
 .mmtb-form-field-full {
   grid-column: 1 / -1;

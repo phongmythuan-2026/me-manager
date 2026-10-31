@@ -381,6 +381,11 @@ body {
   border-color: #e2e8f0 !important;
 }
 
+.fc .fc-col-header-cell-cushion,
+.fc .fc-daygrid-day-number {
+  text-decoration: none !important;
+}
+
 .fc .fc-daygrid-day-number {
   font-size: 0.8rem;
   font-weight: 600;

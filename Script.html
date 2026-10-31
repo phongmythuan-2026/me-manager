@@ -846,9 +846,12 @@
       return getInventoryValue(item, catalogFields[colName] || [colName]);
     }
     if (tableType === 'KHO') {
-      if (colName === 'Tên vật tư') {
+      if (colName === 'Tên vật tư' || colName === 'Đvt') {
         var material = getInventoryMaterial(item['Mã vật tư']);
-        return material ? getInventoryValue(material, ['Tên vật tư', 'Tên hàng', 'Tên']) : '';
+        if (!material) return '';
+        return getInventoryValue(material, colName === 'Tên vật tư'
+          ? ['Tên vật tư', 'Tên hàng', 'Tên']
+          : ['Đvt', 'ĐVT', 'Đơn vị tính', 'ĐVT chính', 'Đơn vị']);
       }
       if (colName === 'Thành tiền') return (Number(item['Số lượng']) || 0) * (Number(item['Đơn giá']) || 0);
       if (colName === 'Ngày nhập xuất' || colName === 'Ngày thực hiện') return normalizeRuntimeDate(item[colName]) || item[colName];
@@ -1753,9 +1756,19 @@
       container,
       container.dataset.selectedValue || '',
       false,
-      function() {},
+      function(code) { updateStockReceiptUnit(code); },
       'stockReceiptMaterialSearch'
     );
+    updateStockReceiptUnit(container.dataset.selectedValue || '');
+  }
+
+  function updateStockReceiptUnit(materialCode) {
+    var unitInput = document.getElementById('stockReceiptUnit');
+    if (!unitInput) return;
+    var material = materialCode ? getInventoryMaterial(materialCode) : null;
+    unitInput.value = material
+      ? String(getInventoryValue(material, ['Đvt', 'ĐVT', 'Đơn vị tính', 'ĐVT chính', 'Đơn vị']) || '')
+      : '';
   }
 
   function createSearchableMaterialPicker(container, selectedCode, disabled, onSelect, inputId) {
@@ -2239,7 +2252,18 @@
       var date = normalizeRuntimeDate(item['Ngày nhập xuất']);
       if (startDate && date && date < startDate) return false;
       if (endDate && date && date > endDate) return false;
-      return [item['ID'] || item['ID KHO'], item['Mã vật tư'], item['Số lượng'], item['Đơn giá'], item['Ghi chú'], item['Mã yêu cầu'], item['Máy móc/thiết bị']]
+      var material = getInventoryMaterial(item['Mã vật tư']);
+      return [
+        item['ID'] || item['ID KHO'],
+        item['Mã vật tư'],
+        material ? getInventoryValue(material, ['Tên vật tư', 'Tên hàng', 'Tên']) : '',
+        material ? getInventoryValue(material, ['Đvt', 'ĐVT', 'Đơn vị tính', 'ĐVT chính', 'Đơn vị']) : '',
+        item['Số lượng'],
+        item['Đơn giá'],
+        item['Ghi chú'],
+        item['Mã yêu cầu'],
+        item['Máy móc/thiết bị']
+      ]
         .some(function(value) { return String(value || '').toLowerCase().indexOf(search) !== -1; });
     });
     sortInventoryRows(rows, 'KHO');
@@ -2255,9 +2279,12 @@
       var machineCode = item['Mã máy móc/thiết bị'] || item['Máy móc/thiết bị'] || (linkedRepairLog ? linkedRepairLog['Máy móc/thiết bị'] : '');
       var machine = (appData.mmtb || []).find(function(entry) { return String(entry['Mã'] || '').trim() === String(machineCode || '').trim(); });
       var machineDisplay = machine ? machineCode + ' - ' + machine['Tên'] : machineCode;
+      var material = getInventoryMaterial(item['Mã vật tư']);
+      var materialName = material ? getInventoryValue(material, ['Tên vật tư', 'Tên hàng', 'Tên']) : '';
+      var materialUnit = material ? getInventoryValue(material, ['Đvt', 'ĐVT', 'Đơn vị tính', 'ĐVT chính', 'Đơn vị']) : '';
       var stockValue = item['Giá trị xuất/nhập kho'];
       if (stockValue === '' || stockValue === null || stockValue === undefined) stockValue = Number(item['Số lượng'] || 0) * Number(item['Đơn giá'] || 0);
-      var values = [item['ID KHO'] || item['ID'], item['Ngày nhập xuất'], getMaterialCodeValue(item['Mã vật tư']), formatInventoryNumber(item['Số lượng']), formatInventoryMoney(item['Đơn giá']), formatInventoryMoney(stockValue), machineDisplay, item['Ghi chú'], formatUserDisplay(item['Người thực hiện']), item['Ngày thực hiện'], item['Mã yêu cầu']];
+      var values = [item['ID KHO'] || item['ID'], item['Ngày nhập xuất'], getMaterialCodeValue(item['Mã vật tư']), materialName, materialUnit, formatInventoryNumber(item['Số lượng']), formatInventoryMoney(item['Đơn giá']), formatInventoryMoney(stockValue), machineDisplay, item['Ghi chú'], formatUserDisplay(item['Người thực hiện']), item['Ngày thực hiện'], item['Mã yêu cầu']];
       var row = document.createElement('tr');
       var stockId = String(item['ID KHO'] || item.ID || '');
       row.style.cursor = 'context-menu';
@@ -2276,10 +2303,10 @@
       values.forEach(function(value, index) {
         var cell = document.createElement('td');
         if (index === 2) setEntityLink(cell, value, 'MATERIAL', item['Mã vật tư']);
-        else if (index === 6) setEntityLink(cell, value, 'MMTB', machineCode);
-        else if (index === 7) cell.style.whiteSpace = 'pre-wrap';
-        else if (index === 8) setEntityLink(cell, value, 'USER', item['Người thực hiện']);
-        else if (index === 10) setEntityLink(cell, value, 'REPAIR_LOG', item['Mã yêu cầu']);
+        else if (index === 8) setEntityLink(cell, value, 'MMTB', machineCode);
+        else if (index === 9) cell.style.whiteSpace = 'pre-wrap';
+        else if (index === 10) setEntityLink(cell, value, 'USER', item['Người thực hiện']);
+        else if (index === 12) setEntityLink(cell, value, 'REPAIR_LOG', item['Mã yêu cầu']);
         else cell.textContent = value == null ? '' : String(value);
         row.appendChild(cell);
       });
@@ -5626,7 +5653,7 @@
     initSortableTable('tblKhuVuc', 'KHU_VUC', [null, 'Mã khu vực', 'Tên khu vực'], true);
     initSortableTable('tblLoaiYC', 'LOAI_YC', [null, 'Mã yêu cầu', 'Tên yêu cầu'], true);
     initSortableTable('tblDMVT', 'DMVT', [null, 'Mã vật tư', 'Tên vật tư', 'Đvt', 'Người tạo', 'Ngày tạo']);
-    initSortableTable('tblKHO', 'KHO', [null, 'ID KHO', 'Ngày nhập xuất', 'Mã vật tư', 'Số lượng', 'Đơn giá', 'Giá trị xuất/nhập kho', 'Mã máy móc/thiết bị', 'Ghi chú', 'Người thực hiện', 'Ngày thực hiện', 'Mã yêu cầu']);
+    initSortableTable('tblKHO', 'KHO', [null, 'ID KHO', 'Ngày nhập xuất', 'Mã vật tư', 'Tên vật tư', 'Đvt', 'Số lượng', 'Đơn giá', 'Giá trị xuất/nhập kho', 'Mã máy móc/thiết bị', 'Ghi chú', 'Người thực hiện', 'Ngày thực hiện', 'Mã yêu cầu']);
     initSortableTable('tblBaoCaoTon', 'KHO_REPORT', [null, 'Mã vật tư', 'Tên vật tư', 'ĐVT', 'Tồn đầu kỳ', 'Nhập trong kỳ', 'Xuất trong kỳ', 'Tồn cuối kỳ']);
     initSortableTable('tblYeuCauTH', 'YEU_CAU_TH', [null, 'ID TH', 'Từ giờ', 'Đến giờ', 'Loại công việc', 'Công việc thực hiện', 'Máy móc/thiết bị', 'Mã yêu cầu', 'Hình ảnh thực hiện', 'Người thực hiện', 'Trạng thái']);
   }

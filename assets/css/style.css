@@ -1370,6 +1370,118 @@
       grid-column: 1 / -1;
     }
   }
+
+  .erp-form-grid {
+    --erp-span-date: 4;
+    --erp-span-datetime: 4;
+    --erp-span-work-type: 4;
+    --erp-span-request-type: 5;
+    --erp-span-area: 5;
+    --erp-span-machine: 5;
+    --erp-span-reference: 5;
+    --erp-span-material: 6;
+    --erp-span-unit: 2;
+    --erp-span-frequency: 4;
+    --erp-span-quantity: 3;
+    --erp-span-unit-price: 3;
+    --erp-span-amount: 3;
+    --erp-span-action: 2;
+    display: grid;
+    grid-template-columns: repeat(20, minmax(0, 1fr));
+    gap: 0.85rem 1rem;
+  }
+
+  .erp-form-grid > [data-field-type] {
+    min-width: 0;
+    grid-column: span 20;
+  }
+
+  .erp-form-grid > [data-field-type="date"] { grid-column: span var(--erp-span-date); }
+  .erp-form-grid > [data-field-type="datetime"] { grid-column: span var(--erp-span-datetime); }
+  .erp-form-grid > [data-field-type="work-type"] { grid-column: span var(--erp-span-work-type); }
+  .erp-form-grid > [data-field-type="request-type"] { grid-column: span var(--erp-span-request-type); }
+  .erp-form-grid > [data-field-type="area"] { grid-column: span var(--erp-span-area); }
+  .erp-form-grid > [data-field-type="machine"] { grid-column: span var(--erp-span-machine); }
+  .erp-form-grid > [data-field-type="reference"] { grid-column: span var(--erp-span-reference); }
+  .erp-form-grid > [data-field-type="material"] { grid-column: span var(--erp-span-material); }
+  .erp-form-grid > [data-field-type="unit"] { grid-column: span var(--erp-span-unit); }
+  .erp-form-grid > [data-field-type="frequency"] { grid-column: span var(--erp-span-frequency); }
+  .erp-form-grid > [data-field-type="quantity"] { grid-column: span var(--erp-span-quantity); }
+  .erp-form-grid > [data-field-type="unit-price"] { grid-column: span var(--erp-span-unit-price); }
+  .erp-form-grid > [data-field-type="amount"] { grid-column: span var(--erp-span-amount); }
+  .erp-form-grid > [data-field-type="action"] { grid-column: span var(--erp-span-action); }
+  .erp-form-grid > [data-field-type="file"] { grid-column: span var(--erp-span-file, 20); }
+  .erp-form-grid > [data-field-type="textarea"],
+  .erp-form-grid > [data-field-type="full"] { grid-column: 1 / -1; }
+
+  .erp-form-grid > [data-field-type] > .form-control,
+  .erp-form-grid > [data-field-type] > .form-select,
+  .erp-form-grid > [data-field-type] > div {
+    min-width: 0;
+  }
+
+  #repairLogForm .erp-form-grid {
+    --erp-span-datetime: 5;
+    --erp-span-work-type: 4;
+    --erp-span-machine: 3;
+    --erp-span-reference: 3;
+  }
+
+  #ycInputFields .erp-form-grid {
+    --erp-span-machine: 10;
+    --erp-span-date: 5;
+    --erp-span-file: 15;
+  }
+
+  #stockReceiptForm .erp-form-grid {
+    --erp-span-date: 3;
+    --erp-span-material: 5;
+    --erp-span-unit: 2;
+    --erp-span-quantity: 3;
+    --erp-span-unit-price: 3;
+    --erp-span-amount: 4;
+    --erp-span-reference: 10;
+    --erp-span-machine: 10;
+  }
+
+  #machineReplacementForm .erp-form-grid {
+    --erp-span-machine: 10;
+    --erp-span-material: 10;
+    --erp-span-unit: 10;
+    --erp-span-frequency: 10;
+  }
+
+  #repairMaterialsList .repair-material-grid {
+    --erp-span-date: 3;
+    --erp-span-material: 9;
+    --erp-span-quantity: 3;
+    --erp-span-unit-price: 3;
+    --erp-span-action: 2;
+    align-items: end;
+  }
+
+  @media (max-width: 991.98px) {
+    .erp-form-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .erp-form-grid > [data-field-type] {
+      grid-column: span 1;
+    }
+    .erp-form-grid > [data-field-type="textarea"],
+    .erp-form-grid > [data-field-type="file"],
+    .erp-form-grid > [data-field-type="full"] {
+      grid-column: 1 / -1;
+    }
+  }
+
+  @media (max-width: 575.98px) {
+    .erp-form-grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .erp-form-grid > [data-field-type] {
+      grid-column: 1 / -1;
+    }
+  }
   @media (max-width: 575.98px) {
     .mmtb-form-grid {
       grid-template-columns: minmax(0, 1fr);

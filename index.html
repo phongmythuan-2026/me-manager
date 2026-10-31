@@ -14,7 +14,7 @@
   <!-- SweetAlert2 -->
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-  <link href="./assets/css/style.css?v=20261031-complete-bootstrap-ui" rel="stylesheet">
+  <link href="./assets/css/style.css?v=20261031-input-layouts" rel="stylesheet">
 </head>
 <body onclick="hideContextMenu()">
 
@@ -601,28 +601,28 @@
             <input type="hidden" id="ycId">
             <input type="hidden" id="ycCurrentFileUrl">
             <div id="ycInputFields">
-              <div class="row g-3 mb-3">
-                <div class="col-12 col-md-4">
+              <div class="erp-form-grid mb-3">
+                <div data-field-type="request-type">
                   <label class="form-label fw-bold small" for="ycLoai">Loại yêu cầu</label>
                   <select id="ycLoai" class="form-select" required></select>
                 </div>
-                <div class="col-12 col-md-4">
+                <div data-field-type="area">
                   <label class="form-label fw-bold small" for="ycKhuVuc">Khu vực</label>
                   <select id="ycKhuVuc" class="form-select" onchange="filterMMTBByKhuVucModal()" required></select>
                 </div>
-                <div class="col-12 col-md-4">
+                <div data-field-type="machine">
                   <label class="form-label fw-bold small" for="ycMMTB">Máy móc / Thiết bị</label>
                   <select id="ycMMTB" class="form-select" required></select>
                 </div>
-                <div class="col-12">
+                <div data-field-type="textarea">
                   <label class="form-label fw-bold small" for="ycMoTa">Mô tả sự cố / yêu cầu</label>
                   <textarea id="ycMoTa" class="form-control" rows="3" placeholder="Nhập nội dung chi tiết..." required></textarea>
                 </div>
-                <div class="col-12 col-md-6">
+                <div data-field-type="date">
                   <label class="form-label fw-bold small" for="ycNgayCanHoanThanh">Ngày yêu cầu hoàn thành</label>
                   <input id="ycNgayCanHoanThanh" type="date" class="form-control">
                 </div>
-                <div class="col-12 col-md-6">
+                <div data-field-type="file">
                   <div id="ycUploadSection">
                     <div class="upload-heading">
                       <label class="form-label fw-bold small mb-0" for="ycFileInput">Đính kèm Ảnh / File</label>
@@ -1010,29 +1010,27 @@
           <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
         </div>
         <form id="machineReplacementForm" onsubmit="handleSaveMachineReplacement(event)">
-          <div class="modal-body">
+          <div class="modal-body erp-form-grid">
             <input type="hidden" id="machineReplacementId">
-            <div class="mb-3">
+            <div data-field-type="machine">
               <label class="form-label fw-bold small" for="machineReplacementMachine">Mã máy</label>
               <select id="machineReplacementMachine" class="form-select" required></select>
             </div>
-            <div class="mb-3">
+            <div data-field-type="material">
               <label class="form-label fw-bold small" for="machineReplacementMaterial">Mã vật tư</label>
               <select id="machineReplacementMaterial" class="form-select" required></select>
             </div>
-            <div class="mb-3">
+            <div data-field-type="full">
               <label class="form-label fw-bold small" for="machineReplacementDescription">Phụ tùng / việc bảo trì</label>
               <input id="machineReplacementDescription" class="form-control" required readonly aria-readonly="true">
             </div>
-            <div class="row g-3">
-              <div class="col-6">
+            <div data-field-type="unit">
                 <label class="form-label fw-bold small" for="machineReplacementUnit">Đơn vị</label>
                 <input id="machineReplacementUnit" class="form-control" value="Giờ" readonly>
-              </div>
-              <div class="col-6">
+            </div>
+            <div data-field-type="frequency">
                 <label class="form-label fw-bold small" for="machineReplacementFrequency">Tần suất</label>
                 <input id="machineReplacementFrequency" class="form-control" placeholder="Ví dụ: 300">
-              </div>
             </div>
           </div>
           <div class="modal-footer bg-light">
@@ -1076,16 +1074,16 @@
       <div class="modal-content border-0 shadow">
         <div class="modal-header bg-success text-white"><h5 class="modal-title fw-bold" id="stockReceiptTitle">Ghi nhận nhập / xuất kho</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
         <form id="stockReceiptForm" onsubmit="handleSaveStockReceipt(event)">
-          <div class="modal-body row g-3">
-            <div class="col-12 col-md-2"><label class="form-label fw-bold small" for="stockReceiptDate">Ngày nhập xuất</label><input id="stockReceiptDate" type="date" class="form-control" required></div>
-            <div class="col-12 col-md-3"><label class="form-label fw-bold small" for="stockReceiptMaterialSearch">Mã vật tư</label><div id="stockReceiptMaterialPicker"></div></div>
-            <div class="col-12 col-md-1"><label class="form-label fw-bold small" for="stockReceiptUnit">Đvt</label><input id="stockReceiptUnit" class="form-control" readonly></div>
-            <div class="col-12 col-md-2"><label class="form-label fw-bold small" for="stockReceiptQuantity">Số lượng (Nhập &gt; 0, Xuất &lt; 0)</label><input id="stockReceiptQuantity" type="number" step="any" class="form-control" required oninput="updateStockReceiptValue()"></div>
-            <div class="col-12 col-md-2"><label class="form-label fw-bold small" for="stockReceiptPrice">Đơn giá</label><input id="stockReceiptPrice" type="number" min="0" step="any" class="form-control" oninput="updateStockReceiptValue()"></div>
-            <div class="col-12 col-md-2"><label class="form-label fw-bold small" for="stockReceiptValue">Giá trị</label><input id="stockReceiptValue" class="form-control" readonly></div>
-            <div class="col-12 col-md-4"><label class="form-label fw-bold small" for="stockReceiptRepairLog">Mã yêu cầu</label><select id="stockReceiptRepairLog" class="form-select" onchange="applyStockReceiptInheritedMachine()"><option value="">-- Không liên kết nhật ký --</option></select></div>
-            <div class="col-12 col-md-4"><label class="form-label fw-bold small" for="stockReceiptMachine">Máy móc/TB</label><select id="stockReceiptMachine" class="form-select"><option value="">-- Không liên kết máy --</option></select></div>
-            <div class="col-12"><label class="form-label fw-bold small" for="stockReceiptNote">Ghi chú</label><textarea id="stockReceiptNote" class="form-control" rows="3"></textarea></div>
+          <div class="modal-body erp-form-grid">
+            <div data-field-type="date"><label class="form-label fw-bold small" for="stockReceiptDate">Ngày nhập xuất</label><input id="stockReceiptDate" type="date" class="form-control" required></div>
+            <div data-field-type="material"><label class="form-label fw-bold small" for="stockReceiptMaterialSearch">Mã vật tư</label><div id="stockReceiptMaterialPicker"></div></div>
+            <div data-field-type="unit"><label class="form-label fw-bold small" for="stockReceiptUnit">Đvt</label><input id="stockReceiptUnit" class="form-control" readonly></div>
+            <div data-field-type="quantity"><label class="form-label fw-bold small" for="stockReceiptQuantity">Số lượng (Nhập &gt; 0, Xuất &lt; 0)</label><input id="stockReceiptQuantity" type="number" step="any" class="form-control" required oninput="updateStockReceiptValue()"></div>
+            <div data-field-type="unit-price"><label class="form-label fw-bold small" for="stockReceiptPrice">Đơn giá</label><input id="stockReceiptPrice" type="number" min="0" step="any" class="form-control" oninput="updateStockReceiptValue()"></div>
+            <div data-field-type="amount"><label class="form-label fw-bold small" for="stockReceiptValue">Giá trị</label><input id="stockReceiptValue" class="form-control" readonly></div>
+            <div data-field-type="reference"><label class="form-label fw-bold small" for="stockReceiptRepairLog">Mã yêu cầu</label><select id="stockReceiptRepairLog" class="form-select" onchange="applyStockReceiptInheritedMachine()"><option value="">-- Không liên kết nhật ký --</option></select></div>
+            <div data-field-type="machine"><label class="form-label fw-bold small" for="stockReceiptMachine">Máy móc/TB</label><select id="stockReceiptMachine" class="form-select"><option value="">-- Không liên kết máy --</option></select></div>
+            <div data-field-type="textarea"><label class="form-label fw-bold small" for="stockReceiptNote">Ghi chú</label><textarea id="stockReceiptNote" class="form-control" rows="3"></textarea></div>
           </div>
 
           <div class="modal-footer bg-light"><button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Hủy</button><button type="submit" id="stockReceiptSaveButton" class="btn btn-success btn-sm fw-bold px-4">Ghi nhận nhập / xuất</button></div>
@@ -1102,24 +1100,24 @@
           <div class="modal-body">
             <input type="hidden" id="repairLogId">
             <input type="hidden" id="repairLogFileUrl">
-            <div class="row g-3">
-              <div class="col-12 col-md-4"><label class="form-label fw-bold small" for="repairFrom">Từ giờ</label><input id="repairFrom" type="datetime-local" class="form-control" required></div>
-              <div class="col-12 col-md-4"><label class="form-label fw-bold small" for="repairTo">Đến giờ</label><input id="repairTo" type="datetime-local" class="form-control" required></div>
-              <div class="col-12 col-md-4"><label class="form-label fw-bold small" for="repairType">Loại công việc</label><select id="repairType" class="form-select" required></select><div id="repairTypeInheritedHint" class="form-text d-none">Tự động lấy từ phiếu yêu cầu.</div></div>
-              <div class="col-12 col-md-4"><label class="form-label fw-bold small" for="repairMachine">Máy móc/thiết bị</label><select id="repairMachine" class="form-select" required></select><div id="repairMachineInheritedHint" class="form-text d-none">Tự động lấy từ phiếu yêu cầu.</div></div>
-              <div class="col-12 col-md-4"><label class="form-label fw-bold small" for="repairRequest">Mã yêu cầu (không bắt buộc)</label><select id="repairRequest" class="form-select"><option value="">-- Thực hiện không qua yêu cầu --</option></select></div>
-              <div class="col-12">
+            <div class="erp-form-grid">
+              <div data-field-type="datetime"><label class="form-label fw-bold small" for="repairFrom">Từ giờ</label><input id="repairFrom" type="datetime-local" class="form-control" required></div>
+              <div data-field-type="datetime"><label class="form-label fw-bold small" for="repairTo">Đến giờ</label><input id="repairTo" type="datetime-local" class="form-control" required></div>
+              <div data-field-type="work-type"><label class="form-label fw-bold small" for="repairType">Loại công việc</label><select id="repairType" class="form-select" required></select><div id="repairTypeInheritedHint" class="form-text d-none">Tự động lấy từ phiếu yêu cầu.</div></div>
+              <div data-field-type="machine"><label class="form-label fw-bold small" for="repairMachine">Máy móc/thiết bị</label><select id="repairMachine" class="form-select" required></select><div id="repairMachineInheritedHint" class="form-text d-none">Tự động lấy từ phiếu yêu cầu.</div></div>
+              <div data-field-type="reference"><label class="form-label fw-bold small" for="repairRequest">Mã yêu cầu (không bắt buộc)</label><select id="repairRequest" class="form-select"><option value="">-- Thực hiện không qua yêu cầu --</option></select></div>
+              <div data-field-type="textarea">
                 <label class="form-label fw-bold small" for="repairWork">Công việc thực hiện</label>
                 <textarea id="repairWork" class="form-control" rows="3" required></textarea>
               </div>
-              <div class="col-12">
+              <div data-field-type="full">
                 <div class="d-flex justify-content-between align-items-center mb-2">
                   <label class="form-label fw-bold small mb-0">Vật tư sử dụng (ghi xuất vào sổ kho)</label>
                   <button type="button" id="btnRepairMaterialActions" class="btn btn-sm btn-outline-primary" onclick="addRepairMaterialRow()"><i class="fa-solid fa-plus me-1"></i>Thêm vật tư</button>
                 </div>
                 <div id="repairMaterialsList"></div>
               </div>
-              <div class="col-12">
+              <div data-field-type="file">
                 <label class="form-label fw-bold small" for="repairFileInput">Hình ảnh thực hiện</label>
                 <input id="repairFileInput" type="file" class="form-control" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx" onchange="previewSelectedFiles(this, 'repairFilePreview', 'repairFileInfo')">
                 <div id="repairFilePreview" class="upload-preview mt-2 d-none"><div id="repairExistingFiles"></div><div id="repairFileInfo"></div></div>
@@ -1199,6 +1197,6 @@
 
   <script src="./assets/js/api.js?v=fdb2455"></script>
   <script src="./assets/js/app.js?v=fdb2455"></script>
-  <script src="./assets/js/frontend.js?v=fdb2455"></script>
+  <script src="./assets/js/frontend.js?v=20261031-input-layouts"></script>
 </body>
 </html>

@@ -2519,9 +2519,9 @@
     container.innerHTML = '';
     repairMaterialRows.forEach(function(item, index) {
       var row = document.createElement('div');
-      row.className = 'row g-2 align-items-end border-bottom pb-2 mb-2';
+      row.className = 'erp-form-grid repair-material-grid border-bottom pb-2 mb-2';
       var dateWrap = document.createElement('div');
-      dateWrap.className = 'col-6 col-lg-2';
+      dateWrap.dataset.fieldType = 'date';
       var dateLabel = document.createElement('label');
       dateLabel.className = 'form-label small mb-1';
       dateLabel.textContent = 'Ngày nhập xuất';
@@ -2534,7 +2534,7 @@
       dateWrap.append(dateLabel, date);
 
       var materialWrap = document.createElement('div');
-      materialWrap.className = 'col-12 col-lg-5';
+      materialWrap.dataset.fieldType = 'material';
       var materialLabel = document.createElement('label');
       materialLabel.className = 'form-label small mb-1';
       materialLabel.textContent = 'Mã vật tư (DMVT)';
@@ -2545,7 +2545,7 @@
       materialWrap.append(materialLabel, materialPicker);
 
       var quantityWrap = document.createElement('div');
-      quantityWrap.className = 'col-6 col-lg-2';
+      quantityWrap.dataset.fieldType = 'quantity';
       var quantityLabel = document.createElement('label');
       quantityLabel.className = 'form-label small mb-1';
       quantityLabel.textContent = 'Số lượng';
@@ -2573,7 +2573,7 @@
       }
 
       var priceWrap = document.createElement('div');
-      priceWrap.className = 'col-6 col-lg-2';
+      priceWrap.dataset.fieldType = 'unit-price';
       var priceLabel = document.createElement('label');
       priceLabel.className = 'form-label small mb-1';
       priceLabel.textContent = 'Đơn giá';
@@ -2589,7 +2589,8 @@
       row.append(dateWrap, materialWrap, quantityWrap, priceWrap);
       if (!readOnly) {
         var removeWrap = document.createElement('div');
-        removeWrap.className = 'col-12 col-lg-1 text-end';
+        removeWrap.dataset.fieldType = 'action';
+        removeWrap.className = 'text-end';
         var remove = document.createElement('button');
         remove.type = 'button';
         remove.className = 'btn btn-sm btn-outline-danger';

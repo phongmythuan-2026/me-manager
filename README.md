@@ -5,6 +5,7 @@
 - Frontend, gồm Bootstrap 5 và CSS giao diện, được phát triển trong repository và triển khai trên GitHub Pages; trang không nhúng giao diện từ Apps Script.
 - Google Apps Script chỉ giữ backend dữ liệu/quyền và một bridge RPC tối giản để frontend GitHub gọi các hàm backend.
 - `clasp push` chỉ đồng bộ `Code.js`, `SharePoint.js`, `Backend.html` và `appsscript.json`; các file frontend được loại trừ bằng `.claspignore`.
+- Form dùng lưới `.erp-form-grid` và `data-field-type` để thống nhất kích thước trường theo loại dữ liệu; có thể ghi đè các biến `--erp-span-*` ở cấp form khi cần bố cục riêng.
 
 ## Quy trình yêu cầu và sửa chữa
 

@@ -137,3 +137,40 @@ function testKetNoiBaoCaoSanXuat() {
   Logger.log('Kết quả kiểm tra báo cáo sản xuất: ' + JSON.stringify(result));
   return result;
 }
+
+function clearYeuCauAttachments(requestId, currentUser) {
+  var lock = LockService.getDocumentLock();
+  lock.waitLock(30000);
+  try {
+    var id = String(requestId || '').trim();
+    if (!id) return { success: false, message: 'Thiếu mã yêu cầu.' };
+
+    var sheet = findDatabaseSheet('YEU_CAU');
+    if (!sheet) throw new Error('Không tìm thấy sheet YEU_CAU.');
+    var values = sheet.getDataRange().getValues();
+    var headers = values[0] || [];
+    var idIndex = inventoryColumnIndex(headers, ['ID YC', 'ID']);
+    var imageIndex = inventoryColumnIndex(headers, ['Hình ảnh yêu cầu', 'Hình ảnh']);
+    if (idIndex === -1) throw new Error('Sheet YEU_CAU thiếu cột ID YC.');
+    if (imageIndex === -1) throw new Error('Sheet YEU_CAU thiếu cột Hình ảnh yêu cầu.');
+
+    var request = sheetToObjects('YEU_CAU').find(function(item) {
+      return String(item.ID || '').trim() === id;
+    });
+    if (!checkPermission(currentUser, 'YEU_CAU_EDIT', request)) {
+      return { success: false, message: 'Bạn không có quyền chỉnh sửa yêu cầu này.' };
+    }
+
+    for (var rowIndex = 1; rowIndex < values.length; rowIndex++) {
+      if (String(values[rowIndex][idIndex]).trim() === id) {
+        sheet.getRange(rowIndex + 1, imageIndex + 1).setValue('');
+        return { success: true };
+      }
+    }
+    return { success: false, message: 'Không tìm thấy yêu cầu #' + id + '.' };
+  } catch (error) {
+    return { success: false, message: error.toString() };
+  } finally {
+    lock.releaseLock();
+  }
+}

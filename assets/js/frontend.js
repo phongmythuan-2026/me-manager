@@ -1361,7 +1361,7 @@
     return 'fa-file';
   }
 
-  function renderAttachmentGallery(container, urlRaw, labelPrefix) {
+  function renderAttachmentGallery(container, urlRaw, labelPrefix, onRemove) {
     if (!container) return;
     container.innerHTML = '';
     var urls = String(urlRaw || '').split(' | ').map(function(url) { return url.trim(); }).filter(Boolean);
@@ -1372,7 +1372,7 @@
     urls.forEach(function(url, index) {
       if (!/^https?:\/\//i.test(url)) return;
       var link = document.createElement('a');
-      link.className = 'attachment-tile';
+      link.className = 'attachment-link';
       link.href = url;
       link.target = '_blank';
       link.rel = 'noopener noreferrer';
@@ -1405,9 +1405,31 @@
       name.className = 'upload-file-name';
       name.textContent = (labelPrefix || 'Tệp') + (urls.length > 1 ? ' ' + (index + 1) : '');
       link.append(thumb, name);
-      gallery.appendChild(link);
+      var tile = document.createElement('div');
+      tile.className = 'attachment-tile';
+      tile.appendChild(link);
+      if (onRemove) {
+        var remove = document.createElement('button');
+        remove.type = 'button';
+        remove.className = 'upload-file-remove';
+        remove.title = 'Gỡ tệp đính kèm';
+        remove.setAttribute('aria-label', 'Gỡ ' + (labelPrefix || 'tệp') + ' ' + (index + 1));
+        remove.innerHTML = '<i class="fa-solid fa-minus" aria-hidden="true"></i>';
+        remove.addEventListener('click', function() { onRemove(url, index); });
+        tile.appendChild(remove);
+      }
+      gallery.appendChild(tile);
     });
     container.appendChild(gallery);
+  }
+
+  function removeExistingAttachment(input, container, index, labelPrefix) {
+    var urls = String(input.value || '').split(' | ').map(function(url) { return url.trim(); }).filter(Boolean);
+    urls.splice(index, 1);
+    input.value = urls.join(' | ');
+    renderAttachmentGallery(container, input.value, labelPrefix, function(url, nextIndex) {
+      removeExistingAttachment(input, container, nextIndex, labelPrefix);
+    });
   }
 
   function getDriveFileId(url) {
@@ -3319,7 +3341,11 @@
       document.getElementById('repairWork').value = item['Công việc thực hiện'] || '';
       document.getElementById('repairLogFileUrl').value = item['Hình ảnh thực hiện'] || '';
       if (item['Hình ảnh thực hiện']) {
-        renderAttachmentGallery(document.getElementById('repairExistingFiles'), item['Hình ảnh thực hiện'], 'Tệp');
+        var repairExistingFiles = document.getElementById('repairExistingFiles');
+        renderAttachmentGallery(repairExistingFiles, item['Hình ảnh thực hiện'], 'Tệp',
+          mode === 'EDIT' ? function(url, index) {
+            removeExistingAttachment(document.getElementById('repairLogFileUrl'), repairExistingFiles, index, 'Tệp');
+          } : null);
         document.getElementById('repairFilePreview').classList.remove('d-none');
       } else {
         document.getElementById('repairFilePreview').classList.add('d-none');
@@ -4935,7 +4961,11 @@
           bootstrap.Tab.getOrCreateInstance(document.getElementById('ycRepairHistoryTab')).show();
         }
         if (fileUrl) {
-          renderAttachmentGallery(document.getElementById('existingFilesYC'), fileUrl, 'Tệp');
+          var existingYeuCauFiles = document.getElementById('existingFilesYC');
+          renderAttachmentGallery(existingYeuCauFiles, fileUrl, 'Tệp',
+            mode === 'EDIT' ? function(url, index) {
+              removeExistingAttachment(document.getElementById('ycCurrentFileUrl'), existingYeuCauFiles, index, 'Tệp');
+            } : null);
           document.getElementById('filePreviewAreaYC').classList.remove('d-none');
         } else if (isViewOnly) {
           document.getElementById('existingFilesYC').textContent = 'Không có tệp đính kèm.';
@@ -5146,12 +5176,34 @@
     google.script.run
       .withSuccessHandler(function(res) {
         if (res.success) {
-          markReferenceCreateSaving('YEU_CAU');
-          bsModalYC.hide();
-          Swal.fire('Thành công', res.message, 'success');
-          loadAllData(function() {
-            if (!data.id && res.id) completeReferenceCreate('YEU_CAU', res.id);
-          });
+          var finishSave = function() {
+            markReferenceCreateSaving('YEU_CAU');
+            bsModalYC.hide();
+            Swal.fire('Thành công', res.message, 'success');
+            loadAllData(function() {
+              if (!data.id && res.id) completeReferenceCreate('YEU_CAU', res.id);
+            });
+          };
+          if (data.id && !String(data.fileUrl || '').trim()) {
+            google.script.run
+              .withSuccessHandler(function(attachmentResult) {
+                if (!attachmentResult || !attachmentResult.success) {
+                  Swal.fire('Chưa cập nhật được tệp', attachmentResult && attachmentResult.message
+                    ? attachmentResult.message
+                    : 'Thông tin yêu cầu đã lưu nhưng không thể gỡ tệp đính kèm.', 'error');
+                  return;
+                }
+                finishSave();
+              })
+              .withFailureHandler(function(error) {
+                Swal.fire('Chưa cập nhật được tệp', error && error.message
+                  ? error.message
+                  : 'Thông tin yêu cầu đã lưu nhưng không thể gỡ tệp đính kèm.', 'error');
+              })
+              .clearYeuCauAttachments(data.id, currentUser);
+          } else {
+            finishSave();
+          }
         } else { Swal.fire('Không có quyền', res.message, 'error'); }
       })
       .saveYeuCau(data, currentUser);
@@ -5742,10 +5794,14 @@
     document.getElementById('mmtbCurrentFileUrl').value = machine ? (machine['Hình ảnh'] || '') : '';
     document.getElementById('filePreviewAreaMMTB').classList.add('d-none');
     document.getElementById('fileInfoTextMMTB').textContent = '';
+    var existingMMTBFiles = document.getElementById('existingFilesMMTB');
     renderAttachmentGallery(
-      document.getElementById('existingFilesMMTB'),
+      existingMMTBFiles,
       machine && machine['Hình ảnh'],
-      'Tệp'
+      'Tệp',
+      mode === 'EDIT' ? function(url, index) {
+        removeExistingAttachment(document.getElementById('mmtbCurrentFileUrl'), existingMMTBFiles, index, 'Tệp');
+      } : null
     );
     renderSelectedFilePreview(
       document.getElementById('mmtbFileInput'),

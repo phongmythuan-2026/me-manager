@@ -1349,12 +1349,16 @@
   }
   .mmtb-form-grid {
     display: grid;
-    grid-template-columns: repeat(40, minmax(0, 1fr));
+    grid-template-columns: repeat(var(--layout-grid-columns, 200), minmax(0, 1fr));
     gap: 1rem;
   }
   .mmtb-form-field {
-    grid-column: span var(--mmtb-field-span, 40);
+    grid-column: span var(--mmtb-field-span, 200);
     min-width: 0;
+  }
+  .mmtb-form-field > .form-label {
+    display: block;
+    min-height: 2.5rem;
   }
   .mmtb-form-field-full {
     grid-column: 1 / -1;
@@ -1372,28 +1376,28 @@
   }
 
   .erp-form-grid {
-    --erp-span-date: 4;
-    --erp-span-datetime: 4;
-    --erp-span-work-type: 4;
-    --erp-span-request-type: 5;
-    --erp-span-area: 5;
-    --erp-span-machine: 5;
-    --erp-span-reference: 5;
-    --erp-span-material: 6;
-    --erp-span-unit: 2;
-    --erp-span-frequency: 4;
-    --erp-span-quantity: 3;
-    --erp-span-unit-price: 3;
-    --erp-span-amount: 3;
-    --erp-span-action: 2;
+    --erp-span-date: 20;
+    --erp-span-datetime: 20;
+    --erp-span-work-type: 20;
+    --erp-span-request-type: 25;
+    --erp-span-area: 25;
+    --erp-span-machine: 25;
+    --erp-span-reference: 25;
+    --erp-span-material: 30;
+    --erp-span-unit: 10;
+    --erp-span-frequency: 20;
+    --erp-span-quantity: 15;
+    --erp-span-unit-price: 15;
+    --erp-span-amount: 15;
+    --erp-span-action: 10;
     display: grid;
-    grid-template-columns: repeat(20, minmax(0, 1fr));
+    grid-template-columns: repeat(var(--layout-grid-columns, 100), minmax(0, 1fr));
     gap: 0.85rem 1rem;
   }
 
   .erp-form-grid > [data-field-type] {
     min-width: 0;
-    grid-column: span 20;
+    grid-column: span 100;
   }
 
   .erp-form-grid > [data-field-type="date"] { grid-column: span var(--erp-span-date); }
@@ -1410,7 +1414,7 @@
   .erp-form-grid > [data-field-type="unit-price"] { grid-column: span var(--erp-span-unit-price); }
   .erp-form-grid > [data-field-type="amount"] { grid-column: span var(--erp-span-amount); }
   .erp-form-grid > [data-field-type="action"] { grid-column: span var(--erp-span-action); }
-  .erp-form-grid > [data-field-type="file"] { grid-column: span var(--erp-span-file, 20); }
+  .erp-form-grid > [data-field-type="file"] { grid-column: span var(--erp-span-file, 100); }
   .erp-form-grid > [data-field-type="textarea"],
   .erp-form-grid > [data-field-type="full"] { grid-column: 1 / -1; }
 
@@ -1420,43 +1424,62 @@
     min-width: 0;
   }
 
+  .erp-form-grid[data-layout-form] > .mb-3 {
+    margin-bottom: 0 !important;
+  }
+
+  .erp-form-grid[data-layout-form] > [data-layout-position],
+  #ycInputFields .erp-form-grid > [data-layout-position],
+  #stockReceiptForm .erp-form-grid > [data-layout-position],
+  #machineReplacementForm .erp-form-grid > [data-layout-position],
+  #repairLogForm .erp-form-grid > [data-layout-position],
+  .mmtb-form-grid > [data-layout-position] {
+    grid-column: var(--layout-grid-column);
+    grid-row: var(--layout-grid-row, auto);
+  }
+
   #repairLogForm .erp-form-grid {
-    --erp-span-datetime: 5;
-    --erp-span-work-type: 4;
-    --erp-span-machine: 3;
-    --erp-span-reference: 3;
+    --erp-span-datetime: 20;
+    --erp-span-work-type: 20;
+    --erp-span-machine: 25;
+    --erp-span-reference: 25;
+  }
+
+  #repairLogForm .erp-form-grid > [data-field-type="machine"],
+  #repairLogForm .erp-form-grid > [data-field-type="reference"] {
+    grid-row: 2;
   }
 
   #ycInputFields .erp-form-grid {
-    --erp-span-machine: 10;
-    --erp-span-date: 5;
-    --erp-span-file: 15;
+    --erp-span-machine: 50;
+    --erp-span-date: 25;
+    --erp-span-file: 75;
   }
 
   #stockReceiptForm .erp-form-grid {
-    --erp-span-date: 3;
-    --erp-span-material: 5;
-    --erp-span-unit: 2;
-    --erp-span-quantity: 3;
-    --erp-span-unit-price: 3;
-    --erp-span-amount: 4;
-    --erp-span-reference: 10;
-    --erp-span-machine: 10;
+    --erp-span-date: 15;
+    --erp-span-material: 25;
+    --erp-span-unit: 10;
+    --erp-span-quantity: 15;
+    --erp-span-unit-price: 15;
+    --erp-span-amount: 20;
+    --erp-span-reference: 50;
+    --erp-span-machine: 50;
   }
 
   #machineReplacementForm .erp-form-grid {
-    --erp-span-machine: 10;
-    --erp-span-material: 10;
-    --erp-span-unit: 10;
-    --erp-span-frequency: 10;
+    --erp-span-machine: 50;
+    --erp-span-material: 50;
+    --erp-span-unit: 50;
+    --erp-span-frequency: 50;
   }
 
   #repairMaterialsList .repair-material-grid {
-    --erp-span-date: 3;
-    --erp-span-material: 9;
-    --erp-span-quantity: 3;
-    --erp-span-unit-price: 3;
-    --erp-span-action: 2;
+    --erp-span-date: 15;
+    --erp-span-material: 45;
+    --erp-span-quantity: 15;
+    --erp-span-unit-price: 15;
+    --erp-span-action: 10;
     align-items: end;
   }
 
@@ -1472,6 +1495,28 @@
     .erp-form-grid > [data-field-type="full"] {
       grid-column: 1 / -1;
     }
+    #repairLogForm .erp-form-grid > [data-field-type="datetime"],
+    #repairLogForm .erp-form-grid > [data-field-type="work-type"],
+    #repairLogForm .erp-form-grid > [data-field-type="machine"],
+    #repairLogForm .erp-form-grid > [data-field-type="reference"] {
+      grid-column: span 1;
+      grid-row: auto;
+    }
+    .erp-form-grid[data-layout-form] > [data-layout-position][data-field-type="textarea"],
+    .erp-form-grid[data-layout-form] > [data-layout-position][data-field-type="file"],
+    .erp-form-grid[data-layout-form] > [data-layout-position][data-field-type="full"],
+    .mmtb-form-grid > .mmtb-form-field-full[data-layout-position] {
+      grid-column: 1 / -1;
+    }
+    .erp-form-grid[data-layout-form] > [data-layout-position],
+    #ycInputFields .erp-form-grid > [data-layout-position],
+    #stockReceiptForm .erp-form-grid > [data-layout-position],
+    #machineReplacementForm .erp-form-grid > [data-layout-position],
+    #repairLogForm .erp-form-grid > [data-layout-position],
+    .mmtb-form-grid > [data-layout-position] {
+      grid-column: span 1;
+      grid-row: auto;
+    }
   }
 
   @media (max-width: 575.98px) {
@@ -1480,6 +1525,15 @@
     }
     .erp-form-grid > [data-field-type] {
       grid-column: 1 / -1;
+    }
+    .erp-form-grid[data-layout-form] > [data-layout-position],
+    #ycInputFields .erp-form-grid > [data-layout-position],
+    #stockReceiptForm .erp-form-grid > [data-layout-position],
+    #machineReplacementForm .erp-form-grid > [data-layout-position],
+    #repairLogForm .erp-form-grid > [data-layout-position],
+    .mmtb-form-grid > [data-layout-position] {
+      grid-column: 1 / -1;
+      grid-row: auto;
     }
   }
   @media (max-width: 575.98px) {
@@ -1496,6 +1550,10 @@
   --sidebar-width: 250px;
   --primary-color: #0d6efd;
   --dark-bg: #1e293b;
+}
+
+.form-layout-fields-table {
+  min-width: 1180px;
 }
 
 .swal2-container {
@@ -1876,12 +1934,16 @@ body {
 
 .mmtb-form-grid {
   display: grid;
-  grid-template-columns: repeat(40, minmax(0, 1fr));
+  grid-template-columns: repeat(var(--layout-grid-columns, 200), minmax(0, 1fr));
   gap: 1rem;
 }
 .mmtb-form-field {
-  grid-column: span var(--mmtb-field-span, 40);
+  grid-column: span var(--mmtb-field-span, 200);
   min-width: 0;
+}
+.mmtb-form-field > .form-label {
+  display: block;
+  min-height: 2.5rem;
 }
 .mmtb-form-field-full {
   grid-column: 1 / -1;

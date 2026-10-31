@@ -138,7 +138,11 @@ function checkPermission(user, action, targetObject) {
     case 'USER_MANAGE':
     case 'KHU_VUC_MANAGE':
     case 'LOAI_YC_MANAGE':
+    case 'FORM_LAYOUT_MANAGE':
       return isAdmin;
+
+    case 'FORM_LAYOUT_VIEW':
+      return true;
 
     default:
       return false;
@@ -158,12 +162,19 @@ function loginUser(maNV, password) {
     });
     
     if (found) {
+      var sessionToken = Utilities.getUuid().replace(/-/g, '');
+      CacheService.getScriptCache().put(
+        'FORM_LAYOUT_SESSION_' + sessionToken,
+        normalizeEmployeeCode(found['Mã NV']),
+        21600
+      );
       return {
         success: true,
         user: { 
           maNV: getCanonicalEmployeeCode(found['Mã NV']),
           hoTen: found['Họ tên'], 
-          vaiTro: found['Vai trò'] || 'Sản xuất' 
+          vaiTro: found['Vai trò'] || 'Sản xuất',
+          formLayoutSessionToken: sessionToken
         }
       };
     }
@@ -237,12 +248,181 @@ function getAppData() {
 }
 
 function getDataRevision() {
-  return DriveApp.getFileById(getDb().getId()).getLastUpdated().getTime();
+  var sheetRevision = DriveApp.getFileById(getDb().getId()).getLastUpdated().getTime();
+  var layoutRevision = PropertiesService.getScriptProperties().getProperty('FORM_LAYOUT_REVISION') || '0';
+  return String(sheetRevision) + '-' + layoutRevision;
 }
 
 function getAppDataSnapshot() {
   var revision = getDataRevision();
   return { revision: revision, data: getAppData() };
+}
+
+function getStoredUserForLayoutConfig(currentUser) {
+  if (!currentUser || !currentUser.maNV) return null;
+  var userCode = normalizeEmployeeCode(currentUser.maNV);
+  return sheetToObjects('USER').find(function(user) {
+    return normalizeEmployeeCode(user['Mã NV']) === userCode;
+  }) || null;
+}
+
+function getAuthenticatedUserForLayoutConfig(currentUser) {
+  var storedUser = getStoredUserForLayoutConfig(currentUser);
+  var token = currentUser && String(currentUser.formLayoutSessionToken || '');
+  if (!storedUser || !/^[a-f0-9]{32}$/i.test(token)) return null;
+  var tokenUserCode = CacheService.getScriptCache().get('FORM_LAYOUT_SESSION_' + token);
+  if (!tokenUserCode || normalizeEmployeeCode(tokenUserCode) !== normalizeEmployeeCode(currentUser.maNV)) return null;
+  return storedUser;
+}
+
+function getFormLayoutConfig(currentUser) {
+  try {
+    if (!getStoredUserForLayoutConfig(currentUser)) {
+      return { success: false, message: 'Vui lòng đăng nhập để tải cấu hình giao diện.' };
+    }
+    var properties = PropertiesService.getScriptProperties().getProperties();
+    var config = { sharedTypes: {}, forms: {} };
+    if (properties.FORM_LAYOUT_SHARED_TYPES) {
+      config.sharedTypes = JSON.parse(properties.FORM_LAYOUT_SHARED_TYPES);
+    }
+    Object.keys(properties).forEach(function(key) {
+      if (key.indexOf('FORM_LAYOUT_FORM_') === 0) {
+        config.forms[key.substring('FORM_LAYOUT_FORM_'.length)] = JSON.parse(properties[key]);
+      }
+    });
+    return { success: true, config: config };
+  } catch (error) {
+    return { success: false, message: 'Không thể đọc cấu hình giao diện: ' + error.message };
+  }
+}
+
+function saveFormLayoutConfig(config, currentUser) {
+  try {
+    var storedUser = getAuthenticatedUserForLayoutConfig(currentUser);
+    if (!storedUser) {
+      return { success: false, message: 'Phiên đăng nhập không hợp lệ hoặc đã hết hạn. Vui lòng đăng nhập lại.' };
+    }
+    if (String(storedUser['Vai trò'] || '').trim().toLowerCase() !== 'admin') {
+      return { success: false, message: 'Chỉ Admin mới được lưu cấu hình giao diện.' };
+    }
+    if (!config || typeof config !== 'object' || Array.isArray(config)) {
+      return { success: false, message: 'Cấu hình giao diện không hợp lệ.' };
+    }
+
+    var allowedTypes = ['text', 'date', 'datetime', 'number', 'textarea', 'select', 'file', 'full', 'work-type', 'request-type', 'area', 'machine', 'reference', 'material', 'unit', 'frequency', 'quantity', 'unit-price', 'amount', 'action'];
+    var allowedInputs = ['auto', 'text', 'date', 'datetime-local', 'number', 'textarea'];
+    var normalized = { sharedTypes: {}, forms: {} };
+    var sharedTypes = config.sharedTypes || {};
+    if (typeof sharedTypes !== 'object' || Array.isArray(sharedTypes)) {
+      return { success: false, message: 'Danh sách kiểu dữ liệu dùng chung không hợp lệ.' };
+    }
+    Object.keys(sharedTypes).forEach(function(type) {
+      var preset = sharedTypes[type];
+      if (allowedTypes.indexOf(type) === -1 || !preset || typeof preset !== 'object') {
+        throw new Error('Kiểu dữ liệu dùng chung không hợp lệ.');
+      }
+      var width = Number(preset.width);
+      var inputType = String(preset.inputType || 'auto');
+      if (!Number.isInteger(width) || width < 1 || width > 100 || allowedInputs.indexOf(inputType) === -1) {
+        throw new Error('Độ rộng hoặc loại input của kiểu ' + type + ' không hợp lệ.');
+      }
+      normalized.sharedTypes[type] = { width: width, inputType: inputType };
+    });
+
+    var forms = config.forms || {};
+    if (typeof forms !== 'object' || Array.isArray(forms)) {
+      return { success: false, message: 'Danh sách modal cấu hình không hợp lệ.' };
+    }
+    if (Object.keys(forms).length > 20) {
+      return { success: false, message: 'Chỉ được cấu hình tối đa 20 modal.' };
+    }
+    Object.keys(forms).forEach(function(formId) {
+      if (!/^[A-Za-z][A-Za-z0-9_-]{0,59}$/.test(formId)) {
+        throw new Error('Mã modal không hợp lệ.');
+      }
+      var form = forms[formId];
+      if (!form || typeof form !== 'object' || Array.isArray(form)) {
+        throw new Error('Cấu hình modal ' + formId + ' không hợp lệ.');
+      }
+      var columns = form.columns === null || form.columns === '' || form.columns === undefined ? null : Number(form.columns);
+      if (columns !== null && (!Number.isInteger(columns) || columns < 1 || columns > 24)) {
+        throw new Error('Số cột của modal phải từ 1 đến 24.');
+      }
+      var normalizedForm = { columns: columns, fields: {} };
+      var fields = form.fields || {};
+      if (typeof fields !== 'object' || Array.isArray(fields)) {
+        throw new Error('Danh sách trường của modal ' + formId + ' không hợp lệ.');
+      }
+      var maxGridColumns = columns || (formId === 'mmtbForm' ? 200 : 100);
+      if (Object.keys(fields).length > 100) {
+        throw new Error('Modal ' + formId + ' có quá nhiều trường cấu hình.');
+      }
+      Object.keys(fields).forEach(function(fieldId) {
+        if (!/^[A-Za-z][A-Za-z0-9_-]{0,79}$/.test(fieldId)) {
+          throw new Error('Mã trường không hợp lệ trong modal ' + formId + '.');
+        }
+        var field = fields[fieldId];
+        if (!field || typeof field !== 'object' || Array.isArray(field)) {
+          throw new Error('Cấu hình trường ' + fieldId + ' không hợp lệ.');
+        }
+        var type = String(field.type || 'text');
+        var width = field.width === null || field.width === '' || field.width === undefined ? null : Number(field.width);
+        var row = field.row === null || field.row === '' || field.row === undefined ? null : Number(field.row);
+        var column = field.column === null || field.column === '' || field.column === undefined ? null : Number(field.column);
+        var span = field.span === null || field.span === '' || field.span === undefined ? null : Number(field.span);
+        var order = field.order === null || field.order === '' || field.order === undefined ? null : Number(field.order);
+        var required = field.required === null || field.required === undefined || field.required === '' ? null : field.required;
+        var inputType = field.inputType === null || field.inputType === undefined || field.inputType === '' ? null : String(field.inputType);
+        var label = field.label === null || field.label === undefined ? '' : String(field.label).trim();
+        if (allowedTypes.indexOf(type) === -1 ||
+            (width !== null && (!Number.isInteger(width) || width < 1 || width > 100)) ||
+            (row !== null && (!Number.isInteger(row) || row < 1 || row > 100)) ||
+            (column !== null && (!Number.isInteger(column) || column < 1 || column > maxGridColumns)) ||
+            (span !== null && (!Number.isInteger(span) || span < 1 || span > maxGridColumns)) ||
+            (order !== null && (!Number.isInteger(order) || order < 0 || order > 100)) ||
+            (column !== null && span !== null && column + span - 1 > maxGridColumns) ||
+            (required !== null && typeof required !== 'boolean') ||
+            (inputType !== null && allowedInputs.indexOf(inputType) === -1) ||
+            label.length > 80) {
+          throw new Error('Giá trị cấu hình không hợp lệ cho trường ' + fieldId + '.');
+        }
+        normalizedForm.fields[fieldId] = {
+          type: type,
+          useShared: field.useShared === true,
+          width: width,
+          row: row,
+          column: column,
+          span: span,
+          order: order,
+          label: label,
+          required: required,
+          inputType: inputType
+        };
+      });
+      normalized.forms[formId] = normalizedForm;
+    });
+
+    var properties = PropertiesService.getScriptProperties();
+    var updates = {
+      FORM_LAYOUT_SHARED_TYPES: JSON.stringify(normalized.sharedTypes),
+      FORM_LAYOUT_REVISION: String(new Date().getTime())
+    };
+    Object.keys(normalized.forms).forEach(function(formId) {
+      updates['FORM_LAYOUT_FORM_' + formId] = JSON.stringify(normalized.forms[formId]);
+    });
+    var serializedValues = Object.keys(updates).map(function(key) { return updates[key]; });
+    if (serializedValues.some(function(value) { return Utilities.newBlob(value).getBytes().length > 8000; })) {
+      return { success: false, message: 'Cấu hình quá lớn để lưu. Hãy rút gọn nội dung nhãn.' };
+    }
+    var existingKeys = Object.keys(properties.getProperties()).filter(function(key) {
+      return key.indexOf('FORM_LAYOUT_FORM_') === 0 && !Object.prototype.hasOwnProperty.call(updates, key);
+    });
+    properties.setProperties(updates, false);
+    existingKeys.forEach(function(key) { properties.deleteProperty(key); });
+    return { success: true, message: 'Đã lưu cấu hình giao diện dùng chung.' };
+  } catch (error) {
+    return { success: false, message: 'Không thể lưu cấu hình giao diện: ' + error.message };
+  }
 }
 
 function saveMachineReplacementItem(data, currentUser) {

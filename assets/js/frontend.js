@@ -12,6 +12,32 @@
   var dataSyncIntervalMs = 15000;
   var pendingReferenceCreate = null;
   var appDeleteConfirmationResolver = null;
+  var formLayoutConfig = { sharedTypes: {}, forms: {} };
+  var formLayoutRegistry = [];
+  var formLayoutLoaded = false;
+  var pendingFormLayoutConfig = null;
+  var formLayoutTypes = [
+    { id: 'text', label: 'Văn bản', width: 25, inputType: 'auto' },
+    { id: 'date', label: 'Ngày', width: 20, inputType: 'date' },
+    { id: 'datetime', label: 'Ngày giờ', width: 20, inputType: 'datetime-local' },
+    { id: 'number', label: 'Số', width: 15, inputType: 'number' },
+    { id: 'textarea', label: 'Ghi chú dài', width: 100, inputType: 'textarea' },
+    { id: 'select', label: 'Danh sách chọn', width: 25, inputType: 'auto' },
+    { id: 'file', label: 'Tệp đính kèm', width: 100, inputType: 'auto' },
+    { id: 'full', label: 'Toàn dòng', width: 100, inputType: 'auto' },
+    { id: 'work-type', label: 'Loại công việc', width: 20, inputType: 'auto' },
+    { id: 'request-type', label: 'Loại yêu cầu', width: 25, inputType: 'auto' },
+    { id: 'area', label: 'Khu vực', width: 25, inputType: 'auto' },
+    { id: 'machine', label: 'Máy móc', width: 25, inputType: 'auto' },
+    { id: 'reference', label: 'Mã tham chiếu', width: 25, inputType: 'auto' },
+    { id: 'material', label: 'Vật tư', width: 30, inputType: 'auto' },
+    { id: 'unit', label: 'Đơn vị tính', width: 10, inputType: 'auto' },
+    { id: 'frequency', label: 'Tần suất', width: 20, inputType: 'number' },
+    { id: 'quantity', label: 'Số lượng', width: 15, inputType: 'number' },
+    { id: 'unit-price', label: 'Đơn giá', width: 15, inputType: 'number' },
+    { id: 'amount', label: 'Thành tiền', width: 15, inputType: 'auto' },
+    { id: 'action', label: 'Thao tác', width: 10, inputType: 'auto' }
+  ];
 
   function showAppDeleteConfirmation(options) {
     var modal = document.getElementById('appDeleteConfirmModal');
@@ -234,8 +260,14 @@
       }
     });
     document.addEventListener('hidden.bs.modal', function() {
+      if (pendingFormLayoutConfig && !isAnyModalOpen()) {
+        var savedLayoutConfig = pendingFormLayoutConfig;
+        pendingFormLayoutConfig = null;
+        applyLoadedFormLayoutConfig(savedLayoutConfig);
+      }
       if (pendingDataSync && !isAnyModalOpen()) {
         pendingDataSync = false;
+        loadFormLayoutConfig();
         loadAllData();
       }
     });
@@ -290,8 +322,538 @@
     document.getElementById('current-user-id').innerText = currentUser.maNV;
     document.getElementById('current-user-role').innerText = currentUser.vaiTro || 'Sản xuất';
 
+    var canManageFormLayout = can('FORM_LAYOUT_MANAGE');
+    document.getElementById('nav-system-layout').classList.toggle('d-none', !canManageFormLayout);
+    document.getElementById('mobile-nav-system-layout').classList.toggle('d-none', !canManageFormLayout);
+    if (!formLayoutRegistry.length) registerFormLayoutFields();
+    formLayoutLoaded = false;
+    formLayoutConfig = { sharedTypes: {}, forms: {} };
+    applyFormLayoutConfig();
+    loadFormLayoutConfig();
     loadAllData();
     startDataSyncPolling();
+  }
+
+  function getFormLayoutType(typeId) {
+    return formLayoutTypes.find(function(type) { return type.id === typeId; }) || formLayoutTypes[0];
+  }
+
+  function getFormLayoutPreset(typeId) {
+    var type = getFormLayoutType(typeId);
+    return formLayoutConfig.sharedTypes[typeId] || { width: type.width, inputType: type.inputType };
+  }
+
+  function getFormLayoutControls(field) {
+    return Array.from(field.querySelectorAll('input:not([type="hidden"]), select, textarea'));
+  }
+
+  function getFormLayoutPrimaryControl(field) {
+    var controls = getFormLayoutControls(field);
+    return controls.find(function(control) { return control.id === field.dataset.layoutFieldId; }) || controls[0] || null;
+  }
+
+  function registerFormLayoutFields() {
+    formLayoutRegistry = [];
+    document.querySelectorAll('[data-layout-form]').forEach(function(grid) {
+      var isMachineGrid = grid.classList.contains('mmtb-form-grid');
+      var formId = grid.dataset.layoutForm;
+      var defaultColumns = isMachineGrid ? 200 : 100;
+      grid.dataset.layoutDefaultColumns = String(defaultColumns);
+      var fields = [];
+
+      Array.from(grid.children).forEach(function(field) {
+        if (!field.hasAttribute('data-field-type') && !field.classList.contains('mmtb-form-field')) return;
+        var control = field.querySelector('input:not([type="hidden"]), select, textarea');
+        var label = field.querySelector('.form-label');
+        if (control && control.type === 'password') return;
+        var fieldId = (control && control.id) || (label && label.getAttribute('for'));
+        if (!fieldId) return;
+
+        var type = field.dataset.layoutType || field.dataset.fieldType || 'text';
+        var span = null;
+        if (isMachineGrid) {
+          span = Number(field.style.getPropertyValue('--mmtb-field-span')) || defaultColumns;
+          if (field.classList.contains('mmtb-form-field-full')) span = defaultColumns;
+        } else if (field.dataset.fieldType === 'full' || type === 'full' || type === 'textarea') {
+          span = defaultColumns;
+        } else {
+          var gridStyles = window.getComputedStyle(grid);
+          var variableName = '--erp-span-' + type;
+          var configuredSpan = gridStyles.getPropertyValue(variableName).trim();
+          span = configuredSpan ? Number(configuredSpan) : defaultColumns;
+          if (!Number.isFinite(span) || span <= 0) span = defaultColumns;
+        }
+
+        if (!field.dataset.layoutDefaultLabel) {
+          field.dataset.layoutDefaultLabel = label ? label.textContent.trim().replace(/\s+/g, ' ') : fieldId;
+        }
+        if (!field.dataset.layoutDefaultRequired) {
+          field.dataset.layoutDefaultRequired = String(control.required);
+        }
+        if (!field.dataset.layoutOriginalTag) {
+          field.dataset.layoutOriginalTag = control.tagName.toLowerCase();
+          field.dataset.layoutOriginalType = control.tagName.toLowerCase() === 'textarea' ? 'textarea'
+            : control.tagName.toLowerCase() === 'input' ? control.type : '';
+        }
+        field.dataset.layoutBaseType = type;
+        field.dataset.layoutBasePercent = String(Math.max(1, Math.min(100, span / defaultColumns * 100)));
+        if (field.dataset.layoutBaseRow === undefined && getComputedStyle(field).gridRowStart !== 'auto') {
+          field.dataset.layoutBaseRow = getComputedStyle(field).gridRowStart;
+        }
+        fields.push({ id: fieldId, element: field, label: label, defaultLabel: field.dataset.layoutDefaultLabel, type: type });
+      });
+
+      formLayoutRegistry.push({
+        id: formId,
+        title: grid.dataset.layoutTitle || formId,
+        grid: grid,
+        defaultColumns: defaultColumns,
+        fields: fields
+      });
+    });
+  }
+
+  function setFormLayoutControlType(field, inputType) {
+    var control = getFormLayoutPrimaryControl(field);
+    if (!control) return inputType && inputType !== 'auto' ? 'Trường này chưa có input cố định để đổi loại.' : '';
+
+    var originalType = field.dataset.layoutOriginalType || 'text';
+    var targetType = inputType && inputType !== 'auto' ? inputType : originalType;
+    if (field.dataset.layoutPreserveType === 'true' && targetType !== originalType) {
+      return 'Loại input của trường này được giữ nguyên để bảo toàn định dạng dữ liệu.';
+    }
+    if (control.tagName.toLowerCase() === 'select' || control.type === 'file') {
+      return targetType === originalType ? '' : 'Trường chọn hoặc tệp không thể đổi loại input.';
+    }
+    var targetTag = targetType === 'textarea' ? 'textarea' : 'input';
+    if (targetTag === control.tagName.toLowerCase() && (targetTag === 'textarea' || control.type === targetType)) return '';
+    if (targetTag === 'input' && !['text', 'date', 'datetime-local', 'number'].includes(targetType)) {
+      return 'Loại input "' + targetType + '" không được hỗ trợ.';
+    }
+
+    var replacement = document.createElement(targetTag);
+    Array.from(control.attributes).forEach(function(attribute) {
+      if (attribute.name === 'type' || attribute.name === 'value' || (targetTag === 'textarea' && attribute.name === 'rows')) return;
+      replacement.setAttribute(attribute.name, attribute.value);
+    });
+    if (targetTag === 'input') replacement.type = targetType;
+    else replacement.rows = control.rows || 3;
+    replacement.value = control.value;
+    if (replacement.value !== control.value) {
+      return 'Giá trị hiện tại không tương thích với loại input "' + targetType + '".';
+    }
+    control.replaceWith(replacement);
+    return '';
+  }
+
+  function applyFormLayoutConfig() {
+    var inputTypeWarnings = [];
+    formLayoutRegistry.forEach(function(form) {
+      var formSettings = formLayoutConfig.forms[form.id] || {};
+      var columns = Number(formSettings.columns) || form.defaultColumns;
+      if (formSettings.columns) form.grid.style.setProperty('--layout-grid-columns', String(columns));
+      else form.grid.style.removeProperty('--layout-grid-columns');
+
+      form.fields.forEach(function(fieldInfo) {
+        var field = fieldInfo.element;
+        var fieldId = fieldInfo.id;
+        field.dataset.layoutFieldId = fieldId;
+        var settings = formSettings.fields && formSettings.fields[fieldId] || {};
+        var type = settings.type || field.dataset.layoutBaseType;
+        field.dataset.layoutType = type;
+
+        if (fieldInfo.label) {
+          fieldInfo.label.textContent = settings.label || fieldInfo.defaultLabel;
+        }
+        var required = settings.required === null || settings.required === undefined
+          ? field.dataset.layoutDefaultRequired === 'true'
+          : settings.required === true;
+        var primaryControl = getFormLayoutPrimaryControl(field);
+        if (primaryControl) primaryControl.required = required;
+        else if (settings.required !== null && settings.required !== undefined) {
+          inputTypeWarnings.push(fieldInfo.defaultLabel + ': trường động không hỗ trợ đổi trạng thái bắt buộc tại đây.');
+        }
+
+        var shared = settings.useShared === true ? getFormLayoutPreset(type) : null;
+        var inputType = settings.inputType || (shared && shared.inputType) || 'auto';
+        var typeWarning = setFormLayoutControlType(field, inputType);
+        if (typeWarning) inputTypeWarnings.push(fieldInfo.defaultLabel + ': ' + typeWarning);
+
+        var width = settings.width === null || settings.width === undefined ? null : Number(settings.width);
+        if (width === null && shared) width = Number(shared.width);
+        var hasPlacement = width !== null || settings.row !== null && settings.row !== undefined ||
+          settings.column !== null && settings.column !== undefined || settings.span !== null && settings.span !== undefined ||
+          !!formSettings.columns || type !== field.dataset.layoutBaseType;
+        if (!hasPlacement) {
+          field.removeAttribute('data-layout-position');
+          field.style.removeProperty('--layout-grid-column');
+          field.style.removeProperty('--layout-grid-row');
+        } else {
+          var defaultPercent = ['file', 'full', 'textarea'].includes(type)
+            ? 100
+            : Number(field.dataset.layoutBasePercent);
+          var span = Number(settings.span) || Math.round(columns * (width === null ? defaultPercent : width) / 100);
+          span = Math.max(1, Math.min(columns, span));
+          var column = Number(settings.column);
+          field.style.setProperty('--layout-grid-column', (column > 0 ? column : 'auto') + ' / span ' + span);
+          var row = Number(settings.row) || Number(field.dataset.layoutBaseRow) || 0;
+          if (row > 0) field.style.setProperty('--layout-grid-row', String(row));
+          else field.style.removeProperty('--layout-grid-row');
+          field.setAttribute('data-layout-position', 'true');
+        }
+
+        var order = settings.order === null || settings.order === undefined ? null : Number(settings.order);
+        if (order === null) field.style.removeProperty('order');
+        else field.style.order = String(order);
+      });
+    });
+    return inputTypeWarnings;
+  }
+
+  function loadFormLayoutConfig() {
+    google.script.run
+      .withSuccessHandler(function(result) {
+        if (!result || !result.success || !result.config) {
+          Swal.fire('Không tải được cấu hình', result && result.message ? result.message : 'Backend không trả về cấu hình giao diện.', 'error');
+          return;
+        }
+        if (isAnyModalOpen()) {
+          pendingFormLayoutConfig = result.config;
+          return;
+        }
+        applyLoadedFormLayoutConfig(result.config);
+      })
+      .withFailureHandler(function(error) {
+        Swal.fire('Lỗi cấu hình', error && error.message ? error.message : 'Không thể tải cấu hình giao diện từ GAS.', 'error');
+      })
+      .getFormLayoutConfig(currentUser);
+  }
+
+  function applyLoadedFormLayoutConfig(config) {
+    formLayoutConfig = config;
+    formLayoutConfig.sharedTypes = formLayoutConfig.sharedTypes || {};
+    formLayoutConfig.forms = formLayoutConfig.forms || {};
+    formLayoutLoaded = true;
+    var warnings = applyFormLayoutConfig();
+    if (can('FORM_LAYOUT_MANAGE')) renderFormLayoutManager();
+    if (warnings.length) {
+      var status = document.getElementById('formLayoutStatus');
+      status.className = 'small mt-2 text-warning';
+      status.textContent = 'Chưa áp dụng một số loại input: ' + warnings.join(' ');
+      console.warn('Một số kiểu input không tương thích với dữ liệu:', warnings);
+    }
+  }
+
+  function createFormLayoutOption(select, value, label) {
+    var option = document.createElement('option');
+    option.value = value;
+    option.textContent = label;
+    select.appendChild(option);
+  }
+
+  function createFormLayoutInput(type, value, attributes) {
+    var input = document.createElement('input');
+    input.type = type;
+    input.className = 'form-control form-control-sm';
+    if (value !== null && value !== undefined) input.value = String(value);
+    Object.keys(attributes || {}).forEach(function(key) { input.setAttribute(key, attributes[key]); });
+    return input;
+  }
+
+  function renderFormLayoutManager() {
+    if (!can('FORM_LAYOUT_MANAGE')) return;
+    if (!formLayoutRegistry.length) registerFormLayoutFields();
+
+    var sharedBody = document.getElementById('formLayoutSharedTypesBody');
+    sharedBody.innerHTML = '';
+    formLayoutTypes.forEach(function(type) {
+      var preset = getFormLayoutPreset(type.id);
+      var row = document.createElement('tr');
+      var nameCell = document.createElement('td');
+      nameCell.textContent = type.label;
+      row.appendChild(nameCell);
+
+      var widthCell = document.createElement('td');
+      var widthInput = createFormLayoutInput('number', preset.width, { min: '1', max: '100', 'data-layout-shared-width': type.id, 'aria-label': 'Độ rộng ' + type.label });
+      widthCell.appendChild(widthInput);
+      row.appendChild(widthCell);
+
+      var inputCell = document.createElement('td');
+      var inputSelect = document.createElement('select');
+      inputSelect.className = 'form-select form-select-sm';
+      inputSelect.dataset.layoutSharedInput = type.id;
+      [
+        ['auto', 'Giữ nguyên'],
+        ['text', 'Văn bản'],
+        ['textarea', 'Textarea'],
+        ['date', 'Ngày'],
+        ['datetime-local', 'Ngày giờ'],
+        ['number', 'Số']
+      ].forEach(function(option) {
+        createFormLayoutOption(inputSelect, option[0], option[1]);
+      });
+      inputSelect.value = preset.inputType || 'auto';
+      inputCell.appendChild(inputSelect);
+      row.appendChild(inputCell);
+      sharedBody.appendChild(row);
+    });
+
+    var formSelect = document.getElementById('formLayoutFormSelect');
+    var selectedFormId = formSelect.value;
+    formSelect.innerHTML = '';
+    formLayoutRegistry.forEach(function(form) {
+      createFormLayoutOption(formSelect, form.id, form.title);
+    });
+    if (formLayoutRegistry.some(function(form) { return form.id === selectedFormId; })) formSelect.value = selectedFormId;
+    else if (formLayoutRegistry.length) formSelect.value = formLayoutRegistry[0].id;
+    renderFormLayoutFields();
+  }
+
+  function renderFormLayoutFields() {
+    var formId = document.getElementById('formLayoutFormSelect').value;
+    var form = formLayoutRegistry.find(function(item) { return item.id === formId; });
+    var body = document.getElementById('formLayoutFieldsBody');
+    if (!body) return;
+    body.innerHTML = '';
+    if (!form) return;
+
+    var settings = formLayoutConfig.forms[form.id] || {};
+    var savedFields = settings.fields || {};
+    document.getElementById('formLayoutGridColumns').value = settings.columns || '';
+    form.fields.forEach(function(fieldInfo) {
+      var saved = savedFields[fieldInfo.id] || {};
+      var row = document.createElement('tr');
+      row.dataset.layoutEditorField = fieldInfo.id;
+      var name = document.createElement('td');
+      name.textContent = fieldInfo.defaultLabel;
+      name.className = 'small fw-semibold';
+      row.appendChild(name);
+
+      var typeCell = document.createElement('td');
+      var typeSelect = document.createElement('select');
+      typeSelect.className = 'form-select form-select-sm';
+      typeSelect.dataset.layoutFieldProperty = 'type';
+      formLayoutTypes.forEach(function(type) { createFormLayoutOption(typeSelect, type.id, type.label); });
+      typeSelect.value = saved.type || fieldInfo.type;
+      typeCell.appendChild(typeSelect);
+      row.appendChild(typeCell);
+
+      var sharedCell = document.createElement('td');
+      sharedCell.className = 'text-center';
+      var sharedInput = document.createElement('input');
+      sharedInput.type = 'checkbox';
+      sharedInput.className = 'form-check-input';
+      sharedInput.checked = saved.useShared === true;
+      sharedInput.dataset.layoutFieldProperty = 'useShared';
+      sharedInput.setAttribute('aria-label', 'Dùng kiểu chung cho ' + fieldInfo.defaultLabel);
+      sharedCell.appendChild(sharedInput);
+      row.appendChild(sharedCell);
+
+      [
+        ['width', saved.width, '1', '100', 'Độ rộng phần trăm'],
+        ['row', saved.row, '1', '100', 'Dòng grid'],
+        ['column', saved.column, '1', '200', 'Cột bắt đầu'],
+        ['span', saved.span, '1', '200', 'Số cột span'],
+        ['order', saved.order, '0', '100', 'Thứ tự trường']
+      ].forEach(function(spec) {
+        var cell = document.createElement('td');
+        var input = createFormLayoutInput('number', spec[1], {
+          min: spec[2],
+          max: spec[3],
+          placeholder: 'Mặc định',
+          'data-layout-field-property': spec[0],
+          'aria-label': spec[4]
+        });
+        cell.appendChild(input);
+        row.appendChild(cell);
+      });
+
+      var labelCell = document.createElement('td');
+      var labelInput = createFormLayoutInput('text', saved.label || '', {
+        maxlength: '80',
+        placeholder: fieldInfo.defaultLabel,
+        'data-layout-field-property': 'label',
+        'aria-label': 'Nhãn của ' + fieldInfo.defaultLabel
+      });
+      labelCell.appendChild(labelInput);
+      row.appendChild(labelCell);
+
+      var requiredCell = document.createElement('td');
+      var requiredSelect = document.createElement('select');
+      requiredSelect.className = 'form-select form-select-sm';
+      requiredSelect.dataset.layoutFieldProperty = 'required';
+      createFormLayoutOption(requiredSelect, '', 'Mặc định');
+      createFormLayoutOption(requiredSelect, 'true', 'Bắt buộc');
+      createFormLayoutOption(requiredSelect, 'false', 'Không bắt buộc');
+      requiredSelect.value = saved.required === true ? 'true' : saved.required === false ? 'false' : '';
+      requiredCell.appendChild(requiredSelect);
+      row.appendChild(requiredCell);
+
+      var inputTypeCell = document.createElement('td');
+      var inputTypeSelect = document.createElement('select');
+      inputTypeSelect.className = 'form-select form-select-sm';
+      inputTypeSelect.dataset.layoutFieldProperty = 'inputType';
+      [
+        ['', 'Theo kiểu chung'],
+        ['auto', 'Giữ nguyên'],
+        ['text', 'Văn bản'],
+        ['textarea', 'Textarea'],
+        ['date', 'Ngày'],
+        ['datetime-local', 'Ngày giờ'],
+        ['number', 'Số']
+      ].forEach(function(option) { createFormLayoutOption(inputTypeSelect, option[0], option[1]); });
+      inputTypeSelect.value = saved.inputType || '';
+      inputTypeCell.appendChild(inputTypeSelect);
+      row.appendChild(inputTypeCell);
+
+      body.appendChild(row);
+    });
+    updateFormLayoutGridColumnLimits();
+  }
+
+  function updateFormLayoutGridColumnLimits() {
+    var formId = document.getElementById('formLayoutFormSelect').value;
+    var form = formLayoutRegistry.find(function(item) { return item.id === formId; });
+    if (!form) return;
+    var configuredColumns = Number(document.getElementById('formLayoutGridColumns').value);
+    var maxColumns = configuredColumns || form.defaultColumns;
+    document.querySelectorAll('#formLayoutFieldsBody [data-layout-field-property="column"], #formLayoutFieldsBody [data-layout-field-property="span"]')
+      .forEach(function(input) { input.max = String(maxColumns); });
+  }
+
+  function readOptionalFormLayoutNumber(row, property, min, max) {
+    var input = row.querySelector('[data-layout-field-property="' + property + '"]');
+    if (!input || input.value.trim() === '') return null;
+    var value = Number(input.value);
+    if (!Number.isInteger(value) || value < min || value > max) {
+      throw new Error('Giá trị ' + property + ' của trường "' + row.dataset.layoutEditorField + '" phải từ ' + min + ' đến ' + max + '.');
+    }
+    return value;
+  }
+
+  function collectFormLayoutConfigFromUI() {
+    var nextConfig = JSON.parse(JSON.stringify(formLayoutConfig));
+    nextConfig.sharedTypes = nextConfig.sharedTypes || {};
+    nextConfig.forms = nextConfig.forms || {};
+    document.querySelectorAll('[data-layout-shared-width]').forEach(function(input) {
+      var type = input.dataset.layoutSharedWidth;
+      var width = Number(input.value);
+      if (!Number.isInteger(width) || width < 1 || width > 100) {
+        throw new Error('Độ rộng kiểu dùng chung "' + getFormLayoutType(type).label + '" phải từ 1 đến 100%.');
+      }
+      var inputType = document.querySelector('[data-layout-shared-input="' + type + '"]').value;
+      nextConfig.sharedTypes[type] = { width: width, inputType: inputType };
+    });
+
+    var formId = document.getElementById('formLayoutFormSelect').value;
+    var columnsValue = document.getElementById('formLayoutGridColumns').value.trim();
+    var columns = columnsValue ? Number(columnsValue) : null;
+    if (columns !== null && (!Number.isInteger(columns) || columns < 1 || columns > 24)) {
+      throw new Error('Số cột grid phải từ 1 đến 24.');
+    }
+    var form = formLayoutRegistry.find(function(item) { return item.id === formId; });
+    if (!form) throw new Error('Không tìm thấy modal đang cấu hình.');
+    var effectiveColumns = columns || form.defaultColumns;
+    var fieldSettings = {};
+    document.querySelectorAll('#formLayoutFieldsBody [data-layout-editor-field]').forEach(function(row) {
+      var fieldId = row.dataset.layoutEditorField;
+      var valueFor = function(property) {
+        return row.querySelector('[data-layout-field-property="' + property + '"]').value;
+      };
+      var requiredValue = valueFor('required');
+      var inputTypeValue = valueFor('inputType');
+      var width = readOptionalFormLayoutNumber(row, 'width', 1, 100);
+      var gridRow = readOptionalFormLayoutNumber(row, 'row', 1, 100);
+      var column = readOptionalFormLayoutNumber(row, 'column', 1, effectiveColumns);
+      var span = readOptionalFormLayoutNumber(row, 'span', 1, effectiveColumns);
+      var order = readOptionalFormLayoutNumber(row, 'order', 0, 100);
+      var type = valueFor('type');
+      var useShared = row.querySelector('[data-layout-field-property="useShared"]').checked;
+      var sharedPreset = nextConfig.sharedTypes[type] || getFormLayoutType(type);
+      var configuredWidth = width === null && useShared ? Number(sharedPreset.width) : width;
+      var fieldInfo = form.fields.find(function(item) { return item.id === fieldId; });
+      var defaultPercent = ['file', 'full', 'textarea'].includes(type)
+        ? 100
+        : Number(fieldInfo.element.dataset.layoutBasePercent);
+      var effectiveSpan = span === null
+        ? Math.max(1, Math.round(effectiveColumns * (configuredWidth === null ? defaultPercent : configuredWidth) / 100))
+        : span;
+      if (column !== null && column + effectiveSpan - 1 > effectiveColumns) {
+        throw new Error('Cột và Span của trường "' + fieldId + '" vượt quá số cột của modal.');
+      }
+      fieldSettings[fieldId] = {
+        type: type,
+        useShared: useShared,
+        width: width,
+        row: gridRow,
+        column: column,
+        span: span,
+        order: order,
+        label: valueFor('label').trim(),
+        required: requiredValue === '' ? null : requiredValue === 'true',
+        inputType: inputTypeValue || null
+      };
+    });
+    nextConfig.forms[formId] = { columns: columns, fields: fieldSettings };
+    return nextConfig;
+  }
+
+  function saveFormLayoutConfigObject(nextConfig) {
+    var status = document.getElementById('formLayoutStatus');
+    status.className = 'small mt-2 text-muted';
+    status.textContent = 'Đang lưu cấu hình...';
+    google.script.run
+      .withSuccessHandler(function(result) {
+        if (!result || !result.success) {
+          status.className = 'small mt-2 text-danger';
+          status.textContent = result && result.message ? result.message : 'Không thể lưu cấu hình.';
+          return;
+        }
+        formLayoutConfig = nextConfig;
+        var warnings = applyFormLayoutConfig();
+        renderFormLayoutManager();
+        status.className = warnings.length ? 'small mt-2 text-warning' : 'small mt-2 text-success';
+        status.textContent = warnings.length
+          ? 'Đã lưu. Một số loại input chưa áp dụng được: ' + warnings.join(' ')
+          : result.message || 'Đã lưu cấu hình.';
+      })
+      .withFailureHandler(function(error) {
+        status.className = 'small mt-2 text-danger';
+        status.textContent = error && error.message ? error.message : 'Lỗi khi lưu cấu hình lên GAS.';
+      })
+      .saveFormLayoutConfig(nextConfig, currentUser);
+  }
+
+  function saveFormLayoutConfigFromUI() {
+    if (!can('FORM_LAYOUT_MANAGE')) {
+      Swal.fire('Không có quyền', 'Chỉ Admin mới được lưu cấu hình giao diện.', 'warning');
+      return;
+    }
+    if (!currentUser.formLayoutSessionToken) {
+      document.getElementById('formLayoutStatus').className = 'small mt-2 text-warning';
+      document.getElementById('formLayoutStatus').textContent = 'Phiên đăng nhập cũ chưa có mã xác thực. Vui lòng đăng xuất rồi đăng nhập lại.';
+      return;
+    }
+    if (!formLayoutLoaded) {
+      document.getElementById('formLayoutStatus').className = 'small mt-2 text-warning';
+      document.getElementById('formLayoutStatus').textContent = 'Cấu hình giao diện chưa tải xong từ GAS.';
+      return;
+    }
+    try {
+      saveFormLayoutConfigObject(collectFormLayoutConfigFromUI());
+    } catch (error) {
+      document.getElementById('formLayoutStatus').className = 'small mt-2 text-danger';
+      document.getElementById('formLayoutStatus').textContent = error.message;
+    }
+  }
+
+  function resetFormLayoutConfig() {
+    if (!can('FORM_LAYOUT_MANAGE') || !formLayoutLoaded) return;
+    var formId = document.getElementById('formLayoutFormSelect').value;
+    if (!formId) return;
+    var nextConfig = JSON.parse(JSON.stringify(formLayoutConfig));
+    nextConfig.forms[formId] = { columns: null, fields: {} };
+    saveFormLayoutConfigObject(nextConfig);
   }
 
   function loadAllData(onComplete) {
@@ -320,6 +882,17 @@
         renderLoaiYCTab();
         renderDanhMucTab();
         renderInventoryViews();
+        if (formLayoutLoaded) {
+          var layoutWarnings = applyFormLayoutConfig();
+          if (layoutWarnings.length) {
+            console.warn('Một số kiểu input không tương thích với dữ liệu:', layoutWarnings);
+            if (can('FORM_LAYOUT_MANAGE')) {
+              var layoutStatus = document.getElementById('formLayoutStatus');
+              layoutStatus.className = 'small mt-2 text-warning';
+              layoutStatus.textContent = 'Chưa áp dụng một số cấu hình: ' + layoutWarnings.join(' ');
+            }
+          }
+        }
         setDataSyncStatus('Đã đồng bộ lúc ' + new Date().toLocaleTimeString('vi-VN') + ' · tự kiểm tra mỗi 15 giây');
         if (onComplete) onComplete();
         var callbacks = dataSyncCallbacks.splice(0);
@@ -363,6 +936,7 @@
           setDataSyncStatus('Có dữ liệu mới; sẽ cập nhật khi đóng biểu mẫu');
           return;
         }
+        loadFormLayoutConfig();
         loadAllData();
       })
       .withFailureHandler(function(error) {
@@ -377,6 +951,7 @@
     var button = document.getElementById('btnDataSync');
     if (!button || dataSyncLoading) return;
     pendingDataSync = false;
+    loadFormLayoutConfig();
     button.disabled = true;
     button.innerHTML = '<i class="fa-solid fa-rotate fa-spin"></i><span class="d-none d-sm-inline ms-1">Đang đồng bộ</span>';
     setDataSyncStatus('Đang đồng bộ dữ liệu...');
@@ -529,7 +1104,7 @@
       return isAdmin || String(targetItem['Người yêu cầu'] || '').trim() === String(currentUser.maNV).trim();
     }
     if (action === 'REPAIR_LOG_MANAGE' || action === 'KHO_MANAGE') return isKyThuat;
-    if (action === 'MMTB_MANAGE' || action === 'USER_MANAGE' || action === 'KHU_VUC_MANAGE' || action === 'LOAI_YC_MANAGE') return isAdmin;
+    if (action === 'MMTB_MANAGE' || action === 'USER_MANAGE' || action === 'KHU_VUC_MANAGE' || action === 'LOAI_YC_MANAGE' || action === 'FORM_LAYOUT_MANAGE') return isAdmin;
 
     return false;
   }
@@ -1630,6 +2205,14 @@
   }
 
   function switchTab(tabName, element) {
+    if (tabName === 'system' && !can('FORM_LAYOUT_MANAGE')) {
+      Swal.fire('Không có quyền', 'Chỉ Admin mới được quản lý cấu hình giao diện.', 'warning');
+      return;
+    }
+    if (tabName === 'system' && !formLayoutLoaded) {
+      Swal.fire('Đang tải', 'Cấu hình giao diện chưa tải xong từ GAS, vui lòng thử lại sau.', 'info');
+      return;
+    }
     activeTab = tabName;
     document.querySelectorAll('.sidebar .nav-link, .mobile-bottom-nav .nav-item-btn').forEach(function(el) { el.classList.remove('active'); });
     if (element) element.classList.add('active');
@@ -1644,7 +2227,8 @@
       'mmtb': 'Danh mục Máy móc Thiết bị',
       'baocaosx': 'Báo cáo sản xuất',
       'kho': 'Kho & Vật tư',
-      'danhmuc': 'Danh sách Nhân viên & Phân quyền'
+      'danhmuc': 'Danh sách Nhân viên & Phân quyền',
+      'system': 'Quản lý hệ thống'
     };
     document.getElementById('page-title').innerText = titles[tabName] || 'Hệ thống';
 
@@ -1667,6 +2251,8 @@
       renderRepairLogTable();
     } else if (tabName === 'kho') {
       renderInventoryViews();
+    } else if (tabName === 'system') {
+      renderFormLayoutManager();
     }
   }
 

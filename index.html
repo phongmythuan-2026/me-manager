@@ -14,7 +14,7 @@
   <!-- SweetAlert2 -->
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-  <link href="./assets/css/style.css?v=20261031-input-layouts" rel="stylesheet">
+  <link href="./assets/css/style.css?v=20261031-system-form-layout-v4" rel="stylesheet">
 </head>
 <body onclick="hideContextMenu()">
 
@@ -66,6 +66,7 @@
         <a class="nav-link" href="#" onclick="switchTab('baocaosx', this)"><i class="fa-solid fa-file-excel text-success"></i> Báo cáo sản xuất</a>
         <a class="nav-link" href="#" onclick="switchTab('kho', this)"><i class="fa-solid fa-boxes-stacked"></i> Kho & Vật tư</a>
         <a class="nav-link" href="#" onclick="switchTab('danhmuc', this)"><i class="fa-solid fa-users"></i> Nhân viên & Phân quyền</a>
+        <a class="nav-link d-none" id="nav-system-layout" href="#" onclick="switchTab('system', this)"><i class="fa-solid fa-sliders"></i> Quản lý hệ thống</a>
       </div>
     </div>
 
@@ -570,6 +571,50 @@
           </div>
         </div>
 
+        <div id="tab-system" class="tab-pane d-none">
+          <div class="card border-0 shadow-sm mb-3">
+            <div class="card-body">
+              <h5 class="fw-bold text-secondary mb-2"><i class="fa-solid fa-sliders me-2"></i>Cấu hình giao diện biểu mẫu</h5>
+              <p class="small text-muted mb-0">Cấu hình được lưu trên GAS và dùng chung toàn hệ thống. Có thể đặt kiểu/độ rộng dùng chung, hoặc ghi đè từng trường theo modal.</p>
+            </div>
+          </div>
+          <div class="card border-0 shadow-sm mb-3">
+            <div class="card-header bg-white"><h6 class="fw-bold mb-0">Kiểu dữ liệu dùng chung</h6></div>
+            <div class="table-responsive">
+              <table class="table table-sm table-hover align-middle mb-0">
+                <thead class="table-light"><tr><th>Kiểu trường</th><th style="width: 130px;">Độ rộng (%)</th><th style="width: 190px;">Loại input mặc định</th></tr></thead>
+                <tbody id="formLayoutSharedTypesBody"></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="card border-0 shadow-sm">
+            <div class="card-body">
+              <div class="row g-2 align-items-end mb-3">
+                <div class="col-12 col-md-4">
+                  <label class="form-label fw-bold small" for="formLayoutFormSelect">Chọn modal</label>
+                  <select id="formLayoutFormSelect" class="form-select form-select-sm" onchange="renderFormLayoutFields()"></select>
+                </div>
+                <div class="col-6 col-md-2">
+                  <label class="form-label fw-bold small" for="formLayoutGridColumns">Số cột grid</label>
+                  <input id="formLayoutGridColumns" type="number" class="form-control form-control-sm" min="1" max="24" placeholder="Mặc định" oninput="updateFormLayoutGridColumnLimits()">
+                </div>
+                <div class="col-6 col-md-6 d-flex justify-content-md-end gap-2">
+                  <button type="button" class="btn btn-outline-secondary btn-sm" onclick="resetFormLayoutConfig()"><i class="fa-solid fa-rotate-left me-1"></i>Khôi phục mặc định</button>
+                  <button type="button" class="btn btn-primary btn-sm" onclick="saveFormLayoutConfigFromUI()"><i class="fa-solid fa-floppy-disk me-1"></i>Lưu cấu hình</button>
+                </div>
+              </div>
+              <p class="small text-muted">Số cột đặt cho modal; để trống để giữ lưới mặc định. Rộng % và Span điều chỉnh kích thước (Span được ưu tiên nếu nhập cả hai); Hàng/Cột đặt vị trí cố định, để trống thì lưới tự sắp xếp. Trên màn hình nhỏ các trường tự chuyển về một hoặc hai cột.</p>
+              <div class="table-responsive">
+                <table class="table table-sm table-hover align-middle mb-0 form-layout-fields-table">
+                  <thead class="table-light"><tr><th>Trường</th><th>Kiểu dùng chung</th><th class="text-center">Dùng chung</th><th>Rộng %</th><th>Hàng</th><th>Cột</th><th>Span</th><th>Thứ tự</th><th>Nhãn tùy chỉnh</th><th>Bắt buộc</th><th>Input</th></tr></thead>
+                  <tbody id="formLayoutFieldsBody"></tbody>
+                </table>
+              </div>
+              <div id="formLayoutStatus" class="small mt-2" role="status" aria-live="polite"></div>
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
   </div>
@@ -583,6 +628,7 @@
     <button class="nav-item-btn" onclick="switchTab('baocaosx', this)"><i class="fa-solid fa-file-excel"></i><span>Báo cáo sản xuất</span></button>
     <button class="nav-item-btn" onclick="switchTab('kho', this)"><i class="fa-solid fa-boxes-stacked"></i><span>Kho</span></button>
     <button class="nav-item-btn" onclick="switchTab('danhmuc', this)"><i class="fa-solid fa-users"></i><span>Nhân viên</span></button>
+    <button class="nav-item-btn d-none" id="mobile-nav-system-layout" onclick="switchTab('system', this)"><i class="fa-solid fa-sliders"></i><span>Hệ thống</span></button>
   </div>
 
   <!-- CUSTOM CONTEXT MENU -->
@@ -601,7 +647,7 @@
             <input type="hidden" id="ycId">
             <input type="hidden" id="ycCurrentFileUrl">
             <div id="ycInputFields">
-              <div class="erp-form-grid mb-3">
+              <div class="erp-form-grid mb-3" data-layout-form="yeuCauForm" data-layout-title="Tạo yêu cầu">
                 <div data-field-type="request-type">
                   <label class="form-label fw-bold small" for="ycLoai">Loại yêu cầu</label>
                   <select id="ycLoai" class="form-select" required></select>
@@ -772,7 +818,7 @@
           <h5 class="modal-title fw-bold" id="modalMMTBTitle">Quản Lý Máy Móc Thiết Bị</h5>
           <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
         </div>
-        <form onsubmit="handleSaveMMTB(event)">
+        <form id="mmtbForm" onsubmit="handleSaveMMTB(event)">
           <div class="modal-body">
             <input type="hidden" id="mmtbCurrentFileUrl">
             <ul id="mmtbDetailTabs" class="nav nav-tabs mb-3 d-none">
@@ -780,40 +826,40 @@
               <li class="nav-item"><button type="button" class="nav-link" onclick="showMachineDetailTab('replacement', this)">Vật tư thay thế</button></li>
             </ul>
             <div id="mmtbInfoPane">
-            <div class="mmtb-form-grid">
-              <div class="mmtb-form-field" style="--mmtb-field-span: 5">
+            <div class="mmtb-form-grid" data-layout-form="mmtbForm" data-layout-title="Danh mục máy móc">
+              <div class="mmtb-form-field" data-layout-type="text" style="--mmtb-field-span: 25">
                 <label class="form-label fw-bold small">Mã thiết bị</label>
                 <input type="text" id="mmtbMa" class="form-control" placeholder="VD: 030101" required>
               </div>
-              <div class="mmtb-form-field" style="--mmtb-field-span: 15">
+              <div class="mmtb-form-field" data-layout-type="text" style="--mmtb-field-span: 75">
                 <label class="form-label fw-bold small">Tên thiết bị</label>
                 <input type="text" id="mmtbTen" class="form-control" placeholder="Tên máy móc..." required>
               </div>
-              <div class="mmtb-form-field" style="--mmtb-field-span: 10">
+              <div class="mmtb-form-field" data-layout-type="select" style="--mmtb-field-span: 50">
                 <label class="form-label fw-bold small">Khu vực</label>
                 <select id="mmtbKhuVuc" class="form-select" required></select>
               </div>
-              <div class="mmtb-form-field" style="--mmtb-field-span: 2">
+              <div class="mmtb-form-field" data-layout-type="unit" style="--mmtb-field-span: 12">
                 <label class="form-label fw-bold small">ĐVT chính</label>
                 <input type="text" id="mmtbDVT" class="form-control" value="Bộ" list="inventoryUnitSuggestions" autocomplete="on">
               </div>
-              <div class="mmtb-form-field" style="--mmtb-field-span: 4">
+              <div class="mmtb-form-field" data-layout-type="number" style="--mmtb-field-span: 24">
                 <label class="form-label fw-bold small">Công suất tiêu thụ (KW/H)</label>
                 <input type="text" id="mmtbCongSuat" class="form-control" placeholder="VD: 5.5">
               </div>
-              <div class="mmtb-form-field" style="--mmtb-field-span: 13">
+              <div class="mmtb-form-field" data-layout-type="text" style="--mmtb-field-span: 65">
                 <label class="form-label fw-bold small">Hồ sơ tài chính (Link Drive)</label>
                 <input type="text" id="mmtbHoSoTaiChinh" class="form-control" placeholder="https://...">
               </div>
-              <div class="mmtb-form-field" style="--mmtb-field-span: 5">
+              <div class="mmtb-form-field" data-layout-type="text" style="--mmtb-field-span: 30">
                 <label class="form-label fw-bold small">Thông tin / Xuất xứ</label>
                 <input type="text" id="mmtbThongTin" class="form-control" value="Việt Nam">
               </div>
-              <div class="mmtb-form-field" style="--mmtb-field-span: 5">
+              <div class="mmtb-form-field" data-layout-type="date" style="--mmtb-field-span: 28">
                 <label class="form-label fw-bold small">Ngày đưa vào sử dụng</label>
                 <input type="text" id="mmtbNgaySuDung" class="form-control" placeholder="YYYY-MM-DD">
               </div>
-              <div class="mmtb-form-field" style="--mmtb-field-span: 5">
+              <div class="mmtb-form-field" data-layout-type="select" style="--mmtb-field-span: 25">
                 <label class="form-label fw-bold small">Tình trạng</label>
                 <select id="mmtbTinhTrang" class="form-select">
                   <option value="Sử dụng">Sử dụng</option>
@@ -821,15 +867,15 @@
                   <option value="Ngừng">Ngừng</option>
                 </select>
               </div>
-              <div class="mmtb-form-field mmtb-form-field-full">
+              <div class="mmtb-form-field mmtb-form-field-full" data-layout-type="textarea">
                 <label class="form-label fw-bold small">Ghi chú tình trạng</label>
-                <input type="text" id="mmtbGhiChu" class="form-control" placeholder="Ghi chú thêm...">
+                <textarea id="mmtbGhiChu" class="form-control" rows="2" placeholder="Ghi chú thêm..."></textarea>
               </div>
-              <div class="mmtb-form-field mmtb-form-field-full">
+              <div class="mmtb-form-field mmtb-form-field-full" data-layout-type="textarea">
                 <label class="form-label fw-bold small">Thông số kỹ thuật cơ điện</label>
                 <textarea id="mmtbThongSoKT" class="form-control" rows="3"></textarea>
               </div>
-              <div class="mmtb-form-field mmtb-form-field-full">
+              <div class="mmtb-form-field mmtb-form-field-full" data-layout-type="file">
                 <label class="form-label fw-bold small">Hình ảnh MMTB (Nhiều file)</label>
                 <input type="file" id="mmtbFileInput" class="form-control" multiple accept="image/*" onchange="previewSelectedFiles(this, 'filePreviewAreaMMTB', 'fileInfoTextMMTB')">
                 <div id="filePreviewAreaMMTB" class="mt-2 d-none p-2 bg-light border rounded small">
@@ -892,12 +938,12 @@
           <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Đóng"></button>
         </div>
         <form id="khuVucEditorForm" onsubmit="handleSaveKhuVuc(event)">
-          <div class="modal-body">
-            <div class="mb-3">
+          <div class="modal-body erp-form-grid" data-layout-form="khuVucEditorForm" data-layout-title="Khu vực">
+            <div class="mb-3" data-field-type="full" data-layout-type="text">
               <label class="form-label fw-bold small" for="khuVucEditorCode">Mã khu vực</label>
               <input id="khuVucEditorCode" class="form-control" required>
             </div>
-            <div>
+            <div class="mb-3" data-field-type="full" data-layout-type="text">
               <label class="form-label fw-bold small" for="khuVucEditorName">Tên khu vực</label>
               <input id="khuVucEditorName" class="form-control" required>
             </div>
@@ -919,12 +965,12 @@
           <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Đóng"></button>
         </div>
         <form id="loaiYCEditorForm" onsubmit="handleSaveLoaiYC(event)">
-          <div class="modal-body">
-            <div class="mb-3">
+          <div class="modal-body erp-form-grid" data-layout-form="loaiYCEditorForm" data-layout-title="Loại yêu cầu">
+            <div class="mb-3" data-field-type="full" data-layout-type="text">
               <label class="form-label fw-bold small" for="loaiYCEditorCode">Mã yêu cầu</label>
               <input id="loaiYCEditorCode" class="form-control" required>
             </div>
-            <div>
+            <div class="mb-3" data-field-type="full" data-layout-type="text">
               <label class="form-label fw-bold small" for="loaiYCEditorName">Tên yêu cầu</label>
               <input id="loaiYCEditorName" class="form-control" required>
             </div>
@@ -946,21 +992,21 @@
           <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Đóng"></button>
         </div>
         <form id="userEditorForm" onsubmit="handleSaveUser(event)">
-          <div class="modal-body">
-            <div class="mb-3">
+          <div class="modal-body erp-form-grid" data-layout-form="userEditorForm" data-layout-title="Nhân viên">
+            <div class="mb-3" data-field-type="full" data-layout-type="text">
               <label class="form-label fw-bold small" for="userEditorCode">Mã nhân viên</label>
               <input id="userEditorCode" class="form-control" autocomplete="username" required>
             </div>
-            <div class="mb-3">
+            <div class="mb-3" data-field-type="full" data-layout-type="text">
               <label class="form-label fw-bold small" for="userEditorName">Họ tên</label>
               <input id="userEditorName" class="form-control" required>
             </div>
-            <div class="mb-3">
+            <div class="mb-3" data-field-type="full" data-layout-type="text">
               <label class="form-label fw-bold small" for="userEditorPassword">Mật khẩu</label>
               <input id="userEditorPassword" type="password" class="form-control" autocomplete="new-password">
               <div id="userEditorPasswordHelp" class="form-text d-none">Để trống nếu không đổi mật khẩu.</div>
             </div>
-            <div>
+            <div class="mb-3" data-field-type="full" data-layout-type="select">
               <label class="form-label fw-bold small" for="userEditorRole">Vai trò</label>
               <select id="userEditorRole" class="form-select">
                 <option>Admin</option>
@@ -1010,7 +1056,7 @@
           <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
         </div>
         <form id="machineReplacementForm" onsubmit="handleSaveMachineReplacement(event)">
-          <div class="modal-body erp-form-grid">
+          <div class="modal-body erp-form-grid" data-layout-form="machineReplacementForm" data-layout-title="Vật tư thay thế">
             <input type="hidden" id="machineReplacementId">
             <div data-field-type="machine">
               <label class="form-label fw-bold small" for="machineReplacementMachine">Mã máy</label>
@@ -1049,12 +1095,12 @@
       <div class="modal-content border-0 shadow">
         <div class="modal-header bg-success text-white"><h5 class="modal-title fw-bold" id="materialCatalogEditorTitle">Thêm vật tư</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
         <form id="materialCatalogForm" onsubmit="handleSaveMaterialCatalog(event)">
-          <div class="modal-body">
-            <div class="mb-3"><label class="form-label fw-bold small" for="materialCode">Mã vật tư (tự động)</label><input id="materialCode" class="form-control" readonly placeholder="Tự tăng khi lưu"></div>
-            <div class="mb-3"><label class="form-label fw-bold small" for="materialName">Tên vật tư</label><input id="materialName" class="form-control" required></div>
-            <div class="mb-3"><label class="form-label fw-bold small" for="materialUnit">Đvt</label><input id="materialUnit" class="form-control" list="inventoryUnitSuggestions" autocomplete="on"></div>
-            <div class="mb-3"><label class="form-label fw-bold small" for="materialCreator">Người tạo</label><input id="materialCreator" class="form-control" readonly></div>
-            <div class="mb-3"><label class="form-label fw-bold small" for="materialCreatedDate">Ngày tạo</label><input id="materialCreatedDate" class="form-control" readonly placeholder="Tự động khi lưu"></div>
+          <div class="modal-body erp-form-grid" data-layout-form="materialCatalogForm" data-layout-title="Danh mục vật tư">
+            <div class="mb-3" data-field-type="full" data-layout-type="text"><label class="form-label fw-bold small" for="materialCode">Mã vật tư (tự động)</label><input id="materialCode" class="form-control" readonly placeholder="Tự tăng khi lưu"></div>
+            <div class="mb-3" data-field-type="full" data-layout-type="text"><label class="form-label fw-bold small" for="materialName">Tên vật tư</label><input id="materialName" class="form-control" required></div>
+            <div class="mb-3" data-field-type="full" data-layout-type="unit"><label class="form-label fw-bold small" for="materialUnit">Đvt</label><input id="materialUnit" class="form-control" list="inventoryUnitSuggestions" autocomplete="on"></div>
+            <div class="mb-3" data-field-type="full" data-layout-type="text"><label class="form-label fw-bold small" for="materialCreator">Người tạo</label><input id="materialCreator" class="form-control" readonly></div>
+            <div class="mb-3" data-field-type="full" data-layout-type="date"><label class="form-label fw-bold small" for="materialCreatedDate">Ngày tạo</label><input id="materialCreatedDate" class="form-control" readonly placeholder="Tự động khi lưu"></div>
           </div>
           <div class="modal-footer bg-light">
             <div id="materialCatalogViewActions" class="d-flex flex-wrap gap-2 me-auto d-none">
@@ -1074,13 +1120,13 @@
       <div class="modal-content border-0 shadow">
         <div class="modal-header bg-success text-white"><h5 class="modal-title fw-bold" id="stockReceiptTitle">Ghi nhận nhập / xuất kho</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
         <form id="stockReceiptForm" onsubmit="handleSaveStockReceipt(event)">
-          <div class="modal-body erp-form-grid">
+          <div class="modal-body erp-form-grid" data-layout-form="stockReceiptForm" data-layout-title="Nhập / xuất kho">
             <div data-field-type="date"><label class="form-label fw-bold small" for="stockReceiptDate">Ngày nhập xuất</label><input id="stockReceiptDate" type="date" class="form-control" required></div>
             <div data-field-type="material"><label class="form-label fw-bold small" for="stockReceiptMaterialSearch">Mã vật tư</label><div id="stockReceiptMaterialPicker"></div></div>
             <div data-field-type="unit"><label class="form-label fw-bold small" for="stockReceiptUnit">Đvt</label><input id="stockReceiptUnit" class="form-control" readonly></div>
             <div data-field-type="quantity"><label class="form-label fw-bold small" for="stockReceiptQuantity">Số lượng (Nhập &gt; 0, Xuất &lt; 0)</label><input id="stockReceiptQuantity" type="number" step="any" class="form-control" required oninput="updateStockReceiptValue()"></div>
             <div data-field-type="unit-price"><label class="form-label fw-bold small" for="stockReceiptPrice">Đơn giá</label><input id="stockReceiptPrice" type="number" min="0" step="any" class="form-control" oninput="updateStockReceiptValue()"></div>
-            <div data-field-type="amount"><label class="form-label fw-bold small" for="stockReceiptValue">Giá trị</label><input id="stockReceiptValue" class="form-control" readonly></div>
+            <div data-field-type="amount" data-layout-preserve-type="true"><label class="form-label fw-bold small" for="stockReceiptValue">Giá trị</label><input id="stockReceiptValue" class="form-control" readonly></div>
             <div data-field-type="reference"><label class="form-label fw-bold small" for="stockReceiptRepairLog">Mã yêu cầu</label><select id="stockReceiptRepairLog" class="form-select" onchange="applyStockReceiptInheritedMachine()"><option value="">-- Không liên kết nhật ký --</option></select></div>
             <div data-field-type="machine"><label class="form-label fw-bold small" for="stockReceiptMachine">Máy móc/TB</label><select id="stockReceiptMachine" class="form-select"><option value="">-- Không liên kết máy --</option></select></div>
             <div data-field-type="textarea"><label class="form-label fw-bold small" for="stockReceiptNote">Ghi chú</label><textarea id="stockReceiptNote" class="form-control" rows="3"></textarea></div>
@@ -1100,12 +1146,12 @@
           <div class="modal-body">
             <input type="hidden" id="repairLogId">
             <input type="hidden" id="repairLogFileUrl">
-            <div class="erp-form-grid">
+            <div class="erp-form-grid" data-layout-form="repairLogForm" data-layout-title="Nhật ký sửa chữa">
               <div data-field-type="datetime"><label class="form-label fw-bold small" for="repairFrom">Từ giờ</label><input id="repairFrom" type="datetime-local" class="form-control" required></div>
               <div data-field-type="datetime"><label class="form-label fw-bold small" for="repairTo">Đến giờ</label><input id="repairTo" type="datetime-local" class="form-control" required></div>
               <div data-field-type="work-type"><label class="form-label fw-bold small" for="repairType">Loại công việc</label><select id="repairType" class="form-select" required></select><div id="repairTypeInheritedHint" class="form-text d-none">Tự động lấy từ phiếu yêu cầu.</div></div>
-              <div data-field-type="machine"><label class="form-label fw-bold small" for="repairMachine">Máy móc/thiết bị</label><select id="repairMachine" class="form-select" required></select><div id="repairMachineInheritedHint" class="form-text d-none">Tự động lấy từ phiếu yêu cầu.</div></div>
-              <div data-field-type="reference"><label class="form-label fw-bold small" for="repairRequest">Mã yêu cầu (không bắt buộc)</label><select id="repairRequest" class="form-select"><option value="">-- Thực hiện không qua yêu cầu --</option></select></div>
+              <div data-field-type="machine" data-layout-base-row="2"><label class="form-label fw-bold small" for="repairMachine">Máy móc/thiết bị</label><select id="repairMachine" class="form-select" required></select><div id="repairMachineInheritedHint" class="form-text d-none">Tự động lấy từ phiếu yêu cầu.</div></div>
+              <div data-field-type="reference" data-layout-base-row="2"><label class="form-label fw-bold small" for="repairRequest">Mã yêu cầu (không bắt buộc)</label><select id="repairRequest" class="form-select"><option value="">-- Thực hiện không qua yêu cầu --</option></select></div>
               <div data-field-type="textarea">
                 <label class="form-label fw-bold small" for="repairWork">Công việc thực hiện</label>
                 <textarea id="repairWork" class="form-control" rows="3" required></textarea>
@@ -1197,6 +1243,6 @@
 
   <script src="./assets/js/api.js?v=fdb2455"></script>
   <script src="./assets/js/app.js?v=fdb2455"></script>
-  <script src="./assets/js/frontend.js?v=20261031-input-layouts"></script>
+  <script src="./assets/js/frontend.js?v=20261031-system-form-layout-v4"></script>
 </body>
 </html>

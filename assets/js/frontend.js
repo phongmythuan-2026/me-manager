@@ -349,7 +349,16 @@
 
   function getFormLayoutPrimaryControl(field) {
     var controls = getFormLayoutControls(field);
-    return controls.find(function(control) { return control.id === field.dataset.layoutFieldId; }) || controls[0] || null;
+    var control = controls.find(function(item) { return item.id === field.dataset.layoutFieldId; }) || controls[0] || null;
+    if (control) {
+      if (!field.dataset.layoutDefaultRequired) field.dataset.layoutDefaultRequired = String(control.required);
+      if (!field.dataset.layoutOriginalTag) {
+        field.dataset.layoutOriginalTag = control.tagName.toLowerCase();
+        field.dataset.layoutOriginalType = control.tagName.toLowerCase() === 'textarea' ? 'textarea'
+          : control.tagName.toLowerCase() === 'input' ? control.type : '';
+      }
+    }
+    return control;
   }
 
   function registerFormLayoutFields() {
@@ -387,10 +396,10 @@
         if (!field.dataset.layoutDefaultLabel) {
           field.dataset.layoutDefaultLabel = label ? label.textContent.trim().replace(/\s+/g, ' ') : fieldId;
         }
-        if (!field.dataset.layoutDefaultRequired) {
+        if (control && !field.dataset.layoutDefaultRequired) {
           field.dataset.layoutDefaultRequired = String(control.required);
         }
-        if (!field.dataset.layoutOriginalTag) {
+        if (control && !field.dataset.layoutOriginalTag) {
           field.dataset.layoutOriginalTag = control.tagName.toLowerCase();
           field.dataset.layoutOriginalType = control.tagName.toLowerCase() === 'textarea' ? 'textarea'
             : control.tagName.toLowerCase() === 'input' ? control.type : '';
@@ -465,10 +474,10 @@
         if (fieldInfo.label) {
           fieldInfo.label.textContent = settings.label || fieldInfo.defaultLabel;
         }
+        var primaryControl = getFormLayoutPrimaryControl(field);
         var required = settings.required === null || settings.required === undefined
           ? field.dataset.layoutDefaultRequired === 'true'
           : settings.required === true;
-        var primaryControl = getFormLayoutPrimaryControl(field);
         if (primaryControl) primaryControl.required = required;
         else if (settings.required !== null && settings.required !== undefined) {
           inputTypeWarnings.push(fieldInfo.defaultLabel + ': trường động không hỗ trợ đổi trạng thái bắt buộc tại đây.');

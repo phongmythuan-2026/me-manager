@@ -2,7 +2,7 @@
 
 ## Kiến trúc triển khai
 
-- Frontend được phát triển trong repository và triển khai trên GitHub Pages; trang không nhúng giao diện từ Apps Script.
+- Frontend, gồm Bootstrap 5 và CSS giao diện, được phát triển trong repository và triển khai trên GitHub Pages; trang không nhúng giao diện từ Apps Script.
 - Google Apps Script chỉ giữ backend dữ liệu/quyền và một bridge RPC tối giản để frontend GitHub gọi các hàm backend.
 - `clasp push` chỉ đồng bộ `Code.js`, `SharePoint.js`, `Backend.html` và `appsscript.json`; các file frontend được loại trừ bằng `.claspignore`.
 
@@ -32,8 +32,6 @@
 - Các cửa sổ đang đăng nhập kiểm tra phiên bản dữ liệu Google Sheets mỗi 15 giây và chỉ tải lại toàn bộ dữ liệu khi phiên bản thay đổi. Nếu một biểu mẫu đang mở, việc tự tải lại được hoãn đến khi đóng biểu mẫu để tránh mất nội dung chưa lưu. Khi quay lại cửa sổ đang chạy nền, ứng dụng kiểm tra thay đổi ngay.
 - Đồng bộ giữa người dùng là gần thời gian thực qua kiểm tra phiên bản định kỳ Google Sheets (độ trễ thông thường tối đa khoảng 15 giây), không phải kết nối push tức thời. Báo cáo sản xuất chỉ đọc vùng dữ liệu thực có của trang tính, được cache nén phía máy chủ và dùng lại trong trình duyệt tối đa 60 giây để tránh đọc lặp; nút **Làm mới dữ liệu** hoặc **Đồng bộ** bỏ qua cache trình duyệt nhưng có thể nhận dữ liệu máy chủ đã cache trong tối đa 60 giây.
 - Thông báo thành công và hộp thoại chờ lưu/đăng nhập không chặn thao tác; xác nhận xóa dùng chung modal Bootstrap với lựa chọn **Xóa**/**Hủy**. Thông báo lỗi và cảnh báo vẫn hiển thị.
-- Các màn hình xem chi tiết bản ghi liên kết, loại yêu cầu/người dùng và yêu cầu mở từ lịch dùng modal Bootstrap; không dựng form chi tiết bằng popup HTML.
-- Các modal Bootstrap trong hệ thống dùng chung giao diện ERP gọn, trung tính: tiêu đề và chân form đồng nhất, trường nhập dễ nhận biết, nhóm thông tin có tiêu đề và nút thao tác chính màu xanh.
 - Các trường tham chiếu tới yêu cầu, nhật ký sửa chữa, máy móc, vật tư, loại yêu cầu, khu vực và người dùng trong bảng nghiệp vụ được hiển thị bằng chữ xanh để nhận biết liên kết; bấm vào sẽ mở chi tiết bản ghi liên quan. Liên kết chỉ xuất hiện khi tìm thấy bản ghi đích và không gạch chân.
 - Bảng Quản lý Yêu cầu không mở chi tiết khi bấm vào dòng; các liên kết Khu vực và Máy móc/Thiết bị mở form chi tiết bản ghi tương ứng. Form Khu vực có nút sửa/xóa cho Admin; form MMTB hiển thị nút sao chép/sửa/xóa theo quyền quản lý. Trong chi tiết yêu cầu, các thao tác được hiển thị ngay trên form theo trạng thái và quyền người dùng; phần thông tin dùng lưới bốn cột, giữ nguyên mô tả và hai tab lịch sử.
 - Bảng danh mục máy móc thiết bị tự xác định độ rộng cột theo tiêu đề và nội dung dữ liệu, giới hạn độ rộng tối đa để tránh cột quá dài; nội dung hoặc tiêu đề vượt giới hạn được rút gọn bằng dấu ba chấm và xem đầy đủ qua tooltip.

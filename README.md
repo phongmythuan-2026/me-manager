@@ -10,7 +10,7 @@
 - Chi tiết yêu cầu hiển thị thông tin master cùng lịch sử nhật ký sửa chữa theo mã yêu cầu và lịch sử vật tư theo ID TH của các nhật ký liên kết.
 - Form tạo/sửa yêu cầu hiển thị loại yêu cầu, khu vực và máy móc trên một hàng ba cột; mô tả chiếm toàn hàng, ngày hoàn thành và tệp đính kèm nằm cạnh nhau.
 - Chi tiết yêu cầu sắp xếp thông tin thành ba cột, giữ mô tả riêng và hai tab lịch sử sửa chữa, lịch sử sử dụng vật tư.
-- Form MMTB dùng bố cục bốn cột trên màn hình rộng, tự thu về hai cột trên màn hình vừa và một cột trên màn hình nhỏ; các trường ghi chú tình trạng và thông số kỹ thuật vẫn được giữ.
+- Form MMTB khai báo độ rộng riêng cho từng trường trên màn hình rộng, tự thu về hai cột trên màn hình vừa và một cột trên màn hình nhỏ; các trường ghi chú tình trạng và thông số kỹ thuật vẫn chiếm toàn hàng.
 - Các ô chọn dữ liệu tham chiếu trong form có nút **+** để tạo nhanh bản ghi liên quan; nút chỉ hiển thị khi người dùng có quyền tạo. Sau khi tạo, dữ liệu mới được đồng bộ và chọn vào form hiện tại, đồng thời giữ các lựa chọn khác đang nhập.
 - Dashboard tính nhóm đang xử lý gồm các phiếu đã tiếp nhận, đang thực hiện, đã thực hiện và chờ xác nhận; chỉ phiếu ở trạng thái `Hoàn thành` được tính hoàn thành. Lịch Dashboard hiển thị cả phiếu yêu cầu và nhật ký sửa chữa theo đúng thời gian bắt đầu/kết thúc.
 - Hai bảng lịch sử sửa chữa và vật tư trong chi tiết yêu cầu có menu ba chấm theo từng dòng; form xem nhật ký sửa chữa hiển thị các thao tác sao chép, sửa và xóa cho Admin/Kỹ thuật.

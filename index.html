@@ -17,7 +17,7 @@
   <?!= include('Style'); ?>
   <script>
     if (window.location.hostname === 'phongmythuan-2026.github.io') {
-      document.write('<link href="./assets/css/style.css?v=20261029" rel="stylesheet">');
+      document.write('<link href="./assets/css/style.css?v=20261031" rel="stylesheet">');
     }
   </script>
 </head>
@@ -785,40 +785,40 @@
               <li class="nav-item"><button type="button" class="nav-link" onclick="showMachineDetailTab('replacement', this)">Vật tư thay thế</button></li>
             </ul>
             <div id="mmtbInfoPane">
-            <div class="row g-3">
-              <div class="col-12 col-sm-6 col-lg-3">
+            <div class="mmtb-form-grid">
+              <div class="mmtb-form-field" style="--mmtb-field-span: 5">
                 <label class="form-label fw-bold small">Mã thiết bị</label>
                 <input type="text" id="mmtbMa" class="form-control" placeholder="VD: 030101" required>
               </div>
-              <div class="col-12 col-sm-6 col-lg-3">
+              <div class="mmtb-form-field" style="--mmtb-field-span: 15">
                 <label class="form-label fw-bold small">Tên thiết bị</label>
                 <input type="text" id="mmtbTen" class="form-control" placeholder="Tên máy móc..." required>
               </div>
-              <div class="col-12 col-sm-6 col-lg-3">
+              <div class="mmtb-form-field" style="--mmtb-field-span: 10">
                 <label class="form-label fw-bold small">Khu vực</label>
                 <select id="mmtbKhuVuc" class="form-select" required></select>
               </div>
-              <div class="col-12 col-sm-6 col-lg-3">
+              <div class="mmtb-form-field" style="--mmtb-field-span: 2">
                 <label class="form-label fw-bold small">ĐVT chính</label>
                 <input type="text" id="mmtbDVT" class="form-control" value="Bộ" list="inventoryUnitSuggestions" autocomplete="on">
               </div>
-              <div class="col-12 col-sm-6 col-lg-3">
+              <div class="mmtb-form-field" style="--mmtb-field-span: 4">
                 <label class="form-label fw-bold small">Công suất tiêu thụ (KW/H)</label>
                 <input type="text" id="mmtbCongSuat" class="form-control" placeholder="VD: 5.5">
               </div>
-              <div class="col-12 col-sm-6 col-lg-3">
+              <div class="mmtb-form-field" style="--mmtb-field-span: 13">
                 <label class="form-label fw-bold small">Hồ sơ tài chính (Link Drive)</label>
                 <input type="text" id="mmtbHoSoTaiChinh" class="form-control" placeholder="https://...">
               </div>
-              <div class="col-12 col-sm-6 col-lg-3">
+              <div class="mmtb-form-field" style="--mmtb-field-span: 5">
                 <label class="form-label fw-bold small">Thông tin / Xuất xứ</label>
                 <input type="text" id="mmtbThongTin" class="form-control" value="Việt Nam">
               </div>
-              <div class="col-12 col-sm-6 col-lg-3">
+              <div class="mmtb-form-field" style="--mmtb-field-span: 5">
                 <label class="form-label fw-bold small">Ngày đưa vào sử dụng</label>
                 <input type="text" id="mmtbNgaySuDung" class="form-control" placeholder="YYYY-MM-DD">
               </div>
-              <div class="col-12 col-sm-6 col-lg-3">
+              <div class="mmtb-form-field" style="--mmtb-field-span: 5">
                 <label class="form-label fw-bold small">Tình trạng</label>
                 <select id="mmtbTinhTrang" class="form-select">
                   <option value="Sử dụng">Sử dụng</option>
@@ -826,15 +826,15 @@
                   <option value="Ngừng">Ngừng</option>
                 </select>
               </div>
-              <div class="col-12">
+              <div class="mmtb-form-field mmtb-form-field-full">
                 <label class="form-label fw-bold small">Ghi chú tình trạng</label>
                 <input type="text" id="mmtbGhiChu" class="form-control" placeholder="Ghi chú thêm...">
               </div>
-              <div class="col-12">
+              <div class="mmtb-form-field mmtb-form-field-full">
                 <label class="form-label fw-bold small">Thông số kỹ thuật cơ điện</label>
                 <textarea id="mmtbThongSoKT" class="form-control" rows="3"></textarea>
               </div>
-              <div class="col-12">
+              <div class="mmtb-form-field mmtb-form-field-full">
                 <label class="form-label fw-bold small">Hình ảnh MMTB (Nhiều file)</label>
                 <input type="file" id="mmtbFileInput" class="form-control" multiple accept="image/*" onchange="previewSelectedFiles(this, 'filePreviewAreaMMTB', 'fileInfoTextMMTB')">
                 <div id="filePreviewAreaMMTB" class="mt-2 d-none p-2 bg-light border rounded small">

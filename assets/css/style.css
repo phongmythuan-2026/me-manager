@@ -513,3 +513,35 @@ body {
     gap: 0.375rem;
   }
 }
+
+.mmtb-form-grid {
+  display: grid;
+  grid-template-columns: repeat(40, minmax(0, 1fr));
+  gap: 1rem;
+}
+.mmtb-form-field {
+  grid-column: span var(--mmtb-field-span, 40);
+  min-width: 0;
+}
+.mmtb-form-field-full {
+  grid-column: 1 / -1;
+}
+@media (max-width: 991.98px) {
+  .mmtb-form-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .mmtb-form-field {
+    grid-column: span 1;
+  }
+  .mmtb-form-field-full {
+    grid-column: 1 / -1;
+  }
+}
+@media (max-width: 575.98px) {
+  .mmtb-form-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .mmtb-form-field {
+    grid-column: 1 / -1;
+  }
+}

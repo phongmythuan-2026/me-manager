@@ -3332,6 +3332,7 @@
     });
     if (detailActions) detailActions.classList.toggle('d-none', mode !== 'VIEW' || !canManageRepairLog);
     if (closeButton) closeButton.textContent = mode === 'VIEW' ? 'Đóng' : 'Hủy';
+    setRepairLogMobileTab('details');
     document.getElementById('repairFilePreview').classList.add('d-none');
     document.getElementById('repairFrom').value = getLocalMachineDateTime();
     document.getElementById('repairTo').value = getLocalMachineDateTime();
@@ -3424,6 +3425,31 @@
     bootstrap.Modal.getOrCreateInstance(document.getElementById('modalRepairLog')).show();
   }
 
+  function setRepairLogMobileTab(tab) {
+    var form = document.getElementById('repairLogForm');
+    var detailsTab = document.getElementById('btnRepairLogDetailsTab');
+    var materialsTab = document.getElementById('btnRepairLogMaterialsTab');
+    if (!form || !detailsTab || !materialsTab) return;
+    var showMaterials = tab === 'materials';
+    form.dataset.mobileActiveTab = showMaterials ? 'materials' : 'details';
+    detailsTab.classList.toggle('active', !showMaterials);
+    detailsTab.setAttribute('aria-pressed', showMaterials ? 'false' : 'true');
+    materialsTab.classList.toggle('active', showMaterials);
+    materialsTab.setAttribute('aria-pressed', showMaterials ? 'true' : 'false');
+    Array.prototype.forEach.call(form.querySelectorAll('.erp-form-grid > [data-field-type]'), function(field) {
+      var isHidden = showMaterials ? field.id !== 'repairMaterialsField' : field.id === 'repairMaterialsField';
+      Array.prototype.forEach.call(field.querySelectorAll('input, select, textarea'), function(control) {
+        if (isHidden && control.dataset.mobileTabWasDisabled === undefined) {
+          control.dataset.mobileTabWasDisabled = String(control.disabled);
+          control.disabled = true;
+        } else if (!isHidden && control.dataset.mobileTabWasDisabled !== undefined) {
+          control.disabled = control.dataset.mobileTabWasDisabled === 'true';
+          delete control.dataset.mobileTabWasDisabled;
+        }
+      });
+    });
+  }
+
   function closeRepairLogThen(callback) {
     var modal = document.getElementById('modalRepairLog');
     modal.addEventListener('hidden.bs.modal', callback, { once: true });
@@ -3434,6 +3460,7 @@
     var container = document.getElementById('repairMaterialsList');
     if (!container) return;
     container.innerHTML = '';
+    var mobileViewport = window.matchMedia('(max-width: 767.98px)').matches;
     var desktopList = document.createElement('div');
     desktopList.className = 'repair-material-desktop';
     var mobileList = document.createElement('div');
@@ -3474,13 +3501,13 @@
         date.type = 'date';
         date.className = 'form-control form-control-sm';
         date.value = item.ngay || getLocalMachineRuntimeDate();
-        date.disabled = !!readOnly;
+        date.disabled = !!readOnly || mobileViewport;
         date.addEventListener('change', function() { item.ngay = date.value; });
         dateCell.appendChild(date);
 
         var materialCell = document.createElement('td');
         var materialPicker = document.createElement('div');
-        createSearchableMaterialPicker(materialPicker, item.maVatTu, !!readOnly, function(code) {
+        createSearchableMaterialPicker(materialPicker, item.maVatTu, !!readOnly || mobileViewport, function(code) {
           item.maVatTu = code;
         });
         materialCell.appendChild(materialPicker);
@@ -3494,7 +3521,7 @@
         quantity.className = 'form-control form-control-sm';
         quantity.value = item.soLuong === '' || item.soLuong == null ? '' : Math.abs(Number(item.soLuong)) || '';
         quantity.title = 'Nhập số lượng dương; hệ thống sẽ tự ghi số âm vào sổ kho.';
-        quantity.disabled = !!readOnly;
+        quantity.disabled = !!readOnly || mobileViewport;
         quantity.addEventListener('input', function() {
           item.soLuong = quantity.value;
           quantity.setCustomValidity(quantity.value && Number(quantity.value) <= 0
@@ -3510,7 +3537,7 @@
         price.step = 'any';
         price.className = 'form-control form-control-sm';
         price.value = item.donGia || '';
-        price.disabled = !!readOnly;
+        price.disabled = !!readOnly || mobileViewport;
         price.addEventListener('input', function() { item.donGia = price.value; });
         priceCell.appendChild(price);
 
@@ -3585,6 +3612,8 @@
     }
 
     container.append(desktopList, mobileList);
+    var materialCount = document.getElementById('repairLogMaterialCount');
+    if (materialCount) materialCount.textContent = String(repairMaterialRows.length);
   }
 
   function openRepairMaterialModal(index) {

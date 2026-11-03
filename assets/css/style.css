@@ -858,6 +858,191 @@
     .table-custom:not(.modern-data-table) tbody td:last-child {
       border-bottom: 0;
     }
+    #machine-view-catalog .modern-data-table-container,
+    #inventory-view-report .stock-report-table-container {
+      max-height: none !important;
+      overflow: visible !important;
+    }
+    #machine-view-catalog #tblMMTB,
+    #machine-view-catalog #tblMMTB thead,
+    #machine-view-catalog #tblMMTB tbody {
+      display: block !important;
+      width: 100% !important;
+      min-width: 0 !important;
+    }
+    #machine-view-catalog #tblMMTB thead {
+      display: none !important;
+    }
+    #machine-view-catalog #tblMMTB tbody tr {
+      display: grid !important;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      column-gap: 0.75rem;
+      width: 100% !important;
+      margin: 0 0 0.55rem;
+      padding: 0.3rem 0.65rem;
+      border: 1px solid #dbe3ec;
+      border-radius: 0.6rem;
+      background: #fff;
+      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.06);
+    }
+    #machine-view-catalog #tblMMTB tbody td {
+      position: static !important;
+      left: auto !important;
+      display: flex !important;
+      width: auto !important;
+      min-width: 0;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.15rem;
+      padding: 0.4rem 0;
+      border-bottom: 1px solid #edf1f5;
+      background: transparent;
+      color: #1e293b;
+      font-size: 0.82rem;
+      white-space: normal !important;
+      overflow-wrap: anywhere;
+    }
+    #machine-view-catalog #tblMMTB tbody td::before,
+    #inventory-view-report #tblBaoCaoTon tbody td::before {
+      content: attr(data-label);
+      color: #64748b;
+      font-size: 0.67rem;
+      font-weight: 700;
+      line-height: 1.25;
+    }
+    #machine-view-catalog #tblMMTB tbody td:first-child {
+      grid-column: 1 / -1;
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 2rem;
+      padding: 0.15rem 0 0.35rem;
+    }
+    #machine-view-catalog #tblMMTB tbody td:nth-child(3) {
+      grid-column: 1 / -1;
+    }
+    #machine-view-catalog #tblMMTB tbody td:nth-child(6),
+    #machine-view-catalog #tblMMTB tbody td:nth-child(7),
+    #machine-view-catalog #tblMMTB tbody td:nth-child(8),
+    #machine-view-catalog #tblMMTB tbody td:nth-child(9),
+    #machine-view-catalog #tblMMTB tbody td:nth-child(11),
+    #machine-view-catalog #tblMMTB tbody td:nth-child(12),
+    #machine-view-catalog #tblMMTB tbody td:nth-child(13),
+    #machine-view-catalog #tblMMTB tbody td:nth-child(14),
+    #machine-view-catalog #tblMMTB tbody td:nth-child(15) {
+      display: none !important;
+    }
+    #machine-view-catalog #tblMMTB tbody td[colspan] {
+      grid-column: 1 / -1;
+      display: block !important;
+      text-align: center;
+    }
+    #machine-view-catalog #tblMMTB tbody td[colspan]::before {
+      content: none;
+    }
+    #machine-view-catalog #tblMMTB td > * {
+      display: block;
+      max-width: 100%;
+      white-space: normal;
+      overflow-wrap: anywhere;
+    }
+    #machine-view-catalog #tblMMTB td .data-entity-link {
+      white-space: normal;
+    }
+    #tab-mmtb > .view-tab-navigation .nav-tabs,
+    #tab-kho > .view-tab-navigation .nav-tabs {
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      overflow-y: hidden;
+      scrollbar-width: none;
+    }
+    #tab-mmtb > .view-tab-navigation .nav-tabs::-webkit-scrollbar,
+    #tab-kho > .view-tab-navigation .nav-tabs::-webkit-scrollbar {
+      display: none;
+    }
+    #tab-mmtb > .view-tab-navigation .nav-link,
+    #tab-kho > .view-tab-navigation .nav-link {
+      flex: 0 0 auto;
+      padding: 0.5rem 0.65rem;
+      font-size: 0.8rem;
+      white-space: nowrap;
+    }
+    #inventory-view-report .stock-report-table-container #tblBaoCaoTon tbody tr {
+      display: grid;
+      grid-template-columns: repeat(12, minmax(0, 1fr));
+      column-gap: 0.65rem;
+      width: 100% !important;
+      margin: 0 0 0.6rem;
+      padding: 0.35rem 0.7rem 0.6rem;
+      border: 1px solid #dbe3ec;
+      border-radius: 0.65rem;
+      background: #fff;
+      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.06);
+    }
+    #inventory-view-report .stock-report-table-container #tblBaoCaoTon tbody td {
+      display: flex;
+      width: auto !important;
+      min-width: 0;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.15rem;
+      padding: 0.45rem 0;
+      border-bottom: 1px solid #edf1f5;
+      background: transparent;
+      color: #1e293b;
+      font-size: 0.8rem;
+      white-space: normal;
+      overflow-wrap: anywhere;
+    }
+    #inventory-view-report .stock-report-table-container #tblBaoCaoTon tbody td:first-child {
+      grid-column: 1 / -1;
+      flex-direction: row;
+      align-items: center;
+      justify-content: flex-end;
+      min-height: 1.9rem;
+      padding: 0.1rem 0 0.3rem;
+    }
+    #inventory-view-report .stock-report-table-container #tblBaoCaoTon tbody td:nth-child(2) {
+      grid-column: span 4;
+    }
+    #inventory-view-report .stock-report-table-container #tblBaoCaoTon tbody td:nth-child(3) {
+      grid-column: span 6;
+    }
+    #inventory-view-report .stock-report-table-container #tblBaoCaoTon tbody td:nth-child(4) {
+      grid-column: span 2;
+    }
+    #inventory-view-report .stock-report-table-container #tblBaoCaoTon tbody td:nth-child(5),
+    #inventory-view-report .stock-report-table-container #tblBaoCaoTon tbody td:nth-child(6),
+    #inventory-view-report .stock-report-table-container #tblBaoCaoTon tbody td:nth-child(7) {
+      grid-column: span 4;
+    }
+    #inventory-view-report .stock-report-table-container #tblBaoCaoTon tbody td:nth-child(8) {
+      grid-column: 1 / -1;
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 0.15rem;
+      padding: 0.55rem 0.65rem;
+      border: 0;
+      border-radius: 0.45rem;
+      background: #eff6ff;
+      color: #1d4ed8;
+      font-size: 0.9rem;
+      font-weight: 700;
+    }
+    #inventory-view-report .stock-report-table-container #tblBaoCaoTon tbody td[colspan] {
+      grid-column: 1 / -1;
+      display: block;
+      text-align: center;
+    }
+    #inventory-view-report .stock-report-table-container #tblBaoCaoTon tbody td[colspan]::before {
+      content: none;
+    }
+    #inventory-view-report .card-footer {
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      padding: 0.55rem 0.7rem !important;
+    }
     .compact-data-toolbar { gap: 0.375rem; }
     .compact-toolbar-search { flex-basis: 100%; }
     .compact-toolbar-filter { flex: 1 1 160px; }
@@ -1725,6 +1910,10 @@
     padding: 0.2rem 0.45rem;
   }
 
+  .repair-log-mobile-tabs {
+    display: none;
+  }
+
   @media (max-width: 991.98px) {
     .erp-form-grid {
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2198,6 +2387,36 @@ body {
 }
 
 @media (max-width: 767.98px) {
+  #modalRepairLog .repair-log-mobile-tabs {
+    display: flex;
+    flex: 0 0 auto;
+    gap: 0.5rem;
+    padding: 0.55rem 0.75rem;
+    border-bottom: 1px solid #e2e8f0;
+    background: #fff;
+  }
+  #modalRepairLog .repair-log-mobile-tabs button {
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 2.35rem;
+    padding: 0.4rem 0.65rem;
+    border: 1px solid #d5dee7;
+    border-radius: 0.45rem;
+    background: #fff;
+    color: #475569;
+    font-size: 0.8rem;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  #modalRepairLog .repair-log-mobile-tabs button.active {
+    border-color: #0d6efd;
+    background: #eff6ff;
+    color: #0d6efd;
+  }
+  #repairLogForm[data-mobile-active-tab="details"] .erp-form-grid > #repairMaterialsField,
+  #repairLogForm[data-mobile-active-tab="materials"] .erp-form-grid > [data-field-type]:not(#repairMaterialsField) {
+    display: none !important;
+  }
   .repair-material-desktop {
     display: none;
   }

@@ -14,7 +14,7 @@
   <!-- SweetAlert2 -->
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-  <link href="./assets/css/style.css?v=20261103-mobile-nav-fix-v1" rel="stylesheet">
+  <link href="./assets/css/style.css?v=20261103-mobile-machine-stock-report-v1" rel="stylesheet">
 </head>
 <body onclick="hideContextMenu()">
 
@@ -547,7 +547,7 @@
               <div class="col-6 col-md-3"><label class="form-label small" for="stockReportEndDate">Đến ngày</label><input id="stockReportEndDate" type="date" class="form-control form-control-sm" onchange="renderStockReport()"></div>
               <div class="col-12 col-md-6"><label class="form-label small" for="filterStockReportSearch">Tìm vật tư</label><input id="filterStockReportSearch" type="search" class="form-control form-control-sm" placeholder="Nhập mã hoặc tên vật tư..." oninput="resetStockReportPagingAndRender()" aria-label="Tìm mã hoặc tên vật tư trong báo cáo tồn kho"></div>
             </div></div></div>
-            <div class="card border-0 shadow-sm"><div class="table-responsive table-container"><table class="table table-custom align-middle mb-0" id="tblBaoCaoTon"><thead><tr><th class="text-center">Thao tác</th><th>Mã vật tư</th><th>Tên vật tư</th><th>ĐVT</th><th>Tồn đầu kỳ</th><th>Nhập trong kỳ</th><th>Xuất trong kỳ</th><th>Tồn cuối kỳ</th></tr></thead><tbody id="tblBaoCaoTonBody"></tbody></table></div><div class="card-footer bg-white d-flex justify-content-between align-items-center py-2"><div class="d-flex align-items-center gap-2"><span id="pageInfoBaoCaoTon" class="small text-muted">0 trong 0</span><select class="form-select form-select-sm" style="width:80px" onchange="changePageSizeStockReport(this.value)" aria-label="Số dòng tồn kho mỗi trang"><option>20</option><option>50</option><option>100</option></select></div><div class="btn-group btn-group-sm" id="paginationBaoCaoTon"></div></div></div>
+            <div class="card border-0 shadow-sm"><div class="table-responsive table-container stock-report-table-container"><table class="table table-custom align-middle mb-0" id="tblBaoCaoTon"><thead><tr><th class="text-center">Thao tác</th><th>Mã vật tư</th><th>Tên vật tư</th><th>ĐVT</th><th>Tồn đầu kỳ</th><th>Nhập trong kỳ</th><th>Xuất trong kỳ</th><th>Tồn cuối kỳ</th></tr></thead><tbody id="tblBaoCaoTonBody"></tbody></table></div><div class="card-footer bg-white d-flex justify-content-between align-items-center py-2"><div class="d-flex align-items-center gap-2"><span id="pageInfoBaoCaoTon" class="small text-muted">0 trong 0</span><select class="form-select form-select-sm" style="width:80px" onchange="changePageSizeStockReport(this.value)" aria-label="Số dòng tồn kho mỗi trang"><option>20</option><option>50</option><option>100</option></select></div><div class="btn-group btn-group-sm" id="paginationBaoCaoTon"></div></div></div>
           </section>
         </div>
 
@@ -1177,6 +1177,10 @@
       <div class="modal-content border-0 shadow">
         <div class="modal-header bg-primary text-white"><h5 class="modal-title fw-bold" id="repairLogTitle">Tạo nhật ký sửa chữa</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
         <form id="repairLogForm" onsubmit="handleSaveRepairLog(event)">
+          <div id="repairLogMobileTabs" class="repair-log-mobile-tabs" role="group" aria-label="Nội dung nhật ký sửa chữa">
+            <button type="button" id="btnRepairLogDetailsTab" class="active" aria-pressed="true" onclick="setRepairLogMobileTab('details')">Nhật ký</button>
+            <button type="button" id="btnRepairLogMaterialsTab" aria-pressed="false" onclick="setRepairLogMobileTab('materials')">Vật tư (<span id="repairLogMaterialCount">0</span>)</button>
+          </div>
           <div class="modal-body">
             <input type="hidden" id="repairLogId">
             <input type="hidden" id="repairLogFileUrl">
@@ -1190,7 +1194,7 @@
                 <label class="form-label fw-bold small" for="repairWork">Công việc thực hiện</label>
                 <textarea id="repairWork" class="form-control" rows="3" required></textarea>
               </div>
-              <div data-field-type="full">
+              <div id="repairMaterialsField" data-field-type="full">
                 <div class="d-flex justify-content-between align-items-center mb-2">
                   <label class="form-label fw-bold small mb-0">Vật tư sử dụng (ghi xuất vào sổ kho)</label>
                   <button type="button" id="btnRepairMaterialActions" class="btn btn-sm btn-outline-primary" onclick="addRepairMaterialRow()"><i class="fa-solid fa-plus me-1"></i>Thêm vật tư</button>
@@ -1322,6 +1326,6 @@
 
   <script src="./assets/js/api.js?v=fdb2455"></script>
   <script src="./assets/js/app.js?v=20261031-mobile-backend-bridge-v1"></script>
-  <script src="./assets/js/frontend.js?v=20261103-mobile-nav-fix-v1"></script>
+  <script src="./assets/js/frontend.js?v=20261103-mobile-machine-stock-report-v1"></script>
 </body>
 </html>

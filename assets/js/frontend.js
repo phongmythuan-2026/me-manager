@@ -2518,8 +2518,14 @@
       return;
     }
     activeTab = tabName;
-    document.querySelectorAll('.sidebar .nav-link, .mobile-bottom-nav .nav-item-btn').forEach(function(el) { el.classList.remove('active'); });
+    document.querySelectorAll('.sidebar .nav-link, .mobile-bottom-nav .nav-item-btn, .mobile-more-item').forEach(function(el) { el.classList.remove('active'); });
     if (element) element.classList.add('active');
+    var moreButton = document.getElementById('mobile-nav-more');
+    if (moreButton) {
+      var isMoreTab = ['baocaosx', 'danhmuc', 'system'].indexOf(tabName) !== -1;
+      moreButton.classList.toggle('active', isMoreTab);
+      setMobileMoreMenuOpen(false);
+    }
 
     document.querySelectorAll('.content-body > .tab-pane').forEach(function(pane) { pane.classList.add('d-none'); });
     document.getElementById('tab-' + tabName).classList.remove('d-none');
@@ -2558,6 +2564,20 @@
     } else if (tabName === 'system') {
       renderFormLayoutManager();
     }
+  }
+
+  function setMobileMoreMenuOpen(isOpen) {
+    var button = document.getElementById('mobile-nav-more');
+    var menu = document.getElementById('mobile-nav-more-menu');
+    if (!button || !menu) return;
+    menu.classList.toggle('show', isOpen);
+    button.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+  }
+
+  function toggleMobileMoreMenu() {
+    var button = document.getElementById('mobile-nav-more');
+    if (!button) return;
+    setMobileMoreMenuOpen(button.getAttribute('aria-expanded') !== 'true');
   }
 
   function showInventoryView(viewName, button) {

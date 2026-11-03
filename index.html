@@ -14,7 +14,7 @@
   <!-- SweetAlert2 -->
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-  <link href="./assets/css/style.css?v=20261031-attachment-edit-layout-v1" rel="stylesheet">
+  <link href="./assets/css/style.css?v=20261103-mobile-repair-materials-v1" rel="stylesheet">
 </head>
 <body onclick="hideContextMenu()">
 
@@ -1219,6 +1219,43 @@
     </div>
   </div>
 
+  <div class="modal fade" id="modalRepairMaterial" tabindex="-1" aria-labelledby="repairMaterialTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0 shadow">
+        <div class="modal-header">
+          <h5 class="modal-title fw-bold" id="repairMaterialTitle">Thêm vật tư xuất kho</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+        </div>
+        <form id="repairMaterialForm" onsubmit="saveRepairMaterialDraft(event)">
+          <div class="modal-body">
+            <div class="row g-3">
+              <div class="col-12">
+                <label class="form-label fw-bold small" for="repairMaterialDate">Ngày nhập xuất</label>
+                <input id="repairMaterialDate" type="date" class="form-control" required>
+              </div>
+              <div class="col-12">
+                <label class="form-label fw-bold small" for="repairMaterialPickerInput">Mã vật tư (DMVT)</label>
+                <div id="repairMaterialPicker"></div>
+              </div>
+              <div class="col-6">
+                <label class="form-label fw-bold small" for="repairMaterialQuantity">Số lượng xuất</label>
+                <input id="repairMaterialQuantity" type="number" min="0.001" step="any" class="form-control" required>
+              </div>
+              <div class="col-6">
+                <label class="form-label fw-bold small" for="repairMaterialPrice">Đơn giá</label>
+                <input id="repairMaterialPrice" type="number" min="0" step="any" class="form-control">
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Hủy</button>
+            <button type="submit" class="btn btn-primary btn-sm fw-bold px-4">Thêm vào nhật ký</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
   <!-- MODAL ĐỔI MẬT KHẨU -->
   <div class="modal fade" id="modalChangePassword" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
@@ -1278,6 +1315,6 @@
 
   <script src="./assets/js/api.js?v=fdb2455"></script>
   <script src="./assets/js/app.js?v=20261031-mobile-backend-bridge-v1"></script>
-  <script src="./assets/js/frontend.js?v=20261031-attachment-edit-layout-v1"></script>
+  <script src="./assets/js/frontend.js?v=20261103-mobile-repair-materials-v1"></script>
 </body>
 </html>

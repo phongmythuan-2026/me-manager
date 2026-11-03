@@ -3476,7 +3476,7 @@
       var tableWrapper = document.createElement('div');
       tableWrapper.className = 'table-responsive repair-material-table-wrapper';
       var table = document.createElement('table');
-      table.className = 'table table-sm align-middle mb-0 repair-material-table';
+      table.className = 'table table-sm table-hover align-middle mb-0 table-custom repair-material-table';
       var thead = document.createElement('thead');
       thead.className = 'table-light';
       var headerRow = document.createElement('tr');
@@ -3503,6 +3503,7 @@
         date.value = item.ngay || getLocalMachineRuntimeDate();
         date.disabled = !!readOnly || mobileViewport;
         date.addEventListener('change', function() { item.ngay = date.value; });
+        bindRepairMaterialGridNavigation(date, index);
         dateCell.appendChild(date);
 
         var materialCell = document.createElement('td');
@@ -3510,6 +3511,7 @@
         createSearchableMaterialPicker(materialPicker, item.maVatTu, !!readOnly || mobileViewport, function(code) {
           item.maVatTu = code;
         });
+        bindRepairMaterialGridNavigation(materialPicker.querySelector('.searchable-material-input'), index);
         materialCell.appendChild(materialPicker);
 
         var quantityCell = document.createElement('td');
@@ -3528,6 +3530,7 @@
             ? 'Vui lòng nhập số lượng lớn hơn 0.'
             : '');
         });
+        bindRepairMaterialGridNavigation(quantity, index);
         quantityCell.appendChild(quantity);
 
         var priceCell = document.createElement('td');
@@ -3539,6 +3542,7 @@
         price.value = item.donGia || '';
         price.disabled = !!readOnly || mobileViewport;
         price.addEventListener('input', function() { item.donGia = price.value; });
+        bindRepairMaterialGridNavigation(price, index);
         priceCell.appendChild(price);
 
         row.append(dateCell, materialCell, quantityCell, priceCell);
@@ -3614,6 +3618,41 @@
     container.append(desktopList, mobileList);
     var materialCount = document.getElementById('repairLogMaterialCount');
     if (materialCount) materialCount.textContent = String(repairMaterialRows.length);
+  }
+
+  function bindRepairMaterialGridNavigation(control, rowIndex) {
+    if (!control) return;
+    control.addEventListener('keydown', function(event) {
+      if (event.key !== 'Enter' || event.defaultPrevented || control.disabled) return;
+      event.preventDefault();
+      var row = control.closest('tr');
+      if (!row) return;
+      var controls = Array.prototype.slice.call(row.querySelectorAll(
+        'input[type="date"], .searchable-material-input, input[type="number"]'
+      ));
+      var currentIndex = controls.indexOf(control);
+      var nextControl = controls[currentIndex + 1];
+      if (nextControl) {
+        nextControl.focus();
+        return;
+      }
+
+      if (rowIndex < repairMaterialRows.length - 1) {
+        var nextRow = row.nextElementSibling;
+        var nextRowDate = nextRow && nextRow.querySelector('input[type="date"]');
+        if (nextRowDate) nextRowDate.focus();
+        return;
+      }
+
+      repairMaterialRows.push({ ngay: getLocalMachineRuntimeDate(), maVatTu: '', soLuong: '', donGia: '' });
+      renderRepairMaterialRows();
+      window.requestAnimationFrame(function() {
+        var rows = document.querySelectorAll('#repairMaterialsList .repair-material-table tbody tr');
+        var lastRow = rows[rows.length - 1];
+        var firstInput = lastRow && lastRow.querySelector('input[type="date"]');
+        if (firstInput) firstInput.focus();
+      });
+    });
   }
 
   function openRepairMaterialModal(index) {

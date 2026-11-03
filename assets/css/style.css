@@ -1876,6 +1876,18 @@
   .repair-material-table td:nth-child(4) {
     width: 135px;
   }
+  .repair-material-table .form-control {
+    min-height: 2rem;
+    background-color: #fff;
+  }
+  .repair-material-table .form-control:focus {
+    background-color: #fff;
+  }
+  .repair-material-entry-hint {
+    margin: -0.15rem 0 0.45rem;
+    color: #64748b;
+    font-size: 0.7rem;
+  }
   .repair-material-mobile {
     display: none;
   }
@@ -2326,6 +2338,31 @@ body {
   background-color: #fff;
 }
 
+table.table {
+  --bs-table-color: #334155;
+  --bs-table-bg: #fff;
+  --bs-table-border-color: #e2e8f0;
+  --bs-table-hover-bg: #f8fafc;
+  vertical-align: middle;
+}
+
+table.table:not(.table-dark) thead th {
+  background-color: #f1f5f9;
+  color: #334155;
+  font-size: 0.78rem;
+  font-weight: 600;
+  white-space: nowrap;
+  border-bottom: 1px solid #cbd5e1;
+}
+
+table.table tbody td {
+  border-bottom-color: #e2e8f0;
+}
+
+table.table.table-hover tbody tr:hover > * {
+  --bs-table-bg-state: #f8fafc;
+}
+
 .resizer {
   position: absolute;
   right: 0; top: 0; bottom: 0;
@@ -2387,6 +2424,9 @@ body {
 }
 
 @media (max-width: 767.98px) {
+  .repair-material-entry-hint {
+    display: none;
+  }
   #modalRepairLog .repair-log-mobile-tabs {
     display: flex;
     flex: 0 0 auto;

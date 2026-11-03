@@ -1864,7 +1864,7 @@
     white-space: nowrap;
   }
   .repair-material-table td {
-    padding: 0.5rem;
+    padding: 10px;
   }
   .repair-material-table td:first-child {
     width: 145px;
@@ -1887,39 +1887,6 @@
     margin: -0.15rem 0 0.45rem;
     color: #64748b;
     font-size: 0.7rem;
-  }
-  .repair-material-mobile {
-    display: none;
-  }
-  .repair-material-card {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    align-items: start;
-    gap: 0.4rem 0.75rem;
-    padding: 0.65rem 0;
-    border-bottom: 1px solid #e2e8f0;
-  }
-  .repair-material-card-title {
-    min-width: 0;
-    color: #1e293b;
-    font-size: 0.84rem;
-    overflow-wrap: anywhere;
-  }
-  .repair-material-card-details {
-    display: flex;
-    grid-column: 1 / -1;
-    flex-wrap: wrap;
-    gap: 0.25rem 0.75rem;
-    color: #64748b;
-    font-size: 0.72rem;
-  }
-  .repair-material-card-actions {
-    display: flex;
-    gap: 0.35rem;
-  }
-  .repair-material-card-actions .btn {
-    min-height: 1.8rem;
-    padding: 0.2rem 0.45rem;
   }
 
   .repair-log-mobile-tabs {
@@ -2456,12 +2423,6 @@ table.table.table-hover tbody tr:hover > * {
   #repairLogForm[data-mobile-active-tab="details"] .erp-form-grid > #repairMaterialsField,
   #repairLogForm[data-mobile-active-tab="materials"] .erp-form-grid > [data-field-type]:not(#repairMaterialsField) {
     display: none !important;
-  }
-  .repair-material-desktop {
-    display: none;
-  }
-  .repair-material-mobile {
-    display: block;
   }
   #modalRepairMaterial .modal-dialog {
     width: calc(100% - 1rem);

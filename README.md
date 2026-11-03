@@ -28,6 +28,7 @@
 - Danh mục vật tư có mục xem trong menu ba chấm; form xem vật tư cung cấp thao tác sửa/xóa cho Admin và được mở thống nhất từ các liên kết vật tư.
 - Báo cáo tồn kho hiển thị menu ba chấm cho từng dòng để mở xem vật tư và thao tác sửa/xóa theo quyền; danh mục vật tư cũng luôn có nút menu để người dùng không có quyền quản lý vẫn truy cập chức năng xem.
 - Form nhật ký sửa chữa bố trí các trường theo lưới ba cột, cuộn phần nội dung theo chiều cao trình duyệt và giữ nút lưu/đóng luôn hiển thị; khi tạo từ một yêu cầu, loại công việc, máy móc và mã yêu cầu được kế thừa từ phiếu liên kết.
+- Vật tư sử dụng trong nhật ký sửa chữa hiển thị theo bảng đồng nhất với sổ kho; trên điện thoại bảng có thể cuộn ngang và từng dòng được sửa qua biểu mẫu vật tư.
 - Trong nhật ký sửa chữa, nhân viên nhập số lượng vật tư là số dương; hệ thống tự ghi số âm tương ứng vào sổ kho để thể hiện xuất dùng.
 - Quá trình lưu nhật ký tải các tệp đính kèm đồng thời tối đa ba tệp và ghi các dòng vật tư mới vào kho theo lô để giảm thời gian chờ.
 - Thao tác nhanh ngoài bảng dùng nút chức năng trực tiếp; thao tác trên dòng trong bảng dùng menu ba chấm hoặc nhấp chuột phải.

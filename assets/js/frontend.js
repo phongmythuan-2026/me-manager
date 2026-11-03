@@ -3461,6 +3461,8 @@
     if (!container) return;
     container.innerHTML = '';
     var mobileViewport = window.matchMedia('(max-width: 767.98px)').matches;
+    var entryHint = document.querySelector('#repairMaterialsField .repair-material-entry-hint');
+    if (entryHint) entryHint.classList.toggle('d-none', !!readOnly);
     var tableWrapper = document.createElement('div');
     tableWrapper.className = 'table-responsive repair-material-table-wrapper';
     var table = document.createElement('table');
@@ -3495,53 +3497,71 @@
     repairMaterialRows.forEach(function(item, index) {
       var row = document.createElement('tr');
       var dateCell = document.createElement('td');
-      var date = document.createElement('input');
-      date.type = 'date';
-      date.className = 'form-control form-control-sm';
-      date.value = item.ngay || getLocalMachineRuntimeDate();
-      date.disabled = !!readOnly || mobileViewport;
-      date.addEventListener('change', function() { item.ngay = date.value; });
-      bindRepairMaterialGridNavigation(date, index);
-      dateCell.appendChild(date);
-
       var materialCell = document.createElement('td');
-      var materialPicker = document.createElement('div');
-      createSearchableMaterialPicker(materialPicker, item.maVatTu, !!readOnly || mobileViewport, function(code) {
-        item.maVatTu = code;
-      });
-      bindRepairMaterialGridNavigation(materialPicker.querySelector('.searchable-material-input'), index);
-      materialCell.appendChild(materialPicker);
-
       var quantityCell = document.createElement('td');
-      var quantity = document.createElement('input');
-      quantity.type = 'number';
-      quantity.min = '0.001';
-      quantity.step = 'any';
-      quantity.required = true;
-      quantity.className = 'form-control form-control-sm';
-      quantity.value = item.soLuong === '' || item.soLuong == null ? '' : Math.abs(Number(item.soLuong)) || '';
-      quantity.title = 'Nhập số lượng dương; hệ thống sẽ tự ghi số âm vào sổ kho.';
-      quantity.disabled = !!readOnly || mobileViewport;
-      quantity.addEventListener('input', function() {
-        item.soLuong = quantity.value;
-        quantity.setCustomValidity(quantity.value && Number(quantity.value) <= 0
-          ? 'Vui lòng nhập số lượng lớn hơn 0.'
-          : '');
-      });
-      bindRepairMaterialGridNavigation(quantity, index);
-      quantityCell.appendChild(quantity);
-
       var priceCell = document.createElement('td');
-      var price = document.createElement('input');
-      price.type = 'number';
-      price.min = '0';
-      price.step = 'any';
-      price.className = 'form-control form-control-sm';
-      price.value = item.donGia || '';
-      price.disabled = !!readOnly || mobileViewport;
-      price.addEventListener('input', function() { item.donGia = price.value; });
-      bindRepairMaterialGridNavigation(price, index);
-      priceCell.appendChild(price);
+
+      if (readOnly) {
+        var material = item.maVatTu ? getInventoryMaterial(item.maVatTu) : null;
+        var materialName = material
+          ? getInventoryValue(material, ['Tên vật tư', 'Tên hàng', 'Tên'])
+          : '';
+        var values = [
+          normalizeRuntimeDate(item.ngay),
+          (item.maVatTu ? String(item.maVatTu) : '') + (materialName ? ' - ' + materialName : ''),
+          item.soLuong === '' || item.soLuong == null ? '' : formatInventoryNumber(Math.abs(Number(item.soLuong))),
+          item.donGia === '' || item.donGia == null ? '' : formatInventoryMoney(item.donGia)
+        ];
+        [dateCell, materialCell, quantityCell, priceCell].forEach(function(cell, cellIndex) {
+          cell.textContent = values[cellIndex] || '—';
+          if (cellIndex > 1) cell.classList.add('text-end');
+        });
+      } else {
+        var date = document.createElement('input');
+        date.type = 'date';
+        date.className = 'form-control form-control-sm';
+        date.value = item.ngay || getLocalMachineRuntimeDate();
+        date.disabled = mobileViewport;
+        date.addEventListener('change', function() { item.ngay = date.value; });
+        bindRepairMaterialGridNavigation(date, index);
+        dateCell.appendChild(date);
+
+        var materialPicker = document.createElement('div');
+        createSearchableMaterialPicker(materialPicker, item.maVatTu, mobileViewport, function(code) {
+          item.maVatTu = code;
+        });
+        bindRepairMaterialGridNavigation(materialPicker.querySelector('.searchable-material-input'), index);
+        materialCell.appendChild(materialPicker);
+
+        var quantity = document.createElement('input');
+        quantity.type = 'number';
+        quantity.min = '0.001';
+        quantity.step = 'any';
+        quantity.required = true;
+        quantity.className = 'form-control form-control-sm';
+        quantity.value = item.soLuong === '' || item.soLuong == null ? '' : Math.abs(Number(item.soLuong)) || '';
+        quantity.title = 'Nhập số lượng dương; hệ thống sẽ tự ghi số âm vào sổ kho.';
+        quantity.disabled = mobileViewport;
+        quantity.addEventListener('input', function() {
+          item.soLuong = quantity.value;
+          quantity.setCustomValidity(quantity.value && Number(quantity.value) <= 0
+            ? 'Vui lòng nhập số lượng lớn hơn 0.'
+            : '');
+        });
+        bindRepairMaterialGridNavigation(quantity, index);
+        quantityCell.appendChild(quantity);
+
+        var price = document.createElement('input');
+        price.type = 'number';
+        price.min = '0';
+        price.step = 'any';
+        price.className = 'form-control form-control-sm';
+        price.value = item.donGia || '';
+        price.disabled = mobileViewport;
+        price.addEventListener('input', function() { item.donGia = price.value; });
+        bindRepairMaterialGridNavigation(price, index);
+        priceCell.appendChild(price);
+      }
 
       row.append(dateCell, materialCell, quantityCell, priceCell);
       if (!readOnly) {

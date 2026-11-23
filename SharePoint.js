@@ -189,16 +189,26 @@ function importBaoCaoSanXuatToJson(payload, currentUser) {
       return { success: false, message: 'Tệp Import có tiêu đề cột bị trùng.' };
     }
     var dataByMonth = {};
+    var importedCount = 0;
+    var skippedCount = 0;
     payload.data.forEach(function(row) {
       if (!row || typeof row !== 'object' || Array.isArray(row)) throw new Error('Tệp Import chứa dòng không hợp lệ.');
       var rowDate = getProductionReportRowDate_(row, columns);
-      if (!rowDate || rowDate < range.start || rowDate > range.end) {
-        throw new Error('Mọi dòng Import phải có ngày nằm trong khoảng đang chọn.');
+      if (!rowDate) {
+        throw new Error('Tệp Import có dòng không xác định được ngày sản xuất.');
+      }
+      if (rowDate < range.start || rowDate > range.end) {
+        skippedCount++;
+        return;
       }
       var monthKey = rowDate.slice(0, 7).replace('-', '_');
       if (!dataByMonth[monthKey]) dataByMonth[monthKey] = [];
       dataByMonth[monthKey].push(row);
+      importedCount++;
     });
+    if (!importedCount) {
+      return { success: false, message: 'Excel không có dòng dữ liệu nào trong khoảng ngày đã chọn.' };
+    }
 
     var folder = DriveApp.getFolderById(PRODUCTION_REPORT_DRIVE_FOLDER_ID);
     getProductionReportMonthKeys_(range.start, range.end).forEach(function(monthKey) {
@@ -215,7 +225,11 @@ function importBaoCaoSanXuatToJson(payload, currentUser) {
       writeProductionReportMonth_(folder, monthKey, columns, retained.concat(dataByMonth[monthKey] || []));
     });
     bumpProductionReportJsonRevision_();
-    return { success: true, message: 'Đã Import ' + payload.data.length + ' dòng vào JSON báo cáo sản xuất.' };
+    return {
+      success: true,
+      message: 'Đã Import ' + importedCount + ' dòng vào JSON báo cáo sản xuất.' +
+        (skippedCount ? ' Bỏ qua ' + skippedCount + ' dòng ngoài khoảng ngày đã chọn.' : '')
+    };
   } catch (error) {
     return { success: false, message: 'Không thể Import báo cáo sản xuất: ' + error.message };
   }

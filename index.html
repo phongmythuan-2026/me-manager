@@ -490,15 +490,16 @@
                 </div>
               </div>
               <div id="productionReportAdminActions" class="d-none d-flex flex-wrap justify-content-end gap-2 mt-2">
+                <span class="small text-muted me-auto align-self-center">Import và xóa chỉ áp dụng trong khoảng ngày đã chọn phía trên.</span>
                 <input type="file" id="baoCaoImportFile" class="visually-hidden" accept=".xlsx,.xls" onchange="importBaoCaoSanXuatFromFile(this)">
                 <button type="button" class="btn btn-sm btn-outline-primary" onclick="document.getElementById('baoCaoImportFile').click()">
-                  <i class="fa-solid fa-file-import me-1"></i>Import Excel
+                  <i class="fa-solid fa-file-import me-1"></i>Import Excel vào JSON theo ngày
                 </button>
                 <button type="button" class="btn btn-sm btn-outline-secondary" onclick="downloadBaoCaoSanXuatTemplate()">
-                  <i class="fa-solid fa-download me-1"></i>Tải template
+                  <i class="fa-solid fa-download me-1"></i>Tải template Excel
                 </button>
                 <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteBaoCaoSanXuatDateRangeFromUI()">
-                  <i class="fa-solid fa-trash me-1"></i>Xóa khoảng ngày
+                  <i class="fa-solid fa-trash me-1"></i>Xóa dữ liệu từ ngày...đến ngày
                 </button>
               </div>
             </div>

@@ -123,6 +123,8 @@
   var machineRuntimeChart = null;
   var machineRuntimeDateInitialized = false;
   var stockReportDatesInitialized = false;
+  var productionReportDatesInitialized = false;
+  var productionReportRequestSequence = 0;
   var editingMaterialCode = '';
   var editingStockId = '';
   var viewingMaterialCatalogItem = false;
@@ -161,7 +163,14 @@
     });
   }
 
-  function fetchSharePointReport(forceReload, callback) {
+  function fetchProductionReportJson(forceReload, callback, startDate, endDate) {
+    if (startDate || endDate) {
+      google.script.run
+        .withSuccessHandler(function(result) { callback(result, null); })
+        .withFailureHandler(function(error) { callback(null, error); })
+        .getBaoCaoSanXuatFromJson(startDate, endDate);
+      return;
+    }
     if (!forceReload && sharePointReportCache && Date.now() < sharePointReportCacheExpiresAt) {
       callback(sharePointReportCache, null);
       return;
@@ -602,6 +611,56 @@
         Swal.fire('Lỗi cấu hình', error && error.message ? error.message : 'Không thể tải cấu hình giao diện từ GAS.', 'error');
       })
       .getFormLayoutConfig(currentUser);
+  }
+
+  function loadProductionReportSyncSettings() {
+    var status = document.getElementById('productionReportSyncStatus');
+    status.className = 'small mt-3 text-muted';
+    status.textContent = 'Đang tải cấu hình đồng bộ...';
+    google.script.run
+      .withSuccessHandler(function(result) {
+        if (!result || !result.success || !result.settings) {
+          status.className = 'small mt-3 text-danger';
+          status.textContent = result && result.message ? result.message : 'Không tải được cấu hình đồng bộ.';
+          return;
+        }
+        document.getElementById('productionReportSyncTime').value = result.settings.time || '02:00';
+        document.getElementById('productionReportSyncEnabled').checked = result.settings.enabled !== false;
+        status.className = 'small mt-3 text-muted';
+        status.textContent = result.settings.lastRunAt
+          ? 'Lần đồng bộ gần nhất: ' + result.settings.lastRunAt
+          : 'Chưa có lần đồng bộ thành công nào.';
+      })
+      .withFailureHandler(function(error) {
+        status.className = 'small mt-3 text-danger';
+        status.textContent = error && error.message ? error.message : 'Không thể tải cấu hình đồng bộ.';
+      })
+      .getProductionReportSyncSettings(currentUser);
+  }
+
+  function saveProductionReportSyncSettingsFromUI() {
+    var status = document.getElementById('productionReportSyncStatus');
+    var settings = {
+      time: document.getElementById('productionReportSyncTime').value,
+      enabled: document.getElementById('productionReportSyncEnabled').checked
+    };
+    status.className = 'small mt-3 text-muted';
+    status.textContent = 'Đang lưu lịch đồng bộ...';
+    google.script.run
+      .withSuccessHandler(function(result) {
+        if (!result || !result.success) {
+          status.className = 'small mt-3 text-danger';
+          status.textContent = result && result.message ? result.message : 'Không lưu được lịch đồng bộ.';
+          return;
+        }
+        status.className = 'small mt-3 text-success';
+        status.textContent = result.message;
+      })
+      .withFailureHandler(function(error) {
+        status.className = 'small mt-3 text-danger';
+        status.textContent = error && error.message ? error.message : 'Không thể lưu lịch đồng bộ.';
+      })
+      .saveProductionReportSyncSettings(settings, currentUser);
   }
 
   function applyLoadedFormLayoutConfig(config) {
@@ -1097,7 +1156,11 @@
           return;
         }
         loadFormLayoutConfig();
-        loadAllData();
+        loadAllData(function(error) {
+          if (error) return;
+          if (activeTab === 'dashboard') loadMachineRuntimeReport(true);
+          if (activeTab === 'baocaosx') loadBaoCaoSanXuat(true);
+        });
       })
       .withFailureHandler(function(error) {
         dataSyncChecking = false;
@@ -2563,6 +2626,7 @@
       renderInventoryViews();
     } else if (tabName === 'system') {
       renderFormLayoutManager();
+      loadProductionReportSyncSettings();
     }
   }
 
@@ -3895,14 +3959,31 @@
   }
 
   // ----------------------------------------------------
-  // RENDER SHAREPOINT BÁO CÁO SẢN XUẤT
+  // BÁO CÁO SẢN XUẤT ĐỌC JSON THEO KHOẢNG NGÀY
   // ----------------------------------------------------
+  function initializeProductionReportDates() {
+    if (productionReportDatesInitialized) return;
+    var endDate = getLocalMachineRuntimeDate();
+    document.getElementById('baoCaoEndDate').value = endDate;
+    document.getElementById('baoCaoStartDate').value = shiftMachineRuntimeDate(endDate, -30);
+    productionReportDatesInitialized = true;
+  }
+
   function loadBaoCaoSanXuat(forceReload) {
     var tbody = document.getElementById('tblBaoCaoSXBody');
-    var thead = document.getElementById('tblBaoCaoSXHead');
+    var requestSequence = ++productionReportRequestSequence;
+    initializeProductionReportDates();
+    document.getElementById('productionReportAdminActions').classList.toggle('d-none', !can('FORM_LAYOUT_MANAGE'));
+    var startDate = document.getElementById('baoCaoStartDate').value;
+    var endDate = document.getElementById('baoCaoEndDate').value;
+    if (!startDate || !endDate || startDate > endDate) {
+      tbody.innerHTML = '<tr><td colspan="10" class="text-center text-danger py-3">Vui lòng chọn khoảng ngày hợp lệ.</td></tr>';
+      return;
+    }
     tbody.innerHTML = '<tr><td colspan="10" class="text-center text-primary py-4"><i class="fa-solid fa-spinner fa-spin me-2"></i> Đang tải dữ liệu báo cáo sản xuất...</td></tr>';
 
-    fetchSharePointReport(!!forceReload, function(res, error) {
+    fetchProductionReportJson(!!forceReload, function(res, error) {
+        if (requestSequence !== productionReportRequestSequence) return;
         if (error) {
           sharePointRows = [];
           tbody.innerHTML = '<tr><td colspan="10" class="text-center text-danger py-3">Lỗi: ' + escapeHtml(error && error.message ? error.message : 'Không tải được dữ liệu báo cáo sản xuất.') + '</td></tr>';
@@ -3912,7 +3993,8 @@
         if (!res || !res.success || !Array.isArray(res.data)) {
           sharePointRows = [];
           sharePointKeys = [];
-          tbody.innerHTML = '<tr><td colspan="10" class="text-center text-muted py-3">Không có dữ liệu báo cáo sản xuất.</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="10" class="text-center text-danger py-3">' +
+            escapeHtml(res && res.message ? res.message : 'Không tải được dữ liệu báo cáo sản xuất.') + '</td></tr>';
           document.getElementById('baoCaoResultInfo').innerText = '';
           return;
         }
@@ -3920,12 +4002,6 @@
         sharePointRows = res.data.filter(function(row) {
           return row && typeof row === 'object' && !Array.isArray(row);
         });
-        if (machineRuntimeLoaded) {
-          machineRuntimeRows = res.data;
-          machineRuntimeError = '';
-          renderDashboardReplacementAlerts();
-          renderMachineReplacementTable();
-        }
         var seenKeys = {};
         sharePointKeys = [];
         sharePointColumnLabels = {};
@@ -3961,7 +4037,134 @@
         }
         currentPageBaoCao = 1;
         renderBaoCaoSanXuat();
-      });
+      }, startDate, endDate);
+  }
+
+  function downloadBaoCaoSanXuatTemplate() {
+    if (!window.XLSX) {
+      Swal.fire('Không thể tải template', 'Thư viện Excel chưa tải được. Hãy tải lại trang rồi thử lại.', 'error');
+      return;
+    }
+    if (!sharePointKeys.length) {
+      Swal.fire('Chưa có cấu trúc báo cáo', 'Chưa tải được tiêu đề cột từ JSON. Hãy mở báo cáo có dữ liệu trước.', 'warning');
+      return;
+    }
+    var workbook = XLSX.utils.book_new();
+    var worksheet = XLSX.utils.aoa_to_sheet([sharePointKeys]);
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Bao cao SX');
+    XLSX.writeFile(workbook, 'Template_Bao_cao_san_xuat.xlsx');
+  }
+
+  function importBaoCaoSanXuatFromFile(input) {
+    var file = input && input.files && input.files[0];
+    if (!file) return;
+    if (!window.XLSX) {
+      input.value = '';
+      Swal.fire('Không thể Import', 'Thư viện Excel chưa tải được. Hãy tải lại trang rồi thử lại.', 'error');
+      return;
+    }
+    if (!can('FORM_LAYOUT_MANAGE')) {
+      input.value = '';
+      Swal.fire('Không có quyền', 'Chỉ Admin mới được Import báo cáo sản xuất.', 'error');
+      return;
+    }
+    var startDate = document.getElementById('baoCaoStartDate').value;
+    var endDate = document.getElementById('baoCaoEndDate').value;
+    if (!startDate || !endDate || startDate > endDate) {
+      input.value = '';
+      Swal.fire('Khoảng ngày không hợp lệ', 'Hãy chọn Từ ngày và Đến ngày trước khi Import.', 'warning');
+      return;
+    }
+
+    var reader = new FileReader();
+    reader.onload = function(event) {
+      try {
+        var workbook = XLSX.read(event.target.result, { type: 'array', cellDates: true });
+        var worksheet = workbook.Sheets[workbook.SheetNames[0]];
+        if (!worksheet) throw new Error('Không tìm thấy trang tính trong tệp.');
+        var matrix = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '', raw: true });
+        var columns = (matrix.shift() || []).map(function(value) { return String(value == null ? '' : value).trim(); });
+        if (!columns.length || columns.some(function(column) { return !column; })) {
+          throw new Error('Hàng đầu tiên phải có đầy đủ tiêu đề cột.');
+        }
+        var rows = matrix.filter(function(row) {
+          return row.some(function(value) { return value !== '' && value !== null && value !== undefined; });
+        }).map(function(values) {
+          var record = {};
+          columns.forEach(function(column, index) {
+            var value = values[index];
+            if (value instanceof Date && !isNaN(value.getTime())) {
+              value = value.getFullYear() + '-' + String(value.getMonth() + 1).padStart(2, '0') + '-' +
+                String(value.getDate()).padStart(2, '0') + ' ' + String(value.getHours()).padStart(2, '0') + ':' +
+                String(value.getMinutes()).padStart(2, '0') + ':' + String(value.getSeconds()).padStart(2, '0');
+            }
+            record[column] = value == null ? '' : value;
+          });
+          return record;
+        });
+        if (!rows.length) throw new Error('Tệp không có dòng dữ liệu.');
+        Swal.fire({ title: 'Đang Import báo cáo...', didOpen: function() { Swal.showLoading(); }, allowOutsideClick: false });
+        google.script.run
+          .withSuccessHandler(function(result) {
+            input.value = '';
+            if (!result || !result.success) {
+              Swal.fire('Không thể Import', result && result.message ? result.message : 'Đã xảy ra lỗi.', 'error');
+              return;
+            }
+            Swal.fire('Import thành công', result.message, 'success');
+            loadBaoCaoSanXuat(true);
+          })
+          .withFailureHandler(function(error) {
+            input.value = '';
+            Swal.fire('Lỗi hệ thống', error && error.message ? error.message : 'Không thể Import báo cáo.', 'error');
+          })
+          .importBaoCaoSanXuatToJson({ columns: columns, data: rows, startDate: startDate, endDate: endDate }, currentUser);
+      } catch (error) {
+        input.value = '';
+        Swal.fire('Tệp Import không hợp lệ', error.message || 'Không thể đọc nội dung tệp.', 'error');
+      }
+    };
+    reader.onerror = function() {
+      input.value = '';
+      Swal.fire('Không thể đọc tệp', 'Trình duyệt không đọc được tệp Excel đã chọn.', 'error');
+    };
+    reader.readAsArrayBuffer(file);
+  }
+
+  function deleteBaoCaoSanXuatDateRangeFromUI() {
+    if (!can('FORM_LAYOUT_MANAGE')) {
+      Swal.fire('Không có quyền', 'Chỉ Admin mới được xóa dữ liệu báo cáo sản xuất.', 'error');
+      return;
+    }
+    var startDate = document.getElementById('baoCaoStartDate').value;
+    var endDate = document.getElementById('baoCaoEndDate').value;
+    if (!startDate || !endDate || startDate > endDate) {
+      Swal.fire('Khoảng ngày không hợp lệ', 'Hãy chọn Từ ngày và Đến ngày trước khi xóa.', 'warning');
+      return;
+    }
+    Swal.fire({
+      title: 'Xóa dữ liệu báo cáo?',
+      text: 'Xóa các dòng trong khoảng ' + startDate + ' đến ' + endDate + ' khỏi JSON tháng. Bạn có thể đồng bộ lại từ file gốc.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Xóa',
+      cancelButtonText: 'Hủy'
+    }).then(function(result) {
+      if (!result.isConfirmed) return;
+      google.script.run
+        .withSuccessHandler(function(response) {
+          if (!response || !response.success) {
+            Swal.fire('Không thể xóa', response && response.message ? response.message : 'Đã xảy ra lỗi.', 'error');
+            return;
+          }
+          Swal.fire('Đã xóa', response.message, 'success');
+          loadBaoCaoSanXuat(true);
+        })
+        .withFailureHandler(function(error) {
+          Swal.fire('Lỗi hệ thống', error && error.message ? error.message : 'Không thể xóa dữ liệu báo cáo.', 'error');
+        })
+        .deleteBaoCaoSanXuatDateRange(startDate, endDate, currentUser);
+    });
   }
 
   function filterBaoCaoSanXuat() {
@@ -4329,7 +4532,7 @@
     if (replacementStatus) replacementStatus.textContent = 'Đang tải giờ chạy từ báo cáo sản xuất...';
     document.getElementById('machineRuntimeStatus').innerText = 'Đang tải báo cáo sản xuất...';
     renderDashboardReplacementAlerts();
-    fetchSharePointReport(!!forceReload, function(result, error) {
+    fetchProductionReportJson(!!forceReload, function(result, error) {
         machineRuntimeLoading = false;
         if (error) {
           machineRuntimeRows = [];

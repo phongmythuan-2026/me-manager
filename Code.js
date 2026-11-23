@@ -250,7 +250,9 @@ function getAppData() {
 function getDataRevision() {
   var sheetRevision = DriveApp.getFileById(getDb().getId()).getLastUpdated().getTime();
   var layoutRevision = PropertiesService.getScriptProperties().getProperty('FORM_LAYOUT_REVISION') || '0';
-  return String(sheetRevision) + '-' + layoutRevision;
+  var reportRevision = (PropertiesService.getScriptProperties().getProperty('PRODUCTION_REPORT_JSON_REVISION') || '0') +
+    '-' + getProductionReportSyncConfigRevision_();
+  return String(sheetRevision) + '-' + layoutRevision + '-' + reportRevision;
 }
 
 function getAppDataSnapshot() {
@@ -273,6 +275,13 @@ function getAuthenticatedUserForLayoutConfig(currentUser) {
   var tokenUserCode = CacheService.getScriptCache().get('FORM_LAYOUT_SESSION_' + token);
   if (!tokenUserCode || normalizeEmployeeCode(tokenUserCode) !== normalizeEmployeeCode(currentUser.maNV)) return null;
   return storedUser;
+}
+
+function getAuthenticatedAdminForProductionReport_(currentUser) {
+  var storedUser = getAuthenticatedUserForLayoutConfig(currentUser);
+  return storedUser && String(storedUser['Vai trò'] || '').trim().toLowerCase() === 'admin'
+    ? storedUser
+    : null;
 }
 
 function getFormLayoutConfig(currentUser) {

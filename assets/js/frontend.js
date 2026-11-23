@@ -2581,6 +2581,8 @@
       return;
     }
     activeTab = tabName;
+    var topSyncControls = document.getElementById('topDataSyncControls');
+    if (topSyncControls) topSyncControls.classList.toggle('d-none', tabName === 'baocaosx');
     document.querySelectorAll('.sidebar .nav-link, .mobile-bottom-nav .nav-item-btn, .mobile-more-item').forEach(function(el) { el.classList.remove('active'); });
     if (element) element.classList.add('active');
     var moreButton = document.getElementById('mobile-nav-more');
@@ -3969,25 +3971,40 @@
     productionReportDatesInitialized = true;
   }
 
-  function loadBaoCaoSanXuat(forceReload) {
+  function loadBaoCaoSanXuat(forceReload, onComplete) {
     var tbody = document.getElementById('tblBaoCaoSXBody');
     var requestSequence = ++productionReportRequestSequence;
+    var completed = false;
+    function completeLoad() {
+      if (completed) return;
+      completed = true;
+      if (typeof onComplete === 'function') onComplete();
+    }
     initializeProductionReportDates();
-    document.getElementById('productionReportAdminActions').classList.toggle('d-none', !can('FORM_LAYOUT_MANAGE'));
+    var adminActions = document.getElementById('productionReportAdminActions');
+    var canManageReport = can('FORM_LAYOUT_MANAGE');
+    adminActions.classList.toggle('d-none', !canManageReport);
+    adminActions.classList.toggle('d-flex', canManageReport);
     var startDate = document.getElementById('baoCaoStartDate').value;
     var endDate = document.getElementById('baoCaoEndDate').value;
     if (!startDate || !endDate || startDate > endDate) {
       tbody.innerHTML = '<tr><td colspan="10" class="text-center text-danger py-3">Vui lòng chọn khoảng ngày hợp lệ.</td></tr>';
+      completeLoad();
       return;
     }
     tbody.innerHTML = '<tr><td colspan="10" class="text-center text-primary py-4"><i class="fa-solid fa-spinner fa-spin me-2"></i> Đang tải dữ liệu báo cáo sản xuất...</td></tr>';
 
     fetchProductionReportJson(!!forceReload, function(res, error) {
-        if (requestSequence !== productionReportRequestSequence) return;
+        if (requestSequence !== productionReportRequestSequence) {
+          completeLoad();
+          return;
+        }
         if (error) {
           sharePointRows = [];
+          sharePointKeys = [];
           tbody.innerHTML = '<tr><td colspan="10" class="text-center text-danger py-3">Lỗi: ' + escapeHtml(error && error.message ? error.message : 'Không tải được dữ liệu báo cáo sản xuất.') + '</td></tr>';
           document.getElementById('baoCaoResultInfo').innerText = '';
+          completeLoad();
           return;
         }
         if (!res || !res.success || !Array.isArray(res.data)) {
@@ -3996,6 +4013,7 @@
           tbody.innerHTML = '<tr><td colspan="10" class="text-center text-danger py-3">' +
             escapeHtml(res && res.message ? res.message : 'Không tải được dữ liệu báo cáo sản xuất.') + '</td></tr>';
           document.getElementById('baoCaoResultInfo').innerText = '';
+          completeLoad();
           return;
         }
 
@@ -4037,7 +4055,19 @@
         }
         currentPageBaoCao = 1;
         renderBaoCaoSanXuat();
+        completeLoad();
       }, startDate, endDate);
+  }
+
+  function syncBaoCaoSanXuatJson() {
+    var button = document.getElementById('btnSyncBaoCaoSanXuat');
+    if (!button || button.disabled) return;
+    button.disabled = true;
+    button.innerHTML = '<i class="fa-solid fa-rotate fa-spin"></i><span class="ms-1">Đang đồng bộ</span>';
+    loadBaoCaoSanXuat(true, function() {
+      button.disabled = false;
+      button.innerHTML = '<i class="fa-solid fa-rotate"></i><span class="ms-1">Đồng bộ</span>';
+    });
   }
 
   function downloadBaoCaoSanXuatTemplate() {
@@ -4046,7 +4076,11 @@
       return;
     }
     if (!sharePointKeys.length) {
-      Swal.fire('Chưa có cấu trúc báo cáo', 'Chưa tải được tiêu đề cột từ JSON. Hãy mở báo cáo có dữ liệu trước.', 'warning');
+      Swal.fire(
+        'Chưa có cấu trúc báo cáo',
+        'Chạy đồng bộ me_manager_sync lần đầu hoặc dùng Import Excel với file PEROMA-BC Sản xuất 2026.xlsx (trang tính BCSX) để tạo JSON. Sau đó có thể tải template đúng các cột.',
+        'warning'
+      );
       return;
     }
     var workbook = XLSX.utils.book_new();
@@ -4080,7 +4114,7 @@
     reader.onload = function(event) {
       try {
         var workbook = XLSX.read(event.target.result, { type: 'array', cellDates: true });
-        var worksheet = workbook.Sheets[workbook.SheetNames[0]];
+        var worksheet = workbook.Sheets.BCSX || workbook.Sheets[workbook.SheetNames[0]];
         if (!worksheet) throw new Error('Không tìm thấy trang tính trong tệp.');
         var matrix = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '', raw: true });
         var columns = (matrix.shift() || []).map(function(value) { return String(value == null ? '' : value).trim(); });
@@ -4315,7 +4349,9 @@
     thead.replaceChildren(headerRow);
 
     tbody.innerHTML = '';
-    if (!pageRows.length) {
+    if (!visibleKeys.length) {
+      tbody.innerHTML = '<tr><td colspan="1" class="text-center text-muted py-4">Chưa có cấu trúc JSON. Hãy chạy đồng bộ lần đầu hoặc Import file Excel nguồn để khởi tạo báo cáo.</td></tr>';
+    } else if (!pageRows.length) {
       tbody.innerHTML = '<tr><td colspan="' + (visibleKeys.length + 1) + '" class="text-center text-muted py-3">Không có dữ liệu phù hợp.</td></tr>';
     } else {
       pageRows.forEach(function(row, index) {

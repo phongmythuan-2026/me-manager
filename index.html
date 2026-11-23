@@ -77,10 +77,12 @@
       <div class="top-navbar">
         <div class="d-flex align-items-center gap-2">
           <h5 class="m-0 fw-bold text-secondary" id="page-title">Tổng quan hệ thống</h5>
-          <button type="button" class="btn btn-sm btn-outline-primary" id="btnDataSync" onclick="syncCurrentTab()" title="Đồng bộ dữ liệu màn hình đang mở" aria-label="Đồng bộ dữ liệu màn hình đang mở">
-            <i class="fa-solid fa-rotate"></i><span class="d-none d-sm-inline ms-1">Đồng bộ</span>
-          </button>
-          <span id="data-sync-status" class="small text-muted d-none d-xl-inline" role="status" aria-live="polite" title="Tự động kiểm tra thay đổi dữ liệu Google Sheets mỗi 15 giây"></span>
+          <div class="d-flex align-items-center gap-2" id="topDataSyncControls">
+            <button type="button" class="btn btn-sm btn-outline-primary" id="btnDataSync" onclick="syncCurrentTab()" title="Đồng bộ dữ liệu màn hình đang mở" aria-label="Đồng bộ dữ liệu màn hình đang mở">
+              <i class="fa-solid fa-rotate"></i><span class="d-none d-sm-inline ms-1">Đồng bộ</span>
+            </button>
+            <span id="data-sync-status" class="small text-muted d-none d-xl-inline" role="status" aria-live="polite" title="Tự động kiểm tra thay đổi dữ liệu Google Sheets mỗi 15 giây"></span>
+          </div>
         </div>
         <div class="d-flex align-items-center gap-2">
           <button class="btn btn-sm btn-outline-success" onclick="exportCurrentViewExcel()" title="Xuất dữ liệu đang xem ra Excel" aria-label="Xuất Excel">
@@ -463,13 +465,24 @@
         <div id="tab-baocaosx" class="tab-pane d-none">
           <div class="card border-0 shadow-sm mb-3">
             <div class="card-body py-2">
-              <div class="d-flex justify-content-between align-items-center gap-2">
+              <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
                 <h5 class="m-0 fw-bold text-primary"><i class="fa-solid fa-file-excel text-success me-2"></i>Báo cáo sản xuất</h5>
-                <div class="d-flex align-items-center gap-2">
-                  <span class="small text-muted d-none d-md-inline">Nguồn: JSON trên Google Drive</span>
-                  <button class="btn btn-sm btn-primary fw-bold flex-shrink-0" onclick="loadBaoCaoSanXuat(true)">
-                    <i class="fa-solid fa-eye me-1"></i> Xem báo cáo
+                <div class="d-flex flex-wrap align-items-center justify-content-end gap-2">
+                  <button type="button" class="btn btn-sm btn-outline-primary" id="btnSyncBaoCaoSanXuat" onclick="syncBaoCaoSanXuatJson()" title="Tải JSON theo khoảng ngày đang chọn">
+                    <i class="fa-solid fa-rotate"></i><span class="ms-1">Đồng bộ</span>
                   </button>
+                  <div id="productionReportAdminActions" class="d-none flex-wrap align-items-center gap-2">
+                    <input type="file" id="baoCaoImportFile" class="visually-hidden" accept=".xlsx,.xls" onchange="importBaoCaoSanXuatFromFile(this)">
+                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="document.getElementById('baoCaoImportFile').click()">
+                      <i class="fa-solid fa-file-import me-1"></i>Import Excel
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="downloadBaoCaoSanXuatTemplate()">
+                      <i class="fa-solid fa-download me-1"></i>Tải template Excel
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteBaoCaoSanXuatDateRangeFromUI()">
+                      <i class="fa-solid fa-trash me-1"></i>Xóa dữ liệu
+                    </button>
+                  </div>
                 </div>
               </div>
               <div class="row g-2 align-items-end mt-1">
@@ -489,19 +502,7 @@
                   <span id="baoCaoResultInfo" class="small text-muted"></span>
                 </div>
               </div>
-              <div id="productionReportAdminActions" class="d-none d-flex flex-wrap justify-content-end gap-2 mt-2">
-                <span class="small text-muted me-auto align-self-center">Import và xóa chỉ áp dụng trong khoảng ngày đã chọn phía trên.</span>
-                <input type="file" id="baoCaoImportFile" class="visually-hidden" accept=".xlsx,.xls" onchange="importBaoCaoSanXuatFromFile(this)">
-                <button type="button" class="btn btn-sm btn-outline-primary" onclick="document.getElementById('baoCaoImportFile').click()">
-                  <i class="fa-solid fa-file-import me-1"></i>Import Excel vào JSON theo ngày
-                </button>
-                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="downloadBaoCaoSanXuatTemplate()">
-                  <i class="fa-solid fa-download me-1"></i>Tải template Excel
-                </button>
-                <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteBaoCaoSanXuatDateRangeFromUI()">
-                  <i class="fa-solid fa-trash me-1"></i>Xóa dữ liệu từ ngày...đến ngày
-                </button>
-              </div>
+              <div class="small text-muted mt-2">Đồng bộ, Import và xóa áp dụng trong khoảng ngày đã chọn.</div>
             </div>
           </div>
 

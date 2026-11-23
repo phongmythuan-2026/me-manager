@@ -1,7 +1,7 @@
 /**
  * Báo cáo sản xuất được frontend đọc từ JSON theo tháng trên Google Drive.
  */
-var PRODUCTION_REPORT_DRIVE_FOLDER_ID = '19qKcOMCWgFGrF1l8Zg0UBoip7-MnprE3';
+var PRODUCTION_REPORT_DRIVE_FOLDER_ID = '1GpB1e3P7xlJq0pZHVo7uNV7bqiwEc7Mt';
 var PRODUCTION_REPORT_SOURCE_FILE_NAME = 'PEROMA-BC Sản xuất 2026.xlsx';
 var PRODUCTION_REPORT_JSON_PREFIX = 'bc_san_xuat_';
 var PRODUCTION_REPORT_SYNC_CONFIG_FILE_NAME = 'bc_san_xuat_sync_config.json';
